@@ -59,7 +59,7 @@
                             <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.394 0 .012 5.38.012 12.015c0 2.122.551 4.195 1.597 6.012L.031 24l6.111-1.603c1.764.966 3.766 1.474 5.889 1.474 6.636 0 12.019-5.38 12.019-12.015S18.667 0 12.031 0zm0 21.84c-1.794 0-3.55-.482-5.086-1.395l-.365-.216-3.774.99.996-3.682-.237-.378a9.988 9.988 0 0 1-1.528-5.304C2.037 6.49 6.52 2.015 12.031 2.015c5.509 0 9.991 4.476 9.991 9.985 0 5.507-4.482 9.98-9.991 9.98zm5.485-7.498c-.302-.15-1.782-.878-2.059-.979-.277-.101-.479-.15-.681.151-.202.302-.781.979-.957 1.18-.176.201-.352.226-.654.075-1.285-.646-2.316-1.442-3.21-2.946-.201-.341-.019-.516.126-.665.132-.135.302-.351.453-.526.151-.176.201-.301.302-.502.101-.201.05-.377-.025-.527-.076-.151-.681-1.644-.932-2.247-.245-.589-.495-.509-.681-.518-.176-.008-.377-.01-.578-.01s-.529.075-.805.377c-.277.301-1.057 1.031-1.057 2.513s1.082 2.912 1.233 3.113c.151.2 2.122 3.242 5.142 4.545 2.188.941 3.02.825 3.522.696.581-.148 1.782-.729 2.033-1.433.252-.704.252-1.307.176-1.433-.075-.126-.277-.201-.578-.352z"/></svg>
                         </a>
                     </div>
-                    <a href="<?php echo esc_url( home_url( '/contacto/' ) ); ?>" class="btn-footer-denuncia"><span class="material-symbols-outlined">report</span> Envía tu denuncia</a>
+                    <a href="<?php echo esc_url( home_url( '/contacto/' ) ); ?>" class="btn-footer-denuncia"><?php echo pro_eo_icon( 'report', 'Enviar denuncia' ); ?> Envía tu denuncia</a>
                 </div>
             </div>
         </div><!-- .footer-widgets -->
@@ -86,11 +86,11 @@
         <div class="portada-modal-actions">
             <!-- Botón de Descarga -->
             <a id="portada-download-btn" href="" download class="portada-modal-download" title="Descargar Portada" style="color: white; margin-right: 15px; text-decoration: none; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); border-radius: 50%; width: 40px; height: 40px; transition: background 0.3s;">
-                <span class="material-symbols-outlined">download</span>
+                <?php echo pro_eo_icon( 'download' ); ?>
             </a>
             <!-- Botón de Cerrar -->
             <button class="portada-modal-close" aria-label="Cerrar visor" title="Cerrar">
-                <span class="material-symbols-outlined">close</span>
+                <?php echo pro_eo_icon( 'close', 'Cerrar' ); ?>
             </button>
         </div>
     </div>
@@ -107,13 +107,13 @@
     <!-- Controles flotantes inferiores de Zoom -->
     <div class="portada-zoom-controls">
         <button id="portada-zoom-out" class="zoom-btn" title="Alejar (Zoom -)">
-            <span class="material-symbols-outlined">zoom_out</span>
+            <?php echo pro_eo_icon( 'zoom_out', 'Reducir' ); ?>
         </button>
         <button id="portada-zoom-reset" class="zoom-btn text-btn" title="Restablecer">
             100%
         </button>
         <button id="portada-zoom-in" class="zoom-btn" title="Acercar (Zoom +)">
-            <span class="material-symbols-outlined">zoom_in</span>
+            <?php echo pro_eo_icon( 'zoom_in', 'Ampliar' ); ?>
         </button>
     </div>
 </div>
@@ -136,7 +136,7 @@
 <div class="es-floating-radio" id="esFloatingRadio">
     <div class="es-floating-inner">
         <button class="es-float-btn" id="esFloatPlay" onclick="toggleFloatRadio()">
-            <span class="material-symbols-outlined" id="esFloatIcon">play_arrow</span>
+            <?php echo pro_eo_icon( 'play_arrow', 'Reproducir' ); ?>
         </button>
         <div class="es-float-info">
             <span class="es-float-title">Vital 101.5 FM</span>
@@ -150,7 +150,7 @@
             <div class="es-float-bar" style="--d: 0.3s"></div>
         </div>
         <button class="es-float-close" onclick="closeFloatRadio()" title="Cerrar reproductor">
-            <span class="material-symbols-outlined">close</span>
+            <?php echo pro_eo_icon( 'close', 'Cerrar' ); ?>
         </button>
     </div>
 </div>

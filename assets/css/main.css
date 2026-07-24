@@ -153,8 +153,9 @@ img {
     background-color: var(--color-border);
     color: var(--color-accent);
 }
-.dark-mode-toggle .material-symbols-outlined {
-    font-size: 1.2rem;
+.dark-mode-toggle .eo-icon {
+    width: 1.2rem;
+    height: 1.2rem;
 }
 
 /* Header Main (Logo y Ads) */
@@ -381,27 +382,36 @@ img {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    /* Oculto por defecto: invisible + desplazado hacia abajo */
     opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.5s ease, transform 0.5s ease;
+    visibility: hidden;
+    transform: translateY(14px);
+    transition: opacity 0.45s ease, transform 0.45s ease, visibility 0s linear 0.45s;
+    pointer-events: none;
 }
 .ticker-slide.active {
     opacity: 1;
+    visibility: visible;
     transform: translateY(0);
+    transition: opacity 0.45s ease, transform 0.45s ease, visibility 0s linear 0s;
+    pointer-events: auto;
 }
 .ticker-slide.prev {
     opacity: 0;
-    transform: translateY(-20px);
+    visibility: hidden;
+    transform: translateY(-14px);
+    transition: opacity 0.45s ease, transform 0.45s ease, visibility 0s linear 0.45s;
+    pointer-events: none;
 }
 .ticker-slide a {
-    color: #eab308; /* Amarillo dorado como en el ejemplo */
+    color: var(--color-primary, #d97706);
     text-decoration: none;
     font-family: var(--font-ui);
-    font-size: 0.95rem;
-    font-weight: 500;
+    font-size: 0.9rem;
+    font-weight: 600;
 }
 .ticker-slide a:hover {
-    text-decoration: none !important;
+    text-decoration: underline;
 }
 
 /* ==========================================================================
@@ -1823,7 +1833,7 @@ img {
     color: #94a3b8;
 }
 
-.placeholder-cartel .material-symbols-outlined {
+.placeholder-cartel .eo-icon {
     font-size: 5rem;
     color: #cbd5e1;
     margin-bottom: 10px;
@@ -2222,7 +2232,7 @@ img {
     color: #e11d48;
 }
 
-.carteles-banner-content .banner-icon .material-symbols-outlined {
+.carteles-banner-content .banner-icon .eo-icon {
     font-size: 2.5rem;
 }
 
@@ -2430,7 +2440,7 @@ img {
     color: #94a3b8;
 }
 
-.placeholder-portada .material-symbols-outlined {
+.placeholder-portada .eo-icon {
     font-size: 5rem;
     color: #cbd5e1;
 }
@@ -3512,75 +3522,54 @@ body.dark-mode .main-navigation .sub-menu a:hover {
     .desktop-menu-wrapper { display: none !important; }
 }
 
-/* Dark Mode Icon */
-.material-symbols-outlined {
-    font-family: 'Material Symbols Outlined' !important;
-    font-weight: normal !important;
-    font-style: normal !important;
-    font-size: 24px;
-    line-height: 1;
-    letter-spacing: normal !important;
-    text-transform: none !important;
+/* Sistema de iconos SVG local — reemplaza Material Symbols CDN (auditoría 2026-07) */
+.eo-icon {
     display: inline-block;
-    white-space: nowrap;
-    word-wrap: normal;
-    direction: ltr;
-    -webkit-font-feature-settings: 'liga';
-    -webkit-font-smoothing: antialiased;
+    width: 1em;
+    height: 1em;
+    stroke: currentColor;
+    fill: currentColor;
+    vertical-align: middle;
+    flex-shrink: 0;
+    overflow: visible;
+    /* Heredar tamaño del contexto — no font-size fijo */
+    font-size: inherit;
 }
 
-/* Ticker ├â┼íltimo Minuto */
+/* Ticker Último Minuto — sobrescrituras de tema (colores únicamente, sin redefinir layout ni visibilidad) */
 .news-ticker-wrapper {
-    background-color: #f1f5f9;
+    background-color: #f8fafc;
     border-bottom: 1px solid #e2e8f0;
-    padding: 8px 0;
+    padding: 6px 0;
 }
 .dark-mode .news-ticker-wrapper {
     background-color: #0f172a;
     border-bottom-color: #1e293b;
 }
-.news-ticker-inner {
-    display: flex;
-    align-items: center;
-    max-width: 1300px;
-    margin: 0 auto;
-    padding: 0 15px;
-}
 .news-ticker-label {
     background-color: #0f172a;
     color: #fff;
-    padding: 4px 12px;
+    padding: 4px 14px;
     font-weight: 700;
     font-size: 12px;
     text-transform: uppercase;
     border-radius: 4px;
     margin-right: 15px;
     white-space: nowrap;
+    letter-spacing: 0.04em;
 }
 .dark-mode .news-ticker-label {
     background-color: var(--color-primary);
 }
-.news-ticker-slider {
-    flex-grow: 1;
-    overflow: hidden;
-    white-space: nowrap;
-}
-.ticker-slide {
-    display: none;
-}
-.ticker-slide.active {
-    display: block;
-}
+/* Colores de los enlaces según tema */
 .ticker-slide a {
-    color: #d97706;
-    font-weight: 600;
-    text-decoration: none;
-    font-size: 14px;
+    color: #b45309;
 }
 .dark-mode .ticker-slide a {
     color: #fbbf24;
 }
 .ticker-slide a:hover {
+    color: #92400e;
     text-decoration: underline;
 }
 

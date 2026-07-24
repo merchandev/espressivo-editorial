@@ -37,11 +37,11 @@ get_header();
                         if ( has_post_thumbnail() ) {
                             the_post_thumbnail( 'medium', array( 'loading' => 'lazy' ) );
                         } else {
-                            echo '<div class="placeholder-cartel"><span class="material-symbols-outlined">description</span></div>';
+                            echo '<div class="placeholder-cartel">' . pro_eo_icon( 'description' ) . '</div>';
                         }
                         ?>
                         <div class="cartel-overlay">
-                            <span class="material-symbols-outlined cartel-icon">visibility</span>
+                            <?php echo pro_eo_icon( 'visibility', 'Ver cartel' ); ?>
                             <span>Ver Documento</span>
                         </div>
                     </div>

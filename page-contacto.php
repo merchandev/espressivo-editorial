@@ -87,7 +87,7 @@ get_header();
                     <div class="form-submit">
                         <button type="submit" id="contact-submit-btn" class="button button-primary">
                             <span class="btn-text">Enviar Mensaje</span>
-                            <span class="btn-spinner material-symbols-outlined" style="display:none;">autorenew</span>
+                            <?php echo pro_eo_icon( 'autorenew', 'Enviando...', 'btn-spinner', 'style="display:none;"' ); ?>
                         </button>
                     </div>
                     

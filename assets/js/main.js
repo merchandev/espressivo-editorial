@@ -71,27 +71,43 @@ document.addEventListener('DOMContentLoaded', function() {
     // 3. News Ticker Slider
     const tickerSlider = document.getElementById('newsTickerSlider');
     if (tickerSlider) {
-        const slides = tickerSlider.querySelectorAll('.ticker-slide');
+        const slides = Array.from(tickerSlider.querySelectorAll('.ticker-slide'));
         if (slides.length > 0) {
-            let currentSlide = 0;
-            slides[currentSlide].classList.add('active');
-            
+            // Asegurarse de que solo el primero tiene la clase active al arrancar
+            slides.forEach((s, i) => {
+                s.classList.remove('active', 'prev');
+                if (i === 0) s.classList.add('active');
+            });
+
             if (slides.length > 1) {
+                let current = 0;
+                let isAnimating = false;
+
                 setInterval(() => {
-                    slides[currentSlide].classList.remove('active');
-                    slides[currentSlide].classList.add('prev');
-                    
+                    if (isAnimating) return;
+                    isAnimating = true;
+
+                    const prevIndex = current;
+                    current = (current + 1) % slides.length;
+
+                    // Salida: el slide actual pasa a .prev
+                    slides[prevIndex].classList.remove('active');
+                    slides[prevIndex].classList.add('prev');
+
+                    // Entrada: el siguiente aparece con .active
+                    slides[current].classList.add('active');
+
+                    // Limpiar .prev cuando termina la transición CSS (450ms)
                     setTimeout(() => {
-                        const prevSlide = tickerSlider.querySelector('.ticker-slide.prev');
-                        if (prevSlide) prevSlide.classList.remove('prev');
+                        slides[prevIndex].classList.remove('prev');
+                        isAnimating = false;
                     }, 500);
-                    
-                    currentSlide = (currentSlide + 1) % slides.length;
-                    slides[currentSlide].classList.add('active');
+
                 }, 5000);
             }
         }
     }
+
 
     // 4. Paginación AJAX "Cargar Más" (Botón para Inicio)
     const loadMoreBtn = document.getElementById('load-more-btn');
@@ -821,22 +837,117 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Swup Page View Event - Re-trigger anything necessary
         swup.hooks.on('page:view', () => {
+
+
+/* ==========================================================================
+   E-SERVER RADIO PLAYER LOGIC
+   ========================================================================== */
+document.addEventListener('DOMContentLoaded', function() {
+    const audio = document.getElementById('esRespAudio');
+    if (!audio) return; // Only run if player exists on the current page
+
+    const STREAM = 'https://radio.diarioeloriental.com/radio.aac';
+    let playing = false;
+
+    const btn    = document.getElementById('esRespPlay');
+    const icon   = document.getElementById('esRespIcon');
+    const status = document.getElementById('esRespStatus');
+    const fill   = document.getElementById('esRespFill');
+    const bar    = document.getElementById('esRespBar');
+    const vol    = document.getElementById('esRespVol');
+    const mIcon  = document.getElementById('esRespMuteIcon');
+
+    window.toggleRespRadio = function() {
+        playing ? stop() : start();
+    };
+
+    function start() {
+        audio.src = STREAM + '?t=' + Date.now();
+        status.innerText = 'CONECTANDO...';
+        audio.play().then(() => {
+            playing = true;
+            bar.classList.add('es-playing');
+            icon.innerText = 'pause';
+            status.innerText = 'REPRODUCIENDO';
+            animateFill();
+        }).catch(() => {
+            status.innerText = 'ERROR AL CONECTAR';
+        });
+    }
+
+    function stop() {
+        audio.pause(); audio.src = '';
+        playing = false;
+        bar.classList.remove('es-playing');
+        icon.innerText = 'play_arrow';
+        status.innerText = 'DETENIDO';
+        fill.style.width = '0%';
+    }
+
+    function animateFill() {
+        if (!playing) return;
+        let p = 0;
+        const interval = setInterval(() => {
+            if (!playing) { clearInterval(interval); return; }
+            p = (p + 0.1) % 100;
+            fill.style.width = p + '%';
+        }, 100);
+    }
+
+    window.updateRespVol = function() {
+        audio.volume = vol.value;
+        mIcon.innerText = vol.value == 0 ? 'volume_off' : 'volume_up';
+    };
+
+    window.toggleRespMute = function() {
+        if (audio.volume > 0) {
+            audio.v = audio.volume; audio.volume = 0; vol.value = 0;
+            mIcon.innerText = 'volume_off';
+        } else {
+            audio.volume = audio.v || 1; vol.value = audio.volume;
+            mIcon.innerText = 'volume_up';
+        }
+    };
+});
+
+/* ==========================================================================
+   GLOBAL SWUP & FLOATING RADIO LOGIC
+   ========================================================================== */
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Initialize Swup
+    if (typeof Swup !== 'undefined' && typeof SwupScriptsPlugin !== 'undefined') {
+        const swup = new Swup({
+            plugins: [new SwupScriptsPlugin({
+                head: true,
+                body: true
+            })]
+        });
+        
+        // Swup Page View Event - Re-trigger anything necessary
+        swup.hooks.on('page:view', () => {
             // Document listeners survive, but if there's anything else needed, it runs here.
             console.log('Swup navigated to new page');
         });
     }
 
     // 2. Floating Radio Logic
-    const floatAudio = document.getElementById('esFloatAudio');
-    const floatBtn = document.getElementById('esFloatPlay');
-    const floatIcon = document.getElementById('esFloatIcon');
-    const floatStatus = document.getElementById('esFloatStatus');
+    const floatAudio     = document.getElementById('esFloatAudio');
+    const floatBtn       = document.getElementById('esFloatPlay');
+    const floatIcon      = document.getElementById('esFloatIcon');
+    const floatStatus    = document.getElementById('esFloatStatus');
     const floatContainer = document.getElementById('esFloatingRadio');
-    
+
     if (!floatAudio || !floatContainer) return;
 
     const STREAM = 'https://radio.diarioeloriental.com/radio.aac';
     let isFloatPlaying = false;
+
+    /** Intercambia el icono SVG del sprite local (sustituye innerText de la fuente-icono) */
+    function setFloatIcon(name) {
+        if (floatIcon && floatIcon.querySelector('use')) {
+            floatIcon.querySelector('use').setAttribute('href', '#eo-icon-' + name);
+        }
+    }
 
     window.toggleFloatRadio = function() {
         if (isFloatPlaying) {
@@ -844,14 +955,16 @@ document.addEventListener('DOMContentLoaded', function() {
             floatAudio.src = '';
             isFloatPlaying = false;
             floatContainer.classList.remove('playing');
-            floatIcon.innerText = 'play_arrow';
+            setFloatIcon('play_arrow');
             floatStatus.innerText = 'DETENIDO';
-            
+
             // Sync with dedicated page player if exists
             const pageIcon = document.getElementById('esRespIcon');
             if (pageIcon) {
                 document.getElementById('esRespBar').classList.remove('es-playing');
-                pageIcon.innerText = 'play_arrow';
+                if (pageIcon.querySelector('use')) {
+                    pageIcon.querySelector('use').setAttribute('href', '#eo-icon-play_arrow');
+                }
                 document.getElementById('esRespStatus').innerText = 'DETENIDO';
             }
         } else {
@@ -860,14 +973,16 @@ document.addEventListener('DOMContentLoaded', function() {
             floatAudio.play().then(() => {
                 isFloatPlaying = true;
                 floatContainer.classList.add('playing');
-                floatIcon.innerText = 'pause';
+                setFloatIcon('close');
                 floatStatus.innerText = 'EN VIVO';
-                
+
                 // Sync with dedicated page player if exists
                 const pageIcon = document.getElementById('esRespIcon');
                 if (pageIcon) {
                     document.getElementById('esRespBar').classList.add('es-playing');
-                    pageIcon.innerText = 'pause';
+                    if (pageIcon.querySelector('use')) {
+                        pageIcon.querySelector('use').setAttribute('href', '#eo-icon-close');
+                    }
                     document.getElementById('esRespStatus').innerText = 'REPRODUCIENDO';
                 }
             }).catch(() => {

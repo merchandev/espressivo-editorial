@@ -65,7 +65,7 @@ foreach($sec_cats as $slug => $name) :
             
             <div style="padding: 15px 20px 10px; display:flex; align-items:center; justify-content:space-between;">
                 <a href="<?php echo $cat_link; ?>" style="color:var(--color-primary); text-decoration:none; font-family:var(--font-ui); font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:1px;"><?php echo esc_html($name); ?></a>
-                <span class="material-symbols-outlined" style="font-size:1.1rem; color:var(--color-text-muted);">arrow_forward</span>
+                <?php echo pro_eo_icon( 'arrow_forward', '', '', 'style="font-size:1.1rem; color:var(--color-text-muted);"' ); ?>
             </div>
 
             <div style="padding: 0 20px 20px; flex-grow:1; display:flex; flex-direction:column;">
