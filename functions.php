@@ -394,22 +394,17 @@ add_action('wp_ajax_pro_ajax_search', 'pro_ajax_search');
  * Registro de Custom Post Types y Taxonomías
  */
 function pro_register_cpts() {
-    // Clasificado
+    // Clasificados se movió a inc/clasificados.php
+}
 
-    register_post_type('clasificado', array(
-        'labels'      => array('name' => 'Clasificados', 'singular_name' => 'Clasificado'),
-        'public'      => true,
-        'has_archive' => true,
-        'rewrite'     => array('slug' => 'clasificados'),
-        'supports'    => array('title', 'editor', 'thumbnail'),
-        'menu_icon'   => 'dashicons-megaphone'
-    ));
+/**
+ * Sistema nativo de clasificados.
+ */
+$espressivo_clasificados_file =
+    get_template_directory() . '/inc/clasificados.php';
 
-    register_taxonomy('tipo_clasificado', 'clasificado', array(
-        'labels'       => array('name' => 'Tipos de Clasificado', 'singular_name' => 'Tipo de Clasificado'),
-        'hierarchical' => true,
-        'show_in_rest' => true
-    ));
+if ( is_readable( $espressivo_clasificados_file ) ) {
+    require_once $espressivo_clasificados_file;
 }
 
 // =============================================================================

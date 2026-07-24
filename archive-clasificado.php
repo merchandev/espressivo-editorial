@@ -1,84 +1,329 @@
 <?php
 /**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * Plantilla de archivo para la sección de Clasificados.
- * Estilo de diagramación tipo periódico impreso.
+ * Archivo público de clasificados.
+ *
+ * URL: /clasificados/
+ *
+ * @package Espressivo
  */
 
+defined( 'ABSPATH' ) || exit;
+
 get_header();
+
+$archive_url = get_post_type_archive_link(
+    'clasificado'
+);
+
+$selected_type = isset( $_GET['tipo'] )
+    ? sanitize_title(
+        wp_unslash( $_GET['tipo'] )
+    )
+    : '';
+
+$search_value = isset( $_GET['buscar_clasificado'] )
+    ? sanitize_text_field(
+        wp_unslash(
+            $_GET['buscar_clasificado']
+        )
+    )
+    : '';
+
+$types = get_terms(
+    array(
+        'taxonomy'   => 'tipo_clasificado',
+        'hide_empty' => true,
+        'orderby'    => 'name',
+        'order'      => 'ASC',
+    )
+);
 ?>
 
-<main id="primary" class="site-main container clasificados-archive">
-    <header class="page-header">
-        <h1 class="page-title">Clasificados</h1>
-        <p class="clasificados-intro">Encuentra los mejores anuncios de nuestra comunidad.</p>
+<main
+    id="primary"
+    class="site-main classified-archive"
+>
+    <header class="classified-hero">
+        <div class="classified-container">
+            <p class="classified-kicker">
+                <?php esc_html_e( 'Diario El Oriental', 'pro' ); ?>
+            </p>
+
+            <h1 class="classified-page-title">
+                <?php esc_html_e( 'Clasificados', 'pro' ); ?>
+            </h1>
+
+            <p class="classified-description">
+                <?php
+                esc_html_e(
+                    'Empleos, inmuebles, vehículos, servicios, compra y venta y avisos profesionales.',
+                    'pro'
+                );
+                ?>
+            </p>
+        </div>
     </header>
 
-    <?php
-    // Obtener todas las categorías (tipos) de clasificados que tengan posts
-    $tipos = get_terms( array(
-        'taxonomy' => 'tipo_clasificado',
-        'hide_empty' => true,
-    ) );
+    <div class="classified-container">
+        <form
+            class="classified-search"
+            method="get"
+            action="<?php echo esc_url( $archive_url ); ?>"
+        >
+            <div class="classified-search__field">
+                <label
+                    class="screen-reader-text"
+                    for="classified-search-input"
+                >
+                    <?php
+                    esc_html_e(
+                        'Buscar clasificados',
+                        'pro'
+                    );
+                    ?>
+                </label>
 
-    if ( ! empty( $tipos ) && ! is_wp_error( $tipos ) ) {
-        // Agrupar visualmente por Tipo de Clasificado
-        foreach ( $tipos as $tipo ) {
-            $args = array(
-                'post_type' => 'clasificado',
-                'posts_per_page' => -1, // Mostrar todos o un límite alto para impresos
-                'tax_query' => array(
+                <input
+                    id="classified-search-input"
+                    type="search"
+                    name="buscar_clasificado"
+                    value="<?php echo esc_attr( $search_value ); ?>"
+                    placeholder="<?php
+                    echo esc_attr__(
+                        'Buscar por palabra o título',
+                        'pro'
+                    );
+                    ?>"
+                >
+            </div>
+
+            <?php if ( '' !== $selected_type ) : ?>
+                <input
+                    type="hidden"
+                    name="tipo"
+                    value="<?php echo esc_attr( $selected_type ); ?>"
+                >
+            <?php endif; ?>
+
+            <button type="submit">
+                <?php esc_html_e( 'Buscar', 'pro' ); ?>
+            </button>
+        </form>
+
+        <?php if ( ! is_wp_error( $types ) && $types ) : ?>
+            <nav
+                class="classified-types"
+                aria-label="<?php
+                echo esc_attr__(
+                    'Tipos de clasificados',
+                    'pro'
+                );
+                ?>"
+            >
+                <a
+                    class="classified-type-link <?php
+                    echo '' === $selected_type
+                        ? 'is-active'
+                        : '';
+                    ?>"
+                    href="<?php echo esc_url( $archive_url ); ?>"
+                >
+                    <?php esc_html_e( 'Todos', 'pro' ); ?>
+                </a>
+
+                <?php foreach ( $types as $type ) : ?>
+                    <?php
+                    $type_url = add_query_arg(
+                        'tipo',
+                        $type->slug,
+                        $archive_url
+                    );
+                    ?>
+
+                    <a
+                        class="classified-type-link <?php
+                        echo $selected_type === $type->slug
+                            ? 'is-active'
+                            : '';
+                        ?>"
+                        href="<?php echo esc_url( $type_url ); ?>"
+                    >
+                        <?php echo esc_html( $type->name ); ?>
+
+                        <span>
+                            <?php
+                            echo esc_html(
+                                (string) $type->count
+                            );
+                            ?>
+                        </span>
+                    </a>
+                <?php endforeach; ?>
+            </nav>
+        <?php endif; ?>
+
+        <?php if ( have_posts() ) : ?>
+            <div class="classified-results-heading">
+                <h2>
+                    <?php
+                    if ( '' !== $search_value ) {
+                        printf(
+                            esc_html__(
+                                'Resultados para “%s”',
+                                'pro'
+                            ),
+                            esc_html( $search_value )
+                        );
+                    } else {
+                        esc_html_e(
+                            'Avisos publicados',
+                            'pro'
+                        );
+                    }
+                    ?>
+                </h2>
+            </div>
+
+            <section
+                class="classified-grid"
+                aria-label="<?php
+                echo esc_attr__(
+                    'Listado de clasificados',
+                    'pro'
+                );
+                ?>"
+            >
+                <?php while ( have_posts() ) : ?>
+                    <?php
+                    the_post();
+
+                    $post_types = get_the_terms(
+                        get_the_ID(),
+                        'tipo_clasificado'
+                    );
+
+                    $summary = wp_trim_words(
+                        wp_strip_all_tags(
+                            strip_shortcodes(
+                                get_the_content()
+                            )
+                        ),
+                        70,
+                        '…'
+                    );
+                    ?>
+
+                    <article
+                        id="post-<?php the_ID(); ?>"
+                        <?php post_class( 'classified-card' ); ?>
+                    >
+                        <?php
+                        if (
+                            ! empty( $post_types )
+                            && ! is_wp_error( $post_types )
+                        ) :
+                            ?>
+                            <div class="classified-card__types">
+                                <?php foreach ( $post_types as $post_type ) : ?>
+                                    <span>
+                                        <?php
+                                        echo esc_html(
+                                            $post_type->name
+                                        );
+                                        ?>
+                                    </span>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <h2 class="classified-card__title">
+                            <a href="<?php the_permalink(); ?>">
+                                <?php the_title(); ?>
+                            </a>
+                        </h2>
+
+                        <div class="classified-card__content">
+                            <p>
+                                <?php echo esc_html( $summary ); ?>
+                            </p>
+                        </div>
+
+                        <footer class="classified-card__footer">
+                            <time
+                                datetime="<?php
+                                echo esc_attr(
+                                    get_the_date( DATE_W3C )
+                                );
+                                ?>"
+                            >
+                                <?php echo esc_html( get_the_date() ); ?>
+                            </time>
+
+                            <a
+                                class="classified-card__more"
+                                href="<?php the_permalink(); ?>"
+                            >
+                                <?php
+                                esc_html_e(
+                                    'Ver aviso',
+                                    'pro'
+                                );
+                                ?>
+                            </a>
+                        </footer>
+                    </article>
+                <?php endwhile; ?>
+            </section>
+
+            <nav class="classified-pagination">
+                <?php
+                the_posts_pagination(
                     array(
-                        'taxonomy' => 'tipo_clasificado',
-                        'field'    => 'term_id',
-                        'terms'    => $tipo->term_id,
-                    ),
-                ),
-            );
-            $clasificados_query = new WP_Query( $args );
+                        'mid_size'  => 2,
+                        'prev_text' => __(
+                            '← Anteriores',
+                            'pro'
+                        ),
+                        'next_text' => __(
+                            'Siguientes →',
+                            'pro'
+                        ),
+                    )
+                );
+                ?>
+            </nav>
+        <?php else : ?>
+            <section class="classified-empty">
+                <h2>
+                    <?php
+                    esc_html_e(
+                        'No encontramos clasificados',
+                        'pro'
+                    );
+                    ?>
+                </h2>
 
-            if ( $clasificados_query->have_posts() ) {
-                echo '<section class="clasificados-seccion">';
-                echo '<h2 class="clasificados-tipo-titulo">' . esc_html( $tipo->name ) . '</h2>';
-                echo '<div class="clasificados-grid-columnas">';
-                
-                while ( $clasificados_query->have_posts() ) {
-                    $clasificados_query->the_post();
-                    
-                    // Asegurar que el contenido solo sea texto plano o HTML básico sin bloques complejos
-                    $content = wp_strip_all_tags( get_the_content() );
-                    
-                    echo '<article class="clasificado-item">';
-                    echo '<h3 class="clasificado-titulo">' . esc_html( get_the_title() ) . ' - </h3> ';
-                    echo '<div class="clasificado-contenido">' . esc_html( $content ) . '</div>';
-                    echo '</article>';
-                }
-                
-                echo '</div>'; // .clasificados-grid-columnas
-                echo '</section>';
-            }
-            wp_reset_postdata();
-        }
-    } else {
-        // Fallback: Si no hay tipos creados pero hay posts
-        if ( have_posts() ) {
-            echo '<div class="clasificados-grid-columnas">';
-            while ( have_posts() ) : the_post();
-                $content = wp_strip_all_tags( get_the_content() );
-                echo '<article class="clasificado-item">';
-                echo '<h3 class="clasificado-titulo">' . esc_html( get_the_title() ) . ' - </h3> ';
-                echo '<div class="clasificado-contenido">' . esc_html( $content ) . '</div>';
-                echo '</article>';
-            endwhile;
-            echo '</div>';
-        } else {
-            echo '<p>No hay clasificados publicados por el momento.</p>';
-        }
-    }
-    ?>
+                <p>
+                    <?php
+                    esc_html_e(
+                        'Prueba con otra palabra o selecciona otro tipo.',
+                        'pro'
+                    );
+                    ?>
+                </p>
 
-</main><!-- #primary -->
+                <a href="<?php echo esc_url( $archive_url ); ?>">
+                    <?php
+                    esc_html_e(
+                        'Ver todos los clasificados',
+                        'pro'
+                    );
+                    ?>
+                </a>
+            </section>
+        <?php endif; ?>
+    </div>
+</main>
 
 <?php
 get_footer();
