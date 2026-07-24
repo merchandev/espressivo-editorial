@@ -101,15 +101,19 @@ function pro_scripts() {
     wp_enqueue_style( 'pro-normalize', 'https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css', array(), '8.0.1' );
 
     // Estilos principales (CSS customizado)
-    $css_ver = filemtime( get_template_directory() . '/assets/css/main.css' );
+    // Auditoría fix: file_exists() evita E_WARNING si el archivo no existe en producción.
+    $css_path = get_template_directory() . '/assets/css/main.css';
+    $css_ver  = file_exists( $css_path ) ? filemtime( $css_path ) : '1.0.0';
     wp_enqueue_style( 'pro-main-style', get_template_directory_uri() . '/assets/css/main.css', array(), $css_ver );
 
     // Estilos de WordPress (style.css para variables CSS)
-    $style_ver = filemtime( get_stylesheet_directory() . '/style.css' );
+    $style_path = get_stylesheet_directory() . '/style.css';
+    $style_ver  = file_exists( $style_path ) ? filemtime( $style_path ) : '1.0.0';
     wp_enqueue_style( 'pro-style', get_stylesheet_uri(), array('pro-main-style'), $style_ver );
 
     // Script principal (Modo oscuro, progreso de lectura, scroll infinito)
-    $js_ver = filemtime( get_template_directory() . '/assets/js/main.js' );
+    $js_path = get_template_directory() . '/assets/js/main.js';
+    $js_ver  = file_exists( $js_path ) ? filemtime( $js_path ) : '1.0.0';
     wp_enqueue_script( 'pro-main-js', get_template_directory_uri() . '/assets/js/main.js', array(), $js_ver, true );
 
     // Script para buscador Ajax
@@ -302,62 +306,217 @@ function pro_register_cpts() {
     ));
 }
 
+// =============================================================================
+// ROLES PERSONALIZADOS — Espressivo Venezuela
+// Auditoría fix (v2): capacidades mínimas por rol.
+// IMPORTANTE: WordPress guarda roles en la BD (wp_options → wp_user_roles).
+// Los roles ya existentes NO se actualizan con add_role(). Por eso existe
+// pro_migrate_roles_v2() que los corrige directamente en la BD una sola vez.
+// =============================================================================
+
 /**
- * Añadir Rol Dirección y restringir menús
+ * Capacidades mínimas por rol editorial.
+ * Ningún rol copia capabilities del administrador.
  */
-function pro_add_direccion_role() {
+function pro_add_espressivo_roles() {
+
+    // --- Dirección: lectura y gestión editorial, sin configuración del sitio ---
     if ( ! get_role( 'direccion' ) ) {
-        $admin_role = get_role( 'administrator' );
-        if ( $admin_role ) {
-            add_role( 'direccion', 'Dirección', $admin_role->capabilities );
-        }
+        add_role( 'direccion', 'Dirección', array(
+            'read'                   => true,
+            'edit_posts'             => true,
+            'edit_others_posts'      => true,
+            'edit_published_posts'   => true,
+            'publish_posts'          => true,
+            'delete_posts'           => true,
+            'delete_others_posts'    => true,
+            'delete_published_posts' => true,
+            'upload_files'           => true,
+            'manage_categories'      => true,
+            'manage_links'           => true,
+            'moderate_comments'      => true,
+            // Capacidades propias del tema
+            'view_editorial_reports'    => true,
+            'manage_editorial_settings' => true,
+        ) );
     }
-}
-add_action( 'init', 'pro_add_direccion_role' );
 
-function pro_add_gerencia_role() {
+    // --- Gerencia: gestión de contenido, medios, anuncios y carteles ---
     if ( ! get_role( 'gerencia' ) ) {
-        $admin_role = get_role( 'administrator' );
-        if ( $admin_role ) {
-            add_role( 'gerencia', 'Gerencia', $admin_role->capabilities );
-        }
+        add_role( 'gerencia', 'Gerencia', array(
+            'read'                   => true,
+            'edit_posts'             => true,
+            'edit_others_posts'      => true,
+            'edit_published_posts'   => true,
+            'publish_posts'          => true,
+            'delete_posts'           => true,
+            'delete_others_posts'    => true,
+            'delete_published_posts' => true,
+            'upload_files'           => true,
+            'manage_categories'      => true,
+            'moderate_comments'      => true,
+            // Capacidades propias del tema
+            'manage_espressivo_ads'  => true,
+            'view_contact_messages'  => true,
+            'manage_carteles'        => true,
+            'publish_carteles'       => true,
+            'view_editorial_reports' => true,
+        ) );
     }
-}
-add_action( 'init', 'pro_add_gerencia_role' );
 
-function pro_add_publicista_role() {
+    // --- Publicista: solo anuncios y subida de archivos ---
     if ( ! get_role( 'publicista' ) ) {
-        $admin_role = get_role( 'administrator' );
-        if ( $admin_role ) {
-            $caps = $admin_role->capabilities;
-            unset( $caps['list_users'] );
-            unset( $caps['edit_users'] );
-            unset( $caps['create_users'] );
-            unset( $caps['delete_users'] );
-            unset( $caps['promote_users'] );
-            unset( $caps['remove_users'] );
-            unset( $caps['edit_users'] );
-            add_role( 'publicista', 'Publicista', $caps );
-        }
+        add_role( 'publicista', 'Publicista', array(
+            'read'                  => true,
+            'upload_files'          => true,
+            // Capacidades propias del tema
+            'manage_espressivo_ads' => true,
+        ) );
     }
 }
-add_action( 'init', 'pro_add_publicista_role' );
+add_action( 'init', 'pro_add_espressivo_roles' );
 
+/**
+ * Migración de roles existentes en la BD (v2).
+ *
+ * Los roles Dirección, Gerencia y Publicista fueron creados anteriormente
+ * con las capacidades del administrador. Esta función retira esas capacidades
+ * peligrosas de los roles ya almacenados en wp_user_roles y marca la migración
+ * como completada para no repetirla.
+ *
+ * Ejecutar una sola vez al cargar admin_init.
+ */
+function pro_migrate_roles_v2() {
+    // Solo correr si la migración no se ha completado todavía
+    if ( get_option( 'pro_roles_migrated_v2' ) ) {
+        return;
+    }
+
+    // Capacidades de administrador que NO deben tener roles editoriales
+    $dangerous_caps = array(
+        'activate_plugins',
+        'delete_plugins',
+        'edit_plugins',
+        'install_plugins',
+        'update_plugins',
+        'edit_themes',
+        'install_themes',
+        'update_themes',
+        'switch_themes',
+        'delete_themes',
+        'update_core',
+        'manage_options',
+        'list_users',
+        'create_users',
+        'edit_users',
+        'delete_users',
+        'promote_users',
+        'remove_users',
+        'import',
+        'export',
+        'edit_dashboard',
+        'customize',
+        'edit_files',
+    );
+
+    $roles_to_fix = array( 'direccion', 'gerencia', 'publicista' );
+
+    foreach ( $roles_to_fix as $role_slug ) {
+        $role = get_role( $role_slug );
+        if ( ! $role ) {
+            continue;
+        }
+        foreach ( $dangerous_caps as $cap ) {
+            $role->remove_cap( $cap );
+        }
+    }
+
+    // Asignar capacidades mínimas correctas al publicista por si tenía de más
+    $publicista = get_role( 'publicista' );
+    if ( $publicista ) {
+        // Retirar todo y dejar solo lo necesario
+        $all_caps = array_keys( $publicista->capabilities );
+        $allowed  = array( 'read', 'upload_files', 'manage_espressivo_ads' );
+        foreach ( $all_caps as $cap ) {
+            if ( ! in_array( $cap, $allowed, true ) ) {
+                $publicista->remove_cap( $cap );
+            }
+        }
+    }
+
+    // Marcar migración como completada
+    update_option( 'pro_roles_migrated_v2', true );
+}
+add_action( 'admin_init', 'pro_migrate_roles_v2' );
+
+/**
+ * Protección real de pantallas administrativas.
+ * Redirige a roles sin permiso que intenten acceder directamente.
+ * Complementa (pero no reemplaza) la ocultación visual de menús.
+ */
+function pro_protect_admin_screens() {
+    $user = wp_get_current_user();
+    $restricted_roles = array( 'direccion', 'gerencia', 'publicista' );
+
+    if ( ! array_intersect( $restricted_roles, (array) $user->roles ) ) {
+        return; // No es un rol restringido
+    }
+
+    // Pantallas prohibidas para roles editoriales
+    $blocked_pages = array(
+        'plugins.php',
+        'plugin-install.php',
+        'plugin-editor.php',
+        'themes.php',
+        'theme-install.php',
+        'theme-editor.php',
+        'options-general.php',
+        'options-writing.php',
+        'options-reading.php',
+        'options-discussion.php',
+        'options-media.php',
+        'options-permalink.php',
+        'tools.php',
+        'import.php',
+        'export.php',
+        'users.php',
+        'user-new.php',
+        'update-core.php',
+    );
+
+    $current_page = isset( $_SERVER['SCRIPT_NAME'] ) ? basename( sanitize_text_field( wp_unslash( $_SERVER['SCRIPT_NAME'] ) ) ) : '';
+
+    if ( in_array( $current_page, $blocked_pages, true ) ) {
+        wp_die(
+            esc_html__( 'No tienes permisos para acceder a esta página.', 'pro' ),
+            esc_html__( 'Acceso denegado', 'pro' ),
+            array( 'response' => 403, 'back_link' => true )
+        );
+    }
+}
+add_action( 'admin_init', 'pro_protect_admin_screens' );
+
+/**
+ * Ocultar entradas de menú (solo visual — la protección real está arriba).
+ */
 function pro_restrict_direccion_menus() {
     $current_user = wp_get_current_user();
-    if ( in_array( 'direccion', (array) $current_user->roles ) || in_array( 'publicista', (array) $current_user->roles ) ) {
-        // Quitar Hostinger y Hostinger Reach (slugs comunes)
-        remove_menu_page( 'hostinger' );
-        remove_menu_page( 'hostinger-reach' );
-        remove_menu_page( 'toplevel_page_hostinger' ); // Por si acaso usa toplevel
-        
-        // Quitar menús nativos de WP solicitados
-        remove_menu_page( 'edit-comments.php' ); // Comentarios
-        remove_menu_page( 'themes.php' );        // Apariencia
-        remove_menu_page( 'plugins.php' );       // Plugins
-        remove_menu_page( 'tools.php' );         // Herramientas
-        remove_menu_page( 'options-general.php' ); // Ajustes
+    $restricted   = array( 'direccion', 'gerencia', 'publicista' );
+
+    if ( ! array_intersect( $restricted, (array) $current_user->roles ) ) {
+        return;
     }
+
+    remove_menu_page( 'hostinger' );
+    remove_menu_page( 'hostinger-reach' );
+    remove_menu_page( 'toplevel_page_hostinger' );
+    remove_menu_page( 'edit-comments.php' );
+    remove_menu_page( 'themes.php' );
+    remove_menu_page( 'plugins.php' );
+    remove_menu_page( 'tools.php' );
+    remove_menu_page( 'options-general.php' );
+    remove_menu_page( 'users.php' );
+    remove_menu_page( 'update-core.php' );
 }
 add_action( 'admin_menu', 'pro_restrict_direccion_menus', 999 );
 add_action('init', 'pro_register_cpts');
@@ -660,36 +819,18 @@ function pro_save_firma_autor_meta( $post_id ) {
 }
 add_action( 'save_post', 'pro_save_firma_autor_meta' );
 
-/**
- * Forzar etiqueta única EO-2026 y ocultar el panel de etiquetas
- */
-function pro_enforce_single_tag( $post_id, $post, $update ) {
-    if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return;
-    if ( $post->post_type !== 'post' ) return;
-    if ( ! current_user_can( 'edit_post', $post_id ) ) return;
-
-    // Sobrescribir cualquier etiqueta con solo 'EO-2026'
-    wp_set_post_tags( $post_id, 'EO-2026', false );
-}
-add_action( 'save_post', 'pro_enforce_single_tag', 99, 3 );
-
-function pro_remove_tags_panel() {
-    // Remover del Classic Editor
-    remove_meta_box( 'tagsdiv-post_tag', 'post', 'side' );
-}
-add_action( 'admin_menu', 'pro_remove_tags_panel' );
-
-function pro_hide_gutenberg_tags() {
-    // Ocultar del Block Editor (Gutenberg) vía CSS
-    echo '<style>
-        .components-panel__body.edit-post-meta-boxes-area #tagsdiv-post_tag,
-        .edit-post-sidebar .components-panel__body:has(.editor-post-taxonomies__hierarchical-terms-list[aria-label="Etiquetas"]),
-        .edit-post-sidebar .components-panel__body:has(.components-form-token-field) {
-            display: none !important;
-        }
-    </style>';
-}
-add_action( 'admin_head', 'pro_hide_gutenberg_tags' );
+// =============================================================================
+// ETIQUETAS EDITORIALES
+// Auditoría fix: se eliminó pro_enforce_single_tag() que sobrescribía todas
+// las etiquetas de cada artículo con 'EO-2026' al guardar, destruyendo la
+// clasificación temática y el valor SEO de la taxonomía.
+//
+// El año editorial debe almacenarse como metadato interno, no como etiqueta:
+//   update_post_meta( $post_id, '_editorial_year', date('Y') );
+//
+// El panel de etiquetas queda visible en el editor para que los redactores
+// puedan clasificar correctamente sus artículos.
+// =============================================================================
 
 /**
  * Instalación "Nuclear" de páginas automáticas
