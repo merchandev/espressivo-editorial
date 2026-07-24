@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 declare(strict_types=1);
 
@@ -55,7 +55,7 @@ final class Espressivo_Report_Service {
                 if ( ! $start || ! $end ) {
                     return new WP_Error(
                         'Espressivo_invalid_custom_dates',
-                        __( 'Selecciona una fecha inicial y una fecha final vÃ¡lidas.', 'espressivo-reportes' )
+                        __( 'Selecciona una fecha inicial y una fecha final válidas.', 'espressivo-reportes' )
                     );
                 }
 
@@ -66,7 +66,7 @@ final class Espressivo_Report_Service {
             default:
                 return new WP_Error(
                     'Espressivo_invalid_period',
-                    __( 'El perÃ­odo seleccionado no es vÃ¡lido.', 'espressivo-reportes' )
+                    __( 'El período seleccionado no es válido.', 'espressivo-reportes' )
                 );
         }
 
@@ -92,7 +92,7 @@ final class Espressivo_Report_Service {
                 'Espressivo_range_too_long',
                 sprintf(
                     /* translators: %d: maximum number of days. */
-                    __( 'El reporte no puede abarcar mÃ¡s de %d dÃ­as.', 'espressivo-reportes' ),
+                    __( 'El reporte no puede abarcar más de %d días.', 'espressivo-reportes' ),
                     $max_days
                 )
             );
@@ -184,7 +184,7 @@ final class Espressivo_Report_Service {
                 'Espressivo_too_many_items',
                 sprintf(
                     /* translators: %d: maximum report rows. */
-                    __( 'El perÃ­odo contiene mÃ¡s de %d registros. Reduce el rango o activa la generaciÃ³n en segundo plano.', 'espressivo-reportes' ),
+                    __( 'El período contiene más de %d registros. Reduce el rango o activa la generación en segundo plano.', 'espressivo-reportes' ),
                     $max_items
                 )
             );
@@ -224,12 +224,12 @@ final class Espressivo_Report_Service {
 
             $items[] = array(
                 'id'           => $post_id,
-                'title'        => $row->post_title ?: __( '(Sin tÃ­tulo)', 'espressivo-reportes' ),
+                'title'        => $row->post_title ?: __( '(Sin título)', 'espressivo-reportes' ),
                 'uploaded_at'  => wp_date( 'd/m/Y H:i', $uploaded_timestamp, $timezone ),
                 'url'          => $url,
                 'display_url'  => self::shorten_url( $url ),
                 'link_label'   => $is_public
-                    ? __( 'Abrir publicaciÃ³n', 'espressivo-reportes' )
+                    ? __( 'Abrir publicación', 'espressivo-reportes' )
                     : __( 'Abrir en el editor', 'espressivo-reportes' ),
                 'status'       => $status_object
                     ? (string) $status_object->label
@@ -300,4 +300,3 @@ final class Espressivo_Report_Service {
         return mb_substr( $display, 0, 69 ) . '...';
     }
 }
-

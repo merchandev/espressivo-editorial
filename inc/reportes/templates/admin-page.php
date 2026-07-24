@@ -59,8 +59,8 @@ $periods = array(
             <p><?php esc_html_e( 'El documento incluirá únicamente el contenido registrado como cargado por tu cuenta.', 'pro' ); ?></p>
 
             <form class="espressivo-reportes-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-                <input type="hidden" name="action" value="espressivo_export_report_pdf">
-                <?php wp_nonce_field( 'espressivo_export_report_pdf', 'espressivo_report_nonce' ); ?>
+                <input type="hidden" name="action" value="<?php echo esc_attr( Espressivo_Reportes::EXPORT_ACTION ); ?>">
+                <?php wp_nonce_field( Espressivo_Reportes::NONCE_ACTION, Espressivo_Reportes::NONCE_NAME ); ?>
 
                 <fieldset class="espressivo-reportes-periods">
                     <legend class="screen-reader-text"><?php esc_html_e( 'Período del reporte', 'pro' ); ?></legend>

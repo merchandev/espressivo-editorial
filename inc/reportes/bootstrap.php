@@ -34,4 +34,12 @@ require_once ESPRESSIVO_REPORTES_DIR . 'class-espressivo-report-service.php';
 require_once ESPRESSIVO_REPORTES_DIR . 'class-espressivo-pdf-generator.php';
 require_once ESPRESSIVO_REPORTES_DIR . 'class-espressivo-reportes.php';
 
+add_action(
+    'after_switch_theme',
+    array(
+        'Espressivo_Reportes',
+        'activate',
+    )
+);
+
 Espressivo_Reportes::boot();

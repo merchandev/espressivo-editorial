@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 declare(strict_types=1);
 
@@ -66,8 +66,8 @@ final class Espressivo_Upload_Log {
     }
 
     /**
-     * Registra publicaciones histÃ³ricas usando post_author y post_date como
-     * aproximaciÃ³n del cargador y fecha originales.
+     * Registra publicaciones históricas usando post_author y post_date como
+     * aproximación del cargador y fecha originales.
      */
     public static function backfill_existing_content(): void {
         global $wpdb;
@@ -91,7 +91,7 @@ final class Espressivo_Upload_Log {
     }
 
     /**
-     * Conserva el primer usuario que creÃ³ el contenido. INSERT IGNORE impide
+     * Conserva el primer usuario que creó el contenido. INSERT IGNORE impide
      * que cambios posteriores de autor reescriban el registro original.
      */
     public function capture(
@@ -146,4 +146,3 @@ final class Espressivo_Upload_Log {
         ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
     }
 }
-

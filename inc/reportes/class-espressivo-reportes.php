@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 declare(strict_types=1);
 
@@ -8,6 +8,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class Espressivo_Reportes {
     public const CAPABILITY = 'export_own_editorial_report';
+    public const EXPORT_ACTION = 'espressivo_export_report_pdf';
+    public const NONCE_ACTION  = 'espressivo_export_report_pdf';
+    public const NONCE_NAME    = 'espressivo_report_nonce';
 
     private const MENU_SLUG          = 'espressivo-mis-reportes';
     private const CAP_VERSION_OPTION = 'Espressivo_report_capabilities_version';
@@ -20,7 +23,7 @@ final class Espressivo_Reportes {
         add_action( 'admin_init', array( $plugin, 'maybe_upgrade' ) );
         add_action( 'admin_menu', array( $plugin, 'register_menu' ) );
         add_action( 'admin_enqueue_scripts', array( $plugin, 'enqueue_assets' ) );
-        add_action( 'admin_post_Espressivo_export_pdf', array( $plugin, 'handle_export' ) );
+        add_action( 'admin_post_' . self::EXPORT_ACTION, array( $plugin, 'handle_export' ) );
         add_filter( 'user_has_cap', array( $plugin, 'deny_subscriber_capability' ), 10, 4 );
 
         add_action( 'wp_after_insert_post', array( $upload_log, 'capture' ), 20, 4 );
@@ -32,26 +35,26 @@ final class Espressivo_Reportes {
         Espressivo_Upload_Log::backfill_existing_content();
         self::sync_capabilities();
 
-        update_option( self::CAP_VERSION_OPTION, Espressivo_VERSION, false );
-        update_option( self::DB_VERSION_OPTION, Espressivo_VERSION, false );
+        update_option( self::CAP_VERSION_OPTION, ESPRESSIVO_REPORTES_VERSION, false );
+        update_option( self::DB_VERSION_OPTION, ESPRESSIVO_REPORTES_VERSION, false );
     }
 
     public function maybe_upgrade(): void {
-        // Mantiene sincronizados los roles que se creen despuÃ©s de activar el plugin.
-        // La funciÃ³n solo escribe en la base de datos cuando falta o sobra la capacidad.
+        // Mantiene sincronizados los roles que se creen después de activar el plugin.
+        // La función solo escribe en la base de datos cuando falta o sobra la capacidad.
         self::sync_capabilities();
 
         $cap_version = (string) get_option( self::CAP_VERSION_OPTION, '' );
-        if ( Espressivo_VERSION !== $cap_version ) {
+        if ( ESPRESSIVO_REPORTES_VERSION !== $cap_version ) {
             self::sync_capabilities();
-            update_option( self::CAP_VERSION_OPTION, Espressivo_VERSION, false );
+            update_option( self::CAP_VERSION_OPTION, ESPRESSIVO_REPORTES_VERSION, false );
         }
 
         $db_version = (string) get_option( self::DB_VERSION_OPTION, '' );
-        if ( Espressivo_VERSION !== $db_version ) {
+        if ( ESPRESSIVO_REPORTES_VERSION !== $db_version ) {
             Espressivo_Upload_Log::install();
             Espressivo_Upload_Log::backfill_existing_content();
-            update_option( self::DB_VERSION_OPTION, Espressivo_VERSION, false );
+            update_option( self::DB_VERSION_OPTION, ESPRESSIVO_REPORTES_VERSION, false );
         }
     }
 
@@ -123,16 +126,16 @@ final class Espressivo_Reportes {
 
         wp_enqueue_style(
             'erp-admin',
-            Espressivo_URL . 'assets/admin.css',
+            get_template_directory_uri() . '/assets/css/admin-reportes.css',
             array(),
-            Espressivo_VERSION
+            ESPRESSIVO_REPORTES_VERSION
         );
 
         wp_enqueue_script(
             'erp-admin',
-            Espressivo_URL . 'assets/admin.js',
+            get_template_directory_uri() . '/assets/js/admin-reportes.js',
             array(),
-            Espressivo_VERSION,
+            ESPRESSIVO_REPORTES_VERSION,
             true
         );
     }
@@ -151,13 +154,13 @@ final class Espressivo_Reportes {
         $dompdf_available = class_exists( '\\Dompdf\\Dompdf' );
         $reportable_types = $this->get_reportable_type_labels();
 
-        require Espressivo_DIR . 'templates/admin-page.php';
+        require ESPRESSIVO_REPORTES_DIR . 'templates/admin-page.php';
     }
 
     public function handle_export(): void {
         if ( 'POST' !== strtoupper( (string) ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) {
             wp_die(
-                esc_html__( 'MÃ©todo de solicitud no permitido.', 'espressivo-reportes' ),
+                esc_html__( 'Método de solicitud no permitido.', 'espressivo-reportes' ),
                 '',
                 array( 'response' => 405 )
             );
@@ -171,12 +174,12 @@ final class Espressivo_Reportes {
             );
         }
 
-        check_admin_referer( 'Espressivo_export_pdf', 'Espressivo_nonce' );
+        check_admin_referer( self::NONCE_ACTION, self::NONCE_NAME );
 
         if ( ! class_exists( '\\Dompdf\\Dompdf' ) ) {
             wp_die(
                 wp_kses_post(
-                    __( 'Dompdf no estÃ¡ instalado. Ejecuta <code>composer install --no-dev --optimize-autoloader</code> dentro de la carpeta del plugin.', 'espressivo-reportes' )
+                    __( 'Dompdf no está instalado. Ejecuta <code>composer install --no-dev --optimize-autoloader</code> dentro de la carpeta del plugin.', 'espressivo-reportes' )
                 ),
                 esc_html__( 'Generador PDF no disponible', 'espressivo-reportes' ),
                 array( 'response' => 500 )
@@ -204,7 +207,7 @@ final class Espressivo_Reportes {
         if ( is_wp_error( $range ) ) {
             wp_die(
                 esc_html( $range->get_error_message() ),
-                esc_html__( 'PerÃ­odo invÃ¡lido', 'espressivo-reportes' ),
+                esc_html__( 'Período inválido', 'espressivo-reportes' ),
                 array( 'response' => 400 )
             );
         }
@@ -265,4 +268,3 @@ final class Espressivo_Reportes {
         return array_values( array_unique( $labels ) );
     }
 }
-

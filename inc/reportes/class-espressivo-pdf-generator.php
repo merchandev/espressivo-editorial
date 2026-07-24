@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 declare(strict_types=1);
 
@@ -16,7 +16,7 @@ final class Espressivo_PDF_Generator {
     public function download( array $report ): void {
         if ( ! class_exists( Dompdf::class ) ) {
             wp_die(
-                esc_html__( 'Dompdf no estÃ¡ disponible.', 'espressivo-reportes' ),
+                esc_html__( 'Dompdf no está disponible.', 'espressivo-reportes' ),
                 '',
                 array( 'response' => 500 )
             );
@@ -32,7 +32,7 @@ final class Espressivo_PDF_Generator {
         $options->set( 'isFontSubsettingEnabled', true );
         $options->set( 'tempDir', $temp_dir );
         $options->set( 'fontCache', $temp_dir );
-        $options->set( 'chroot', Espressivo_DIR );
+        $options->set( 'chroot', ESPRESSIVO_REPORTES_DIR );
 
         $dompdf = new Dompdf( $options );
         $dompdf->setPaper( 'A4', 'landscape' );
@@ -58,7 +58,7 @@ final class Espressivo_PDF_Generator {
             $canvas->page_text(
                 $canvas->get_width() - 132,
                 $footer_y,
-                'PÃ¡gina {PAGE_NUM} de {PAGE_COUNT}',
+                'Página {PAGE_NUM} de {PAGE_COUNT}',
                 $font,
                 7.5,
                 array( 0.34, 0.36, 0.39 )
@@ -94,7 +94,7 @@ final class Espressivo_PDF_Generator {
      * @param array<string, mixed> $report
      */
     private function render_template( array $report ): string {
-        $logo_path     = Espressivo_DIR . 'assets/logo-negro.png';
+        $logo_path     = get_template_directory() . '/assets/image/LOGO NEGRO.png';
         $logo_data_uri = '';
 
         if ( is_readable( $logo_path ) ) {
@@ -108,7 +108,7 @@ final class Espressivo_PDF_Generator {
         $site_url     = home_url( '/' );
 
         ob_start();
-        require Espressivo_DIR . 'templates/pdf-report.php';
+        require ESPRESSIVO_REPORTES_DIR . 'templates/pdf-report.php';
 
         return (string) ob_get_clean();
     }
@@ -131,4 +131,3 @@ final class Espressivo_PDF_Generator {
         );
     }
 }
-

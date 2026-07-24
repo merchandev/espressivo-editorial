@@ -433,21 +433,18 @@ function pro_add_espressivo_roles() {
     // --- Dirección: lectura y gestión editorial, sin configuración del sitio ---
     if ( ! get_role( 'direccion' ) ) {
         add_role( 'direccion', 'Dirección', array(
-            'read'                   => true,
-            'edit_posts'             => true,
-            'edit_others_posts'      => true,
-            'edit_published_posts'   => true,
-            'publish_posts'          => true,
-            'delete_posts'           => true,
-            'delete_others_posts'    => true,
-            'delete_published_posts' => true,
-            'upload_files'           => true,
-            'manage_categories'      => true,
-            'manage_links'           => true,
-            'moderate_comments'      => true,
-            // Capacidades propias del tema
-            'view_editorial_reports'    => true,
-            'manage_editorial_settings' => true,
+            'read'                        => true,
+            'upload_files'                => true,
+            'edit_posts'                  => true,
+            'edit_others_posts'           => true,
+            'edit_published_posts'        => true,
+            'publish_posts'               => true,
+            'delete_posts'                => true,
+            'delete_others_posts'         => true,
+            'delete_published_posts'      => true,
+            'manage_categories'           => true,
+            'moderate_comments'           => true,
+            'export_own_editorial_report' => true,
         ) );
     }
 
@@ -496,48 +493,41 @@ add_action( 'init', 'pro_add_espressivo_roles' );
  *
  * Ejecutar una sola vez al cargar admin_init.
  */
-function pro_migrate_roles_v2() {
+function pro_migrate_roles_v3() {
+    // Asegurar que el administrador tenga la nueva capacidad de exportar
+    $admin = get_role( 'administrator' );
+    if ( $admin && ! $admin->has_cap( 'export_contact_messages' ) ) {
+        $admin->add_cap( 'export_contact_messages' );
+    }
+
     // Solo correr si la migración no se ha completado todavía
-    if ( get_option( 'pro_roles_migrated_v2' ) ) {
+    if ( get_option( 'pro_roles_migrated_v3' ) ) {
         return;
     }
 
-    // Capacidades de administrador que NO deben tener roles editoriales
-    $dangerous_caps = array(
-        'activate_plugins',
-        'delete_plugins',
-        'edit_plugins',
-        'install_plugins',
-        'update_plugins',
-        'edit_themes',
-        'install_themes',
-        'update_themes',
-        'switch_themes',
-        'delete_themes',
-        'update_core',
-        'manage_options',
-        'list_users',
-        'create_users',
-        'edit_users',
-        'delete_users',
-        'promote_users',
-        'remove_users',
-        'import',
-        'export',
-        'edit_dashboard',
-        'customize',
-        'edit_files',
-    );
+    $role = get_role( 'direccion' );
+    if ( $role ) {
+        $allowed = array(
+            'read',
+            'upload_files',
+            'edit_posts',
+            'edit_others_posts',
+            'edit_published_posts',
+            'publish_posts',
+            'delete_posts',
+            'delete_others_posts',
+            'delete_published_posts',
+            'manage_categories',
+            'moderate_comments',
+            'export_own_editorial_report',
+        );
 
-    $roles_to_fix = array( 'direccion', 'gerencia', 'publicista' );
-
-    foreach ( $roles_to_fix as $role_slug ) {
-        $role = get_role( $role_slug );
-        if ( ! $role ) {
-            continue;
-        }
-        foreach ( $dangerous_caps as $cap ) {
+        foreach ( array_keys( $role->capabilities ) as $cap ) {
             $role->remove_cap( $cap );
+        }
+
+        foreach ( $allowed as $cap ) {
+            $role->add_cap( $cap );
         }
     }
 
@@ -555,9 +545,9 @@ function pro_migrate_roles_v2() {
     }
 
     // Marcar migración como completada
-    update_option( 'pro_roles_migrated_v2', true );
+    update_option( 'pro_roles_migrated_v3', true );
 }
-add_action( 'admin_init', 'pro_migrate_roles_v2' );
+add_action( 'admin_init', 'pro_migrate_roles_v3' );
 
 /**
  * Protección real de pantallas administrativas.
@@ -1529,8 +1519,8 @@ function pro_export_mensajes_button($which) {
 // 5. Lógica de exportación CSV
 add_action('admin_post_pro_export_mensajes_csv', 'pro_export_mensajes_csv_handler');
 function pro_export_mensajes_csv_handler() {
-    if (!current_user_can('edit_posts')) {
-        wp_die('No tienes permiso para hacer esto.');
+    if ( ! current_user_can( 'export_contact_messages' ) ) {
+        wp_die( esc_html__( 'No tienes permiso para exportar contactos.', 'pro' ), '', array( 'response' => 403 ) );
     }
     check_admin_referer('pro_export_mensajes_csv_nonce');
 
@@ -3334,10 +3324,13 @@ function pro_setup_espressivo_categories_and_menu() {
             $parent_id = is_array( $parent_term ) ? $parent_term['term_id'] : $parent_term;
             $cat_ids[$parent] = array( 'id' => $parent_id, 'children' => array() );
             foreach ( $data['children'] as $child ) {
-                $child_term = term_exists( $child, 'category' );
-                if ( ! $child_term ) { $child_term = wp_insert_term( $child, 'category', array('parent' => $parent_id) ); } 
-                else { wp_update_term( (int)(is_array($child_term)?$child_term['term_id']:$child_term), 'category', array('parent' => $parent_id) ); }
-                if ( ! is_wp_error( $child_term ) ) { $cat_ids[$parent]['children'][$child] = is_array( $child_term ) ? $child_term['term_id'] : $child_term; }
+                $child_term = term_exists( $child, 'category', $parent_id );
+                if ( ! $child_term ) { 
+                    $child_term = wp_insert_term( $child, 'category', array('parent' => $parent_id) ); 
+                } 
+                if ( ! is_wp_error( $child_term ) ) { 
+                    $cat_ids[$parent]['children'][$child] = is_array( $child_term ) ? $child_term['term_id'] : $child_term; 
+                }
             }
         }
     }
