@@ -177,14 +177,124 @@ function pro_scripts() {
 }
 add_action( 'wp_enqueue_scripts', 'pro_scripts' );
 
-// Limpiar transients al publicar un nuevo post
-add_action( 'transition_post_status', 'pro_clear_latest_post_transient', 10, 3 );
-function pro_clear_latest_post_transient( $new_status, $old_status, $post ) {
+// =============================================================================
+// HELPERS DE CATEGORÍA Y SISTEMA DE CACHÉ EDITORIAL
+// Auditoría fix: invalidación completa al publicar o cambiar categorías.
+// =============================================================================
+
+/**
+ * Resuelve el term_id de una categoría a partir de su slug.
+ * Centraliza la resolución para evitar IDs hardcodeados en templates.
+ *
+ * @param string $slug Slug de la categoría.
+ * @return int term_id o 0 si no existe.
+ */
+function eo_get_category_id( string $slug ): int {
+    $term = get_category_by_slug( $slug );
+    return ( $term instanceof WP_Term ) ? (int) $term->term_id : 0;
+}
+
+/**
+ * Elimina todos los transients editoriales afectados por un post.
+ * Sube por toda la jerarquía de categorías para invalidar padres también.
+ *
+ * @param int $post_id ID del post (0 = solo transients globales).
+ */
+function eo_clear_editorial_cache( int $post_id = 0 ): void {
+    // Transients globales — siempre se limpian
+    delete_transient( 'pro_latest_post_date' );
+    delete_transient( 'pro_ticker_posts' );
+
+    if ( $post_id <= 0 ) {
+        return;
+    }
+
+    // Transients por categoría + ancestros
+    $category_ids = wp_get_post_categories( $post_id, array( 'fields' => 'ids' ) );
+
+    if ( empty( $category_ids ) ) {
+        return;
+    }
+
+    $all_ids = array_map( 'intval', $category_ids );
+
+    foreach ( $category_ids as $cat_id ) {
+        $ancestors = get_ancestors( (int) $cat_id, 'category', 'taxonomy' );
+        foreach ( $ancestors as $ancestor_id ) {
+            $all_ids[] = (int) $ancestor_id;
+        }
+    }
+
+    $all_ids = array_unique( $all_ids );
+
+    foreach ( $all_ids as $tid ) {
+        delete_transient( 'eo_category_' . $tid );
+    }
+}
+
+/**
+ * Hook: limpiar caché al publicar, actualizar o despublicar un post.
+ * Cubre también cambios de estado (draft → publish, publish → trash).
+ */
+add_action( 'save_post_post', function ( int $post_id, WP_Post $post, bool $update ): void {
+    if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
+        return;
+    }
+    eo_clear_editorial_cache( $post_id );
+}, 20, 3 );
+
+/**
+ * Hook: limpiar caché cuando se cambia la categoría de un post.
+ * save_post_post no es suficiente: si el post ya está publicado y solo
+ * se le cambia la categoría, set_object_terms dispara pero save_post no.
+ */
+add_action( 'set_object_terms', function (
+    int    $object_id,
+    array  $terms,
+    array  $tt_ids,
+    string $taxonomy,
+    bool   $append,
+    array  $old_tt_ids
+): void {
+    if ( 'category' !== $taxonomy ) {
+        return;
+    }
+    // Solo limpiar si los términos realmente cambiaron
+    if ( $tt_ids === $old_tt_ids ) {
+        return;
+    }
+    eo_clear_editorial_cache( $object_id );
+}, 20, 6 );
+
+/**
+ * Hook: transition_post_status — mantener compatibilidad con el ticker
+ * y con futuros plugins que puedan depender de este hook.
+ */
+add_action( 'transition_post_status', function ( string $new_status, string $old_status, WP_Post $post ): void {
     if ( 'post' === $post->post_type && ( 'publish' === $new_status || 'publish' === $old_status ) ) {
+        // Ya cubierto por save_post_post, pero lo dejamos para el ticker
         delete_transient( 'pro_latest_post_date' );
         delete_transient( 'pro_ticker_posts' );
     }
-}
+}, 10, 3 );
+
+/**
+ * pre_get_posts — Normalizar la consulta principal del archivo nativo de categorías.
+ *
+ * category.php usa have_posts() / the_post() de la consulta principal.
+ * WordPress incluye hijos por defecto en is_category(), pero este hook
+ * garantiza ordenado preciso, sin sticky posts y con 20 entradas.
+ */
+add_action( 'pre_get_posts', function ( WP_Query $query ): void {
+    if ( is_admin() || ! $query->is_main_query() || ! $query->is_category() ) {
+        return;
+    }
+
+    $query->set( 'post_status',         'publish' );
+    $query->set( 'posts_per_page',      20 );
+    $query->set( 'orderby',             array( 'date' => 'DESC', 'ID' => 'DESC' ) );
+    $query->set( 'ignore_sticky_posts', true );
+} );
 
 
 /**

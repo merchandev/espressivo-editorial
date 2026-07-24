@@ -33,23 +33,37 @@ $args = array(
     'post_type'           => 'post',
     'post_status'         => 'publish',
     'posts_per_page'      => 12,
-    'orderby'             => 'date',
-    'order'               => 'DESC',
+    // Desempate preciso: dos artículos en la misma fecha quedan ordenados por ID
+    'orderby'             => array( 'date' => 'DESC', 'ID' => 'DESC' ),
     'ignore_sticky_posts' => 1,
     'paged'               => $paged,
 );
 
 if ( $category ) {
-    if ( $category->slug === 'opinion' || $category->slug === 'bienestar' ) {
-        // Para opinión y bienestar, evitamos que se mezclen subcategorías
-        $args['category__in'] = array( $category->term_id );
-    } else {
-        // Para el resto (como Monagas), incluimos sus subcategorías (Ciudad, Sucesos Monagas, etc.)
-        $args['cat'] = $category->term_id;
-    }
+    // Auditoría fix: usar tax_query con include_children explícito.
+    // category__in NO incluye hijos. cat SÍ, pero tax_query permite
+    // controlar el comportamiento de manera explícita por slug.
+    //
+    // opinion y bienestar: no mezclar subcategorías (si tuviesen).
+    // Resto (Monagas, Nacional, Sucesos, etc.): sí incluir hijos.
+    $include_children = ! in_array(
+        $category->slug,
+        array( 'opinion', 'bienestar' ),
+        true
+    );
+
+    $args['tax_query'] = array(
+        array(
+            'taxonomy'         => 'category',
+            'field'            => 'term_id',
+            'terms'            => array( $category->term_id ),
+            'include_children' => $include_children,
+            'operator'         => 'IN',
+        ),
+    );
 } else {
-    // Si no existe la categoría, forzamos a que no traiga resultados para que no mezcle (usando post__in => [0])
-    $args['post__in'] = array(0); 
+    // Categoría no encontrada: devolver conjunto vacío.
+    $args['post__in'] = array( 0 );
 }
 
 $query = new WP_Query( $args );

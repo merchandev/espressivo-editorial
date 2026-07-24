@@ -39,17 +39,26 @@ foreach($sec_cats as $slug => $name) :
     if ( empty($term_ids) ) continue;
 
     $sec_q = new WP_Query( array(
-        'category__in'           => $term_ids, // Busca en cualquiera de las categorías
+        // Auditoría fix: category__in NO incluye hijos. tax_query con
+        // include_children => true sí lo hace, mostrando artículos de
+        // subcategorías (ej. Política Monagas dentro de Política).
+        'tax_query'              => array(
+            array(
+                'taxonomy'         => 'category',
+                'field'            => 'term_id',
+                'terms'            => $term_ids,
+                'include_children' => true,
+                'operator'         => 'IN',
+            ),
+        ),
         'posts_per_page'         => 1,
         'post_status'            => 'publish',
-        'orderby'                => 'date',
-        'order'                  => 'DESC',
+        'orderby'                => array( 'date' => 'DESC', 'ID' => 'DESC' ),
         'ignore_sticky_posts'    => 1,
-        'cache_results'          => false,   // No usar caché de objetos
+        'cache_results'          => false,
         'update_post_meta_cache' => false,
         'update_post_term_cache' => false,
-        'suppress_filters'       => false,   // Permitir filtros normales de WP
-        'no_found_rows'          => true,    // Más rápido: no cuenta filas totales
+        'no_found_rows'          => true,
     ) );
     if( $sec_q->have_posts() ) : ?>
         <div class="sec-card" style="background:var(--color-bg-secondary); border:1px solid var(--color-border); border-top:4px solid var(--color-primary); border-radius:var(--border-radius); overflow:hidden; display:flex; flex-direction:column; box-shadow:var(--shadow-sm); transition:transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='var(--shadow-lg)';" onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
