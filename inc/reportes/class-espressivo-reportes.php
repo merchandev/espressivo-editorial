@@ -212,9 +212,21 @@ final class Espressivo_Reportes {
             );
         }
 
-        $user   = wp_get_current_user();
+        $current_user = wp_get_current_user();
+        $target_user  = $current_user;
+
+        if ( isset( $_POST['espressivo_user_id'] ) ) {
+            $requested_id = (int) $_POST['espressivo_user_id'];
+            if ( $requested_id !== (int) $current_user->ID && current_user_can( 'manage_options' ) ) {
+                $found_user = get_userdata( $requested_id );
+                if ( $found_user ) {
+                    $target_user = $found_user;
+                }
+            }
+        }
+
         $result = Espressivo_Report_Service::get_user_items(
-            (int) $user->ID,
+            (int) $target_user->ID,
             $range['start'],
             $range['end']
         );
@@ -230,8 +242,8 @@ final class Espressivo_Reportes {
         $generator = new Espressivo_PDF_Generator();
         $generator->download(
             array(
-                'user'          => $user,
-                'role_label'    => $this->get_primary_role_label( $user ),
+                'user'          => $target_user,
+                'role_label'    => $this->get_primary_role_label( $target_user ),
                 'range'         => $range,
                 'items'         => $result['items'],
                 'status_counts' => $result['status_counts'],

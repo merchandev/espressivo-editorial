@@ -56,7 +56,14 @@ $periods = array(
     <div class="espressivo-reportes-grid">
         <section class="espressivo-reportes-card">
             <h2><?php esc_html_e( 'Selecciona el período', 'pro' ); ?></h2>
-            <p><?php esc_html_e( 'El documento incluirá únicamente el contenido registrado como cargado por tu cuenta.', 'pro' ); ?></p>
+            <?php if ( current_user_can( 'manage_options' ) ) : ?>
+                <p style="margin-bottom:15px;">
+                    <label for="espressivo_user_id" style="font-weight:600;"><?php esc_html_e( 'Generar reporte para el usuario:', 'espressivo-reportes' ); ?></label><br>
+                    <?php wp_dropdown_users( array( 'name' => 'espressivo_user_id', 'selected' => get_current_user_id() ) ); ?>
+                </p>
+            <?php else : ?>
+                <p><?php esc_html_e( 'El documento incluirá únicamente el contenido registrado como cargado por tu cuenta.', 'espressivo-reportes' ); ?></p>
+            <?php endif; ?>
 
             <form class="espressivo-reportes-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                 <input type="hidden" name="action" value="<?php echo esc_attr( Espressivo_Reportes::EXPORT_ACTION ); ?>">

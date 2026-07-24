@@ -150,12 +150,14 @@ class AdminPage {
      * cacheados anteriores con un flag stale=true. Nunca devuelve ceros falsos.
      */
     public function proxy_analytics_data( \WP_REST_Request $request ): \WP_REST_Response {
+        ob_start();
         // 1. Servir desde caché si existe y no se fuerza refresco
         $force = (bool) $request->get_param( 'force' );
         if ( ! $force ) {
             $cached = get_transient( 'ssivo_seo_google_summary' );
             if ( is_array( $cached ) ) {
                 $cached['from_cache'] = true;
+                ob_end_clean();
                 return rest_ensure_response( $cached );
             }
         }
@@ -164,6 +166,7 @@ class AdminPage {
         $admin_id = $this->get_sk_owner_id();
         if ( ! $admin_id ) {
             error_log( 'SSIVO-SEO Analytics: No se encontró administrador con token de Site Kit.' );
+            ob_end_clean();
             return rest_ensure_response( $this->unavailable_response( 'no_sk_owner' ) );
         }
 
@@ -283,6 +286,7 @@ class AdminPage {
 
         if ( $all_errors ) {
             error_log( 'SSIVO-SEO Analytics: Todos los endpoints de Site Kit fallaron. Verificar token OAuth y permisos.' );
+            ob_end_clean();
             return rest_ensure_response( $this->unavailable_response( 'all_endpoints_failed' ) );
         }
 
@@ -294,6 +298,7 @@ class AdminPage {
 
         set_transient( 'ssivo_seo_google_summary', $results, 4 * HOUR_IN_SECONDS );
 
+        ob_end_clean();
         return rest_ensure_response( $results );
     }
 
@@ -645,10 +650,17 @@ class AdminPage {
                             // Respuesta HTTP no-2xx: log real, nunca cero
                             return res.text().then(function(body) {
                                 console.error('[SSIVO-SEO] HTTP ' + res.status + ':', body);
-                                throw new Error('HTTP ' + res.status);
+                                throw new Error('HTTP ' + res.status + ': ' + body.substring(0, 100));
                             });
                         }
-                        return res.json();
+                        return res.text().then(function(text) {
+                            try {
+                                return JSON.parse(text);
+                            } catch (e) {
+                                console.error('[SSIVO-SEO] Parse Error. Raw response:', text);
+                                throw new Error('Parse error: ' + text.substring(0, 60));
+                            }
+                        });
                     })
                     .then(function(all) {
                         // Estructura completa de depuración siempre en consola
@@ -658,7 +670,10 @@ class AdminPage {
                     .catch(function(err) {
                         console.error('[SSIVO-SEO] Error de red o parseo:', err);
                         var statusEl = document.getElementById('ssivo-cache-status');
-                        if (statusEl) { statusEl.textContent = '✗ Error de conexión'; statusEl.style.color = '#ef4444'; }
+                        if (statusEl) { 
+                            statusEl.textContent = '✗ ' + (err.message || 'Error de conexión'); 
+                            statusEl.style.color = '#ef4444'; 
+                        }
                         ['sk-visitas','sk-usuarios','sk-impresiones'].forEach(function(id) {
                             var el = document.getElementById(id);
                             if (el) el.textContent = '—';  // Nunca mostrar 0 falso
