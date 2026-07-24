@@ -400,15 +400,11 @@ function pro_register_cpts() {
         'labels'      => array('name' => 'Clasificados', 'singular_name' => 'Clasificado'),
         'public'      => true,
         'has_archive' => true,
+        'rewrite'     => array('slug' => 'clasificados'),
         'supports'    => array('title', 'editor', 'thumbnail'),
         'menu_icon'   => 'dashicons-megaphone'
     ));
-    // Taxonomía: Municipio (solo para clasificados ahora)
-    register_taxonomy('municipio', array('clasificado'), array(
-        'labels'       => array('name' => 'Municipios', 'singular_name' => 'Municipio'),
-        'hierarchical' => false,
-        'show_in_rest' => true
-    ));
+
     register_taxonomy('tipo_clasificado', 'clasificado', array(
         'labels'       => array('name' => 'Tipos de Clasificado', 'singular_name' => 'Tipo de Clasificado'),
         'hierarchical' => true,

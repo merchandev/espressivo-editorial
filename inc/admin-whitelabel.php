@@ -126,7 +126,6 @@ function pro_restrict_clasificados_menu() {
         // Eliminar el menú principal de Clasificados
         remove_menu_page( 'edit.php?post_type=clasificado' );
         // Eliminar submenús de las taxonomías asociadas por si acaso
-        remove_submenu_page( 'edit.php?post_type=clasificado', 'edit-tags.php?taxonomy=municipio&amp;post_type=clasificado' );
         remove_submenu_page( 'edit.php?post_type=clasificado', 'edit-tags.php?taxonomy=tipo_clasificado&amp;post_type=clasificado' );
     }
 }
@@ -137,7 +136,7 @@ function pro_block_clasificados_direct_access() {
     $user = wp_get_current_user();
     if ( ! in_array( 'administrator', (array) $user->roles ) ) {
         $screen = get_current_screen();
-        if ( $screen && ( 'clasificado' === $screen->post_type || 'edit-municipio' === $screen->taxonomy || 'edit-tipo_clasificado' === $screen->taxonomy ) ) {
+        if ( $screen && ( 'clasificado' === $screen->post_type || 'edit-tipo_clasificado' === $screen->taxonomy ) ) {
             wp_die( esc_html__( 'No tienes permisos suficientes para acceder a la sección de Clasificados.', 'pro' ) );
         }
     }
