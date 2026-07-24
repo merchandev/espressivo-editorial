@@ -84,10 +84,17 @@ get_header();
                         </div>
                     </div>
 
+                    <div class="form-row form-consent-row" style="margin-top: 15px; margin-bottom: 20px;">
+                        <label class="consent-label" style="display: flex; align-items: flex-start; gap: 10px; font-size: 0.9rem; cursor: pointer; color: var(--color-text);">
+                            <input type="checkbox" id="contact-consent" name="consent" required style="margin-top: 3px;">
+                            <span>He leído y acepto la <a href="<?php echo esc_url( home_url( '/politica-de-privacidad/' ) ); ?>" target="_blank" rel="noopener noreferrer" style="color: var(--color-primary); text-decoration: underline;">Política de Privacidad</a> y autorizo el tratamiento de mis datos personales para atender esta solicitud.</span>
+                        </label>
+                    </div>
+
                     <div class="form-submit">
                         <button type="submit" id="contact-submit-btn" class="button button-primary">
                             <span class="btn-text">Enviar Mensaje</span>
-                            <?php echo pro_eo_icon( 'autorenew', 'Enviando...', 'btn-spinner', 'style="display:none;"' ); ?>
+                            <span class="btn-spinner material-symbols-outlined" aria-hidden="true" style="display:none;">autorenew</span>
                         </button>
                     </div>
                     

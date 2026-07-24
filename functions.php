@@ -94,9 +94,8 @@ function pro_scripts() {
     // Fuentes de Google (Playfair Display, Source Serif 4, Inter)
     wp_enqueue_style( 'pro-fonts', 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap', array(), null );
 
-    // Auditoria fix: Material Symbols (Google Fonts CDN) eliminado.
-    // Reemplazado por sprite SVG local en assets/icons/sprite.svg.
-    // Ventajas: cero peticiones externas, cero bloqueo de render, sin GDPR.
+    // Iconos de Google (Material Symbols)
+    wp_enqueue_style( 'pro-icons', 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200', array(), null );
 
     // Normalize.css para consistencia entre navegadores
     wp_enqueue_style( 'pro-normalize', 'https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css', array(), '8.0.1' );
@@ -177,61 +176,6 @@ function pro_scripts() {
     ));
 }
 add_action( 'wp_enqueue_scripts', 'pro_scripts' );
-
-/**
- * Inyectar el sprite SVG de iconos locales justo despues de <body>.
- * Debe estar en el DOM antes de cualquier uso con <use href="#eo-icon-*">.
- * Se usa wp_body_open (requiere que el tema llame a wp_body_open() en header.php).
- * Fallback en wp_footer para temas que no lo implementen.
- */
-function pro_inject_svg_sprite(): void {
-    $sprite = get_template_directory() . '/assets/icons/sprite.svg';
-    if ( file_exists( $sprite ) ) {
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-        echo file_get_contents( $sprite );
-    }
-}
-add_action( 'wp_body_open', 'pro_inject_svg_sprite', 1 );
-
-/**
- * Helper: renderiza un icono SVG del sprite local.
- *
- * @param string $name        Nombre del icono (ej. 'search', 'menu', 'close').
- * @param string $label       Texto accesible. Si esta vacio el icono es decorativo
- *                            y se marca automaticamente aria-hidden="true".
- * @param string $extra_class Clases CSS adicionales.
- * @param string $extra_attr  Atributos HTML adicionales (ej. 'style="width:20px"').
- * @return string             Markup SVG listo para echo / print.
- */
-function pro_eo_icon(
-    string $name,
-    string $label      = '',
-    string $extra_class = '',
-    string $extra_attr  = ''
-): string {
-    $classes    = trim( 'eo-icon eo-icon--' . sanitize_html_class( $name ) . ' ' . $extra_class );
-    $aria       = '';
-    $title_tag  = '';
-
-    if ( '' === $label ) {
-        // Decorativo: ocultar completamente a lectores de pantalla
-        $aria = 'aria-hidden="true" focusable="false"';
-    } else {
-        // Informativo: titulo SVG + role
-        $safe_id    = 'eo-icon-title-' . sanitize_html_class( $name ) . '-' . wp_rand( 1000, 9999 );
-        $title_tag  = '<title id="' . $safe_id . '">' . esc_html( $label ) . '</title>';
-        $aria       = 'role="img" aria-labelledby="' . $safe_id . '" focusable="false"';
-    }
-
-    return sprintf(
-        '<svg class="%s" %s %s>%s<use href="#eo-icon-%s"/></svg>',
-        esc_attr( $classes ),
-        $aria,
-        $extra_attr,
-        $title_tag,
-        esc_attr( $name )
-    );
-}
 
 // =============================================================================
 // HELPERS DE CATEGORÍA Y SISTEMA DE CACHÉ EDITORIAL
@@ -1018,6 +962,7 @@ function pro_nuclear_install_pages() {
         'Carteles y Edictos'     => 'page-carteles.php',
         'Términos y Condiciones'  => 'page-terminos-y-condiciones.php',
         'Política de Cookies'    => 'page-politica-de-cookies.php',
+        'Política de Privacidad' => 'page-politica-de-privacidad.php',
         'Análisis Internacional' => 'page-categoria.php',
         'Artes y Espectáculos' => 'page-categoria.php',
         'Asamblea Nacional' => 'page-categoria.php',
