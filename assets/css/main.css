@@ -153,9 +153,8 @@ img {
     background-color: var(--color-border);
     color: var(--color-accent);
 }
-.dark-mode-toggle .eo-icon {
-    width: 1.2rem;
-    height: 1.2rem;
+.dark-mode-toggle .material-symbols-outlined {
+    font-size: 1.2rem;
 }
 
 /* Header Main (Logo y Ads) */
@@ -1833,7 +1832,7 @@ img {
     color: #94a3b8;
 }
 
-.placeholder-cartel .eo-icon {
+.placeholder-cartel .material-symbols-outlined {
     font-size: 5rem;
     color: #cbd5e1;
     margin-bottom: 10px;
@@ -2232,7 +2231,7 @@ img {
     color: #e11d48;
 }
 
-.carteles-banner-content .banner-icon .eo-icon {
+.carteles-banner-content .banner-icon .material-symbols-outlined {
     font-size: 2.5rem;
 }
 
@@ -2440,7 +2439,7 @@ img {
     color: #94a3b8;
 }
 
-.placeholder-portada .eo-icon {
+.placeholder-portada .material-symbols-outlined {
     font-size: 5rem;
     color: #cbd5e1;
 }
@@ -3522,18 +3521,21 @@ body.dark-mode .main-navigation .sub-menu a:hover {
     .desktop-menu-wrapper { display: none !important; }
 }
 
-/* Sistema de iconos SVG local — reemplaza Material Symbols CDN (auditoría 2026-07) */
-.eo-icon {
+/* Dark Mode Icon */
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined' !important;
+    font-weight: normal !important;
+    font-style: normal !important;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal !important;
+    text-transform: none !important;
     display: inline-block;
-    width: 1em;
-    height: 1em;
-    stroke: currentColor;
-    fill: currentColor;
-    vertical-align: middle;
-    flex-shrink: 0;
-    overflow: visible;
-    /* Heredar tamaño del contexto — no font-size fijo */
-    font-size: inherit;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
 }
 
 /* Ticker Último Minuto — sobrescrituras de tema (colores únicamente, sin redefinir layout ni visibilidad) */

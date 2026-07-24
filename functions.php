@@ -3449,4 +3449,7 @@ add_filter(
     },
     10,
     2
-);
+);
+
+// Módulo nativo: reportes editoriales PDF.
+require_once get_template_directory() . '/inc/reportes/bootstrap.php';
