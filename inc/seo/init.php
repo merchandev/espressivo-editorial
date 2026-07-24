@@ -41,9 +41,10 @@ add_action( 'init', function() {
     // Inicia la inyección de etiquetas en el frontend
     new FrontendMeta( $database );
     
-    // Inicia la página de opciones del admin
+    // Inicia la página de opciones y proxy REST
+    new AdminPage();
+    
     if ( is_admin() ) {
-        new AdminPage();
         new Metabox();
     }
 });
