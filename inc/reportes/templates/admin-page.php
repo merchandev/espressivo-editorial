@@ -99,7 +99,7 @@ $periods = array(
 
                 <button
                     type="submit"
-                    class="button button-primary button-hero erp-submit"
+                    class="button button-primary erp-submit"
                     <?php disabled( ! $dompdf_available ); ?>
                 >
                     <span class="dashicons dashicons-pdf" aria-hidden="true"></span>
