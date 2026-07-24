@@ -179,7 +179,7 @@
                     }
                     ?>
                     <button id="dark-mode-toggle" class="dark-mode-toggle" aria-label="Cambiar modo oscuro" title="Modo Oscuro">
-                        <?php echo pro_eo_icon( 'dark_mode', 'Cambiar modo de color', 'dark-mode-toggle-icon' ); ?>
+                        <span class="material-symbols-outlined" aria-hidden="true">dark_mode</span>
                     </button>
                 </nav><!-- #topbar-navigation -->
             </div>
@@ -227,7 +227,7 @@
         <div class="header-navigation-wrapper">
             <div class="container navigation-inner">
                 <nav id="site-navigation" class="main-navigation">
-                    <button class="menu-toggle" aria-controls="primary-menu" aria-expanded="false" aria-label="<?php esc_attr_e( 'Menú', 'pro' ); ?>"><?php echo pro_eo_icon( 'menu', '', '', 'style="vertical-align:middle"' ); ?></button>
+                    <button class="menu-toggle" aria-controls="primary-menu" aria-expanded="false" aria-label="<?php esc_attr_e( 'Menú', 'pro' ); ?>"><span class="material-symbols-outlined" aria-hidden="true" style="vertical-align: middle;">menu</span></button>
                     <?php
                     // Menú Escritorio
                     wp_nav_menu( array(
@@ -265,7 +265,7 @@
                                 <input type="search" class="search-field ajax-search-input" placeholder="<?php echo esc_attr_x( 'Buscar noticias...', 'placeholder', 'pro' ); ?>" value="<?php echo esc_attr( get_search_query() ); ?>" name="s" autocomplete="off" />
                             </label>
                             <button type="submit" class="search-submit" aria-label="Buscar">
-                                <?php echo pro_eo_icon( 'search' ); ?>
+                                <span class="material-symbols-outlined" aria-hidden="true">search</span>
                             </button>
                         </form>
                         <div class="ajax-search-results-container"></div>

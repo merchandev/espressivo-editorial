@@ -17,14 +17,14 @@
 <section class="home-carteles-banner">
     <div class="carteles-banner-content">
         <div class="banner-icon">
-            <?php echo pro_eo_icon( 'gavel' ); ?>
+            <span class="material-symbols-outlined" aria-hidden="true">gavel</span>
         </div>
         <div class="banner-text">
             <h2 class="banner-title">Carteles y Edictos</h2>
             <p class="banner-desc">Consulta los últimos avisos legales, notificaciones y resoluciones oficiales de la región.</p>
         </div>
         <div class="banner-action">
-            <a href="<?php echo esc_url( home_url( '/carteles/' ) ); ?>" class="btn-carteles">Ver Documentos <?php echo pro_eo_icon( 'arrow_forward' ); ?></a>
+            <a href="<?php echo esc_url( home_url( '/carteles/' ) ); ?>" class="btn-carteles">Ver Documentos <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></a>
         </div>
     </div>
 </section>

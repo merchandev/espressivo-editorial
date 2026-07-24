@@ -66,11 +66,11 @@ get_header();
                             echo '<iframe src="' . esc_url($pdf_url) . '#toolbar=0&navpanes=0&scrollbar=0&view=FitH" frameborder="0" style="width: 100%; height: 100%; pointer-events: none; border: none;" scrolling="no"></iframe>';
                             echo '</div>';
                         } else {
-                            echo '<div class="placeholder-cartel">' . pro_eo_icon( 'description' ) . '</div>';
+                            echo '<div class="placeholder-cartel"><span class="material-symbols-outlined" aria-hidden="true">description</span></div>';
                         }
                         ?>
                         <div class="cartel-overlay">
-                            <?php echo pro_eo_icon( 'visibility', 'Ver cartel' ); ?>
+                            <span class="material-symbols-outlined cartel-icon" aria-hidden="true">visibility</span>
                             <span>Ver Documento</span>
                         </div>
                     </div>

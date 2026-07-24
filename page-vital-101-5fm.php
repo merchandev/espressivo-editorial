@@ -17,8 +17,8 @@ get_header(); ?>
                     <!-- PLAY SECTION -->
                     <div class="es-resp-play-zone">
                         <div class="es-resp-halo"></div>
-                        <button class="es-resp-btn" id="esRespPlay" onclick="toggleRespRadio()">
-                            <span class="material-symbols-rounded" id="esRespIcon">play_arrow</span>
+                        <button class="es-resp-btn" id="esRespPlay" onclick="toggleRespRadio()" aria-label="Reproducir Radio Vital 101.5 FM">
+                            <span class="material-symbols-rounded" aria-hidden="true" id="esRespIcon">play_arrow</span>
                         </button>
                     </div>
 
@@ -45,8 +45,8 @@ get_header(); ?>
 
                     <!-- VOLUME SECTION -->
                     <div class="es-resp-vol-zone">
-                        <button class="es-resp-mute" onclick="toggleRespMute()">
-                            <span class="material-symbols-rounded" id="esRespMuteIcon">volume_up</span>
+                        <button class="es-resp-mute" onclick="toggleRespMute()" aria-label="Silenciar o activar volumen">
+                            <span class="material-symbols-rounded" aria-hidden="true" id="esRespMuteIcon">volume_up</span>
                         </button>
                         <div class="es-resp-vol-slider">
                             <input type="range" id="esRespVol" min="0" max="1" step="0.01" value="1" oninput="updateRespVol()">

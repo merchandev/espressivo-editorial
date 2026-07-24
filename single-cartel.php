@@ -58,7 +58,7 @@ get_header();
                     </div>
                     <div style="margin-top: 20px; text-align: center;">
                         <a href="<?php echo esc_url( $pdf_url ); ?>" target="_blank" class="button" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; background: var(--color-primary); color: #fff; border-radius: 6px; text-decoration: none; font-family: var(--font-ui); font-weight: 600; font-size: 1rem; transition: background 0.3s;">
-                            <?php echo pro_eo_icon( 'open_in_new', 'Abrir en nueva pesta\u00f1a' ); ?>
+                            <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
                             Abrir documento completo en otra pestaña
                         </a>
                     </div>

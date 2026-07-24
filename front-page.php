@@ -118,7 +118,7 @@ get_header();
                         <img src="<?php echo esc_url($portada_img); ?>" alt="Portada del Día" loading="eager">
                         <div class="portada-overlay">
                             <div class="portada-overlay-button">
-                                <?php echo pro_eo_icon( 'zoom_in', 'Ver portada completa' ); ?>
+                                <span class="material-symbols-outlined overlay-lupa-icon" aria-hidden="true">zoom_in</span>
                                 <span>Clic para ver</span>
                             </div>
                         </div>

@@ -57,10 +57,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Bloquear scroll de fondo si está abierto
             if (navMenu.classList.contains('toggled')) {
-                menuToggle.innerHTML = '<span class="material-symbols-outlined" style="vertical-align: middle;">close</span>';
+                menuToggle.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true" style="vertical-align: middle;">close</span>';
                 document.body.style.overflow = 'hidden';
             } else {
-                menuToggle.innerHTML = '<span class="material-symbols-outlined" style="vertical-align: middle;">menu</span>';
+                menuToggle.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true" style="vertical-align: middle;">menu</span>';
                 document.body.style.overflow = '';
             }
         });
@@ -837,117 +837,22 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Swup Page View Event - Re-trigger anything necessary
         swup.hooks.on('page:view', () => {
-
-
-/* ==========================================================================
-   E-SERVER RADIO PLAYER LOGIC
-   ========================================================================== */
-document.addEventListener('DOMContentLoaded', function() {
-    const audio = document.getElementById('esRespAudio');
-    if (!audio) return; // Only run if player exists on the current page
-
-    const STREAM = 'https://radio.diarioeloriental.com/radio.aac';
-    let playing = false;
-
-    const btn    = document.getElementById('esRespPlay');
-    const icon   = document.getElementById('esRespIcon');
-    const status = document.getElementById('esRespStatus');
-    const fill   = document.getElementById('esRespFill');
-    const bar    = document.getElementById('esRespBar');
-    const vol    = document.getElementById('esRespVol');
-    const mIcon  = document.getElementById('esRespMuteIcon');
-
-    window.toggleRespRadio = function() {
-        playing ? stop() : start();
-    };
-
-    function start() {
-        audio.src = STREAM + '?t=' + Date.now();
-        status.innerText = 'CONECTANDO...';
-        audio.play().then(() => {
-            playing = true;
-            bar.classList.add('es-playing');
-            icon.innerText = 'pause';
-            status.innerText = 'REPRODUCIENDO';
-            animateFill();
-        }).catch(() => {
-            status.innerText = 'ERROR AL CONECTAR';
-        });
-    }
-
-    function stop() {
-        audio.pause(); audio.src = '';
-        playing = false;
-        bar.classList.remove('es-playing');
-        icon.innerText = 'play_arrow';
-        status.innerText = 'DETENIDO';
-        fill.style.width = '0%';
-    }
-
-    function animateFill() {
-        if (!playing) return;
-        let p = 0;
-        const interval = setInterval(() => {
-            if (!playing) { clearInterval(interval); return; }
-            p = (p + 0.1) % 100;
-            fill.style.width = p + '%';
-        }, 100);
-    }
-
-    window.updateRespVol = function() {
-        audio.volume = vol.value;
-        mIcon.innerText = vol.value == 0 ? 'volume_off' : 'volume_up';
-    };
-
-    window.toggleRespMute = function() {
-        if (audio.volume > 0) {
-            audio.v = audio.volume; audio.volume = 0; vol.value = 0;
-            mIcon.innerText = 'volume_off';
-        } else {
-            audio.volume = audio.v || 1; vol.value = audio.volume;
-            mIcon.innerText = 'volume_up';
-        }
-    };
-});
-
-/* ==========================================================================
-   GLOBAL SWUP & FLOATING RADIO LOGIC
-   ========================================================================== */
-document.addEventListener('DOMContentLoaded', function() {
-    // 1. Initialize Swup
-    if (typeof Swup !== 'undefined' && typeof SwupScriptsPlugin !== 'undefined') {
-        const swup = new Swup({
-            plugins: [new SwupScriptsPlugin({
-                head: true,
-                body: true
-            })]
-        });
-        
-        // Swup Page View Event - Re-trigger anything necessary
-        swup.hooks.on('page:view', () => {
             // Document listeners survive, but if there's anything else needed, it runs here.
             console.log('Swup navigated to new page');
         });
     }
 
     // 2. Floating Radio Logic
-    const floatAudio     = document.getElementById('esFloatAudio');
-    const floatBtn       = document.getElementById('esFloatPlay');
-    const floatIcon      = document.getElementById('esFloatIcon');
-    const floatStatus    = document.getElementById('esFloatStatus');
+    const floatAudio = document.getElementById('esFloatAudio');
+    const floatBtn = document.getElementById('esFloatPlay');
+    const floatIcon = document.getElementById('esFloatIcon');
+    const floatStatus = document.getElementById('esFloatStatus');
     const floatContainer = document.getElementById('esFloatingRadio');
-
+    
     if (!floatAudio || !floatContainer) return;
 
     const STREAM = 'https://radio.diarioeloriental.com/radio.aac';
     let isFloatPlaying = false;
-
-    /** Intercambia el icono SVG del sprite local (sustituye innerText de la fuente-icono) */
-    function setFloatIcon(name) {
-        if (floatIcon && floatIcon.querySelector('use')) {
-            floatIcon.querySelector('use').setAttribute('href', '#eo-icon-' + name);
-        }
-    }
 
     window.toggleFloatRadio = function() {
         if (isFloatPlaying) {
@@ -955,16 +860,14 @@ document.addEventListener('DOMContentLoaded', function() {
             floatAudio.src = '';
             isFloatPlaying = false;
             floatContainer.classList.remove('playing');
-            setFloatIcon('play_arrow');
+            floatIcon.innerText = 'play_arrow';
             floatStatus.innerText = 'DETENIDO';
-
+            
             // Sync with dedicated page player if exists
             const pageIcon = document.getElementById('esRespIcon');
             if (pageIcon) {
                 document.getElementById('esRespBar').classList.remove('es-playing');
-                if (pageIcon.querySelector('use')) {
-                    pageIcon.querySelector('use').setAttribute('href', '#eo-icon-play_arrow');
-                }
+                pageIcon.innerText = 'play_arrow';
                 document.getElementById('esRespStatus').innerText = 'DETENIDO';
             }
         } else {
@@ -973,16 +876,14 @@ document.addEventListener('DOMContentLoaded', function() {
             floatAudio.play().then(() => {
                 isFloatPlaying = true;
                 floatContainer.classList.add('playing');
-                setFloatIcon('close');
+                floatIcon.innerText = 'pause';
                 floatStatus.innerText = 'EN VIVO';
-
+                
                 // Sync with dedicated page player if exists
                 const pageIcon = document.getElementById('esRespIcon');
                 if (pageIcon) {
                     document.getElementById('esRespBar').classList.add('es-playing');
-                    if (pageIcon.querySelector('use')) {
-                        pageIcon.querySelector('use').setAttribute('href', '#eo-icon-close');
-                    }
+                    pageIcon.innerText = 'pause';
                     document.getElementById('esRespStatus').innerText = 'REPRODUCIENDO';
                 }
             }).catch(() => {

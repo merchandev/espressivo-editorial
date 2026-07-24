@@ -104,7 +104,7 @@ $slides       = !empty($banner_data['slides']) ? $banner_data['slides'] : array(
             <!-- Placeholder cuando no hay anuncio publicado -->
             <?php if ( get_theme_mod( 'pro_show_ad_placeholders', true ) ) : ?>
                 <div class="sponsor-banner-placeholder" style="background: #111; color: #fff; text-align: center; padding: 30px; border-radius: 8px;">
-                    <?php echo pro_eo_icon( 'campaign', '', 'sponsor-placeholder-icon', 'style="font-size: 30px; display: block; margin-bottom: 10px;"' ); ?>
+                    <span class="sponsor-placeholder-icon material-symbols-outlined" aria-hidden="true" style="font-size: 30px; display: block; margin-bottom: 10px;">campaign</span>
                     <span style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; display: block;">
                         <?php echo ! empty( $cat_name ) ? esc_html( $cat_name ) . ' — ' : ''; ?>Espacio Publicitario
                     </span>
