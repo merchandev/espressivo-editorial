@@ -20,10 +20,10 @@ $periods = array(
     'custom' => __( 'Personalizado', 'pro' ),
 );
 ?>
-<div class="wrap espressivo-reportes-wrap">
-    <header class="espressivo-reportes-hero">
+<div class="wrap erp-wrap">
+    <header class="erp-hero">
         <div>
-            <span class="espressivo-reportes-eyebrow"><?php esc_html_e( 'Producción editorial', 'pro' ); ?></span>
+            <span class="erp-eyebrow"><?php esc_html_e( 'Producción editorial', 'pro' ); ?></span>
             <h1><?php esc_html_e( 'Mis reportes', 'pro' ); ?></h1>
             <p>
                 <?php
@@ -38,7 +38,7 @@ $periods = array(
                 ?>
             </p>
         </div>
-        <span class="espressivo-reportes-private"><?php esc_html_e( 'Reporte privado de tu perfil', 'pro' ); ?></span>
+        <span class="erp-private-badge"><?php esc_html_e( 'Reporte privado de tu perfil', 'pro' ); ?></span>
     </header>
 
     <?php if ( ! $dompdf_available ) : ?>
@@ -53,26 +53,27 @@ $periods = array(
         </div>
     <?php endif; ?>
 
-    <div class="espressivo-reportes-grid">
-        <section class="espressivo-reportes-card">
+    <div class="erp-grid">
+        <section class="erp-card">
             <h2><?php esc_html_e( 'Selecciona el período', 'pro' ); ?></h2>
-            <?php if ( current_user_can( 'manage_options' ) ) : ?>
-                <p style="margin-bottom:15px;">
-                    <label for="espressivo_user_id" style="font-weight:600;"><?php esc_html_e( 'Generar reporte para el usuario:', 'espressivo-reportes' ); ?></label><br>
-                    <?php wp_dropdown_users( array( 'name' => 'espressivo_user_id', 'selected' => get_current_user_id() ) ); ?>
-                </p>
-            <?php else : ?>
-                <p><?php esc_html_e( 'El documento incluirá únicamente el contenido registrado como cargado por tu cuenta.', 'espressivo-reportes' ); ?></p>
-            <?php endif; ?>
 
-            <form class="espressivo-reportes-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+            <form class="erp-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                 <input type="hidden" name="action" value="<?php echo esc_attr( Espressivo_Reportes::EXPORT_ACTION ); ?>">
                 <?php wp_nonce_field( Espressivo_Reportes::NONCE_ACTION, Espressivo_Reportes::NONCE_NAME ); ?>
 
-                <fieldset class="espressivo-reportes-periods">
+                <?php if ( current_user_can( 'manage_options' ) ) : ?>
+                    <p style="margin-bottom:15px;">
+                        <label for="espressivo_user_id" style="font-weight:600;"><?php esc_html_e( 'Generar reporte para el usuario:', 'espressivo-reportes' ); ?></label><br>
+                        <?php wp_dropdown_users( array( 'name' => 'espressivo_user_id', 'selected' => get_current_user_id(), 'show' => 'display_name' ) ); ?>
+                    </p>
+                <?php else : ?>
+                    <p><?php esc_html_e( 'El documento incluirá únicamente el contenido registrado como cargado por tu cuenta.', 'espressivo-reportes' ); ?></p>
+                <?php endif; ?>
+
+                <fieldset class="erp-periods">
                     <legend class="screen-reader-text"><?php esc_html_e( 'Período del reporte', 'pro' ); ?></legend>
                     <?php foreach ( $periods as $value => $label ) : ?>
-                        <label class="espressivo-reportes-period">
+                        <label class="erp-period-option">
                             <input
                                 type="radio"
                                 name="period"
@@ -84,7 +85,7 @@ $periods = array(
                     <?php endforeach; ?>
                 </fieldset>
 
-                <div class="espressivo-reportes-dates" data-espressivo-custom-dates hidden>
+                <div class="erp-custom-dates" data-erp-custom-dates hidden>
                     <label>
                         <span><?php esc_html_e( 'Desde', 'pro' ); ?></span>
                         <input type="date" name="date_from" max="<?php echo esc_attr( $today ); ?>">
@@ -98,7 +99,7 @@ $periods = array(
 
                 <button
                     type="submit"
-                    class="button button-primary button-hero espressivo-reportes-submit"
+                    class="button button-primary button-hero erp-submit"
                     <?php disabled( ! $dompdf_available ); ?>
                 >
                     <span class="dashicons dashicons-pdf" aria-hidden="true"></span>
@@ -107,7 +108,7 @@ $periods = array(
             </form>
         </section>
 
-        <aside class="espressivo-reportes-card espressivo-reportes-info">
+        <aside class="erp-card erp-card-info">
             <h2><?php esc_html_e( 'Contenido del documento', 'pro' ); ?></h2>
             <ul>
                 <li><?php esc_html_e( 'Nombre y rol del perfil.', 'pro' ); ?></li>
@@ -118,15 +119,15 @@ $periods = array(
             </ul>
 
             <?php if ( ! empty( $reportable_types ) ) : ?>
-                <div class="espressivo-reportes-types">
+                <div class="erp-types">
                     <strong><?php esc_html_e( 'Incluye:', 'pro' ); ?></strong>
                     <p><?php echo esc_html( implode( ', ', $reportable_types ) ); ?></p>
                 </div>
             <?php endif; ?>
 
-            <div class="espressivo-reportes-note">
+            <div class="erp-privacy-note">
                 <strong><?php esc_html_e( 'Privacidad', 'pro' ); ?></strong>
-                <p><?php esc_html_e( 'No puedes seleccionar otro usuario. El servidor obtiene el ID del perfil que tiene la sesión iniciada.', 'pro' ); ?></p>
+                <p><?php esc_html_e( 'Solo los administradores pueden generar reportes de otros usuarios. Los demás roles solo exportan su propio contenido.', 'pro' ); ?></p>
             </div>
         </aside>
     </div>
