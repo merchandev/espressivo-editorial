@@ -29,11 +29,12 @@ Registro cronológico de **todos los commits** del repositorio [`merchandev/espr
 
 | Indicador | Valor |
 |---|---|
-| Commits registrados | 9 (8 previos + el de esta documentación) |
+| Commits registrados | 10 |
 | Ramas | `main`, `claude/laughing-planck-4m793a`, `fix/auditoria-editorial-2026-09-25` |
 | Pull requests | 2 (#2 fusionado, #1 abierto) |
 | Periodo | 13/08/2026 → 25/09/2026 |
-| Autores | Merchan.dev (7 commits) · Claude / Claude Code (2 commits) |
+| Versión actual del tema | **2.1.0** |
+| Autores | Merchan.dev (7 commits) · Claude / Claude Code (3 commits) |
 
 ---
 
@@ -49,7 +50,8 @@ Registro cronológico de **todos los commits** del repositorio [`merchandev/espr
 | 6 | 25/09/2026 07:35 | [`31e26db`](https://github.com/merchandev/espressivo-editorial/commit/31e26db) | `fix/auditoria-editorial-2026-09-25` | Merchan.dev | ✨ | Render classified featured images |
 | 7 | 25/09/2026 07:35 | [`58a6204`](https://github.com/merchandev/espressivo-editorial/commit/58a6204) | `fix/auditoria-editorial-2026-09-25` | Merchan.dev | ✨ | Show classified featured image on single view |
 | 8 | 25/09/2026 07:54 | [`7754bef`](https://github.com/merchandev/espressivo-editorial/commit/7754bef) | `main` | Merchan.dev | 🔀 | Merge pull request #2 |
-| 9 | 25/09/2026 | *(este commit)* | `claude/laughing-planck-4m793a` | Claude | 📝 | Documentación: ABOUT.md e historial de cambios |
+| 9 | 25/09/2026 08:01 | [`a97109f`](https://github.com/merchandev/espressivo-editorial/commit/a97109f) | `claude/laughing-planck-4m793a` | Claude | 📝 | Documentación: ABOUT.md e historial de cambios |
+| 10 | 25/09/2026 | *(este commit)* | `claude/laughing-planck-4m793a` | Claude | ✨ 📝 | Versión 2.1.0, README renovado y menú de Clasificados en instalaciones nuevas |
 
 Otros eventos del 25/09/2026: el **PR #1** se abrió a las 07:39 y el **PR #2** a las 07:52; el PR #2 se fusionó en `main` a las 07:54.
 
@@ -59,8 +61,9 @@ Otros eventos del 25/09/2026: el **PR #1** se abrió a las 07:39 y el **PR #2** 
 
 ```text
 main ──●─────────────────────────────────────────────●── main (7754bef)
-      eaf6786 \                                     /
-               ├── claude/laughing-planck-4m793a ──● d7a9210  (PR #2, fusionado)
+      eaf6786 \                                     / \
+               ├── claude/laughing-planck-4m793a ──● d7a9210  ● a97109f → ● (commit 10)
+               │                                   (PR #2, fusionado)   (documentación y versión)
                │
                └── fix/auditoria-editorial-2026-09-25
                     ● 74fe87e → ● 195c0ea → ● 986b9cd → ● 31e26db → ● 58a6204   (PR #1, abierto)
@@ -270,13 +273,14 @@ Fusiona en `main` el [PR #2](https://github.com/merchandev/espressivo-editorial/
 
 ---
 
-#### 9 · Documentación: ABOUT.md e historial de cambios 📝
+#### 9 · `a97109f` — Documentación: ABOUT.md e historial de cambios 📝
 
 | | |
 |---|---|
-| **Rama** | `claude/laughing-planck-4m793a` (creada a partir de `main` en `7754bef`) |
+| **Rama** | `claude/laughing-planck-4m793a` (actualizada a `main` en `7754bef`) |
 | **Autor** | Claude (Claude Code) |
-| **Fecha** | 25/09/2026 |
+| **Fecha** | 25/09/2026 08:01:35 VET |
+| **Cambios** | 3 archivos · +440 líneas |
 
 | Archivo | Cambio |
 |---|---|
@@ -286,12 +290,29 @@ Fusiona en `main` el [PR #2](https://github.com/merchandev/espressivo-editorial/
 
 ---
 
+#### 10 · Versión 2.1.0, README renovado y menú de Clasificados en instalaciones nuevas ✨ 📝
+
+| | |
+|---|---|
+| **Rama** | `claude/laughing-planck-4m793a` |
+| **Autor** | Claude (Claude Code) |
+| **Fecha** | 25/09/2026 |
+
+| Archivo | Cambio |
+|---|---|
+| `style.css` | Versión del tema **2.0.0 → 2.1.0**. Nuevas cabeceras `Requires at least: 5.8`, `Tested up to: 7.1` y `Requires PHP: 8.1`: WordPress comprueba los requisitos antes de activar o actualizar el tema. |
+| `inc/clasificados.php` | `espressivo_add_clasificados_to_menus()` pasa de `init` a `admin_init` con prioridad 100. En una instalación nueva, la instalación automática (`pro_nuclear_install_pages`) reasignaba el menú principal después de añadir el enlace y "Clasificados" quedaba solo en el menú móvil. Ahora queda en los dos, sin duplicarse. |
+| `README.md` | Reescrito: características actualizadas a la 2.1.0, requisitos, instalación, configuración, actualización de instalaciones existentes, roles, seguridad, rendimiento, desarrollo, solución de problemas, changelog y créditos. Corrige dos datos: los accesos a `wp-login.php` se redirigen a la portada (no devuelven 404) y la publicidad es de cabecera, in-feed y patrocinio (no de barra lateral). |
+| `HISTORIAL_DE_CAMBIOS.md` | Registro de los commits 9 y 10. La observación sobre la versión del tema queda resuelta. |
+
+---
+
 ## Estado de ramas y pull requests
 
 | Rama | Último commit | Estado |
 |---|---|---|
 | `main` | `7754bef` | Rama principal. Contiene el commit inicial y la auditoría v2.1.0. |
-| `claude/laughing-planck-4m793a` | documentación | PR #2 fusionado. Esta rama continúa con la documentación. |
+| `claude/laughing-planck-4m793a` | commit 10 | PR #2 fusionado. Continúa con la documentación y la versión 2.1.0, pendiente de llevar a `main`. |
 | `fix/auditoria-editorial-2026-09-25` | `58a6204` | PR #1 **abierto**, sin fusionar. |
 
 | PR | Título | Estado |
@@ -305,7 +326,7 @@ Fusiona en `main` el [PR #2](https://github.com/merchandev/espressivo-editorial/
 
 1. **El PR #1 no se puede fusionar tal cual sobre `main`.** Hay conflictos en `archive-clasificado.php`, `inc/seo/init.php`, `page-categoria.php` y `single-clasificado.php`. Además, su endpoint de "Cargar más" (HTML, paginado por número de página) sustituiría al actual (JSON, por desplazamiento) y rompería el scroll infinito. Se recomienda cerrarlo o rehacerlo sobre `main`.
 2. **Aporte del PR #1 que `main` no tiene:** miniaturas en el widget del escritorio "Últimas Publicaciones", incluidas las entradas programadas. Si se desea, puede incorporarse a `main` en un cambio aparte.
-3. **Versión del tema:** la cabecera de `style.css` sigue en `2.0.0`, mientras que el changelog ya registra la `2.1.0`.
+3. ~~**Versión del tema:** la cabecera de `style.css` seguía en `2.0.0`.~~ ✅ Resuelto en el commit 10 (versión `2.1.0`).
 4. **Archivo sin uso:** `main_head.css` es una copia antigua de `main.css` en UTF-16 que ningún archivo carga.
 5. **Licencia:** `style.css` (GPL v2 o posterior), `composer.json` (*proprietary*) y los avisos legales de los archivos no coinciden.
 

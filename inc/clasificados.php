@@ -769,6 +769,10 @@ add_action(
  *
  * En el menú de escritorio se coloca antes de "Más"; en el móvil, al final.
  * No se duplica si el enlace ya existe (p. ej. añadido a mano).
+ *
+ * Se ejecuta en admin_init con prioridad 100, después de la instalación
+ * automática de páginas y menús (pro_nuclear_install_pages), que en una
+ * instalación nueva vuelve a asignar el menú principal.
  */
 function espressivo_add_clasificados_to_menus(): void {
     if ( get_option( 'espressivo_clasificados_menu_added_v1' ) ) {
@@ -839,7 +843,7 @@ function espressivo_add_clasificados_to_menus(): void {
 
     update_option( 'espressivo_clasificados_menu_added_v1', true, false );
 }
-add_action( 'init', 'espressivo_add_clasificados_to_menus', 100 );
+add_action( 'admin_init', 'espressivo_add_clasificados_to_menus', 100 );
 
 /**
  * Estilos de clasificados.
