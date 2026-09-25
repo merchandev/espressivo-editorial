@@ -260,6 +260,30 @@ add_action( 'transition_post_status', function ( string $new_status, string $old
 }, 10, 3 );
 
 /**
+ * pre_get_posts — Listados de index.php: entradas, etiquetas, autores, fechas y búsqueda.
+ *
+ * Paginan con "cargar más" por desplazamiento (pro_get_listing_query_args()),
+ * que solo cuenta entradas publicadas y ordena por fecha e ID. Si la primera
+ * página incluía entradas privadas (sesión de redacción) u ordenaba solo por
+ * fecha, el desplazamiento no coincidía y se saltaban o repetían noticias.
+ */
+add_action( 'pre_get_posts', function ( WP_Query $query ): void {
+    if ( is_admin() || ! $query->is_main_query() ) {
+        return;
+    }
+    if ( ! ( $query->is_home() || $query->is_tag() || $query->is_author() || $query->is_date() || $query->is_search() ) ) {
+        return;
+    }
+
+    $query->set( 'post_status', 'publish' );
+
+    // La búsqueda conserva el orden por relevancia de WordPress
+    if ( ! $query->is_search() && ! $query->get( 'orderby' ) ) {
+        $query->set( 'orderby', array( 'date' => 'DESC', 'ID' => 'DESC' ) );
+    }
+} );
+
+/**
  * pre_get_posts — Normalizar la consulta principal del archivo nativo de categorías.
  *
  * category.php usa have_posts() / the_post() de la consulta principal.
@@ -347,8 +371,12 @@ function pro_get_listing_query_args( array $context, array $overrides = array() 
         }
     }
 
+    // La búsqueda principal de WordPress abarca todos los tipos buscables y ordena
+    // por relevancia; las tandas AJAX deben seguir exactamente ese mismo orden.
     if ( isset( $context['s'] ) && '' !== $context['s'] ) {
-        $args['s'] = $context['s'];
+        $args['s']         = $context['s'];
+        $args['post_type'] = 'any';
+        unset( $args['orderby'] );
     }
 
     return array_merge( $args, $overrides );
@@ -3743,14 +3771,19 @@ function pro_repair_stored_mojibake() {
         update_option( 'pro_mojibake_terms_repaired_v2', true, false );
     }
 
-    // 2. Entradas, páginas, clasificados, carteles, elementos de menú y adjuntos (por lotes)
+    // 2. Entradas, páginas, clasificados, carteles, elementos de menú y adjuntos.
+    // Se revisa un tramo de IDs por carga para que, en bases con miles de
+    // noticias, ninguna petición tenga que recorrer la tabla completa.
     $last_id = (int) get_option( 'pro_mojibake_last_post_id', 0 );
+    $max_id  = (int) $wpdb->get_var( "SELECT MAX(ID) FROM {$wpdb->posts}" );
+    $end_id  = $last_id + 2000;
     $rows    = $wpdb->get_results( $wpdb->prepare(
         "SELECT ID, post_title, post_excerpt, post_content FROM {$wpdb->posts}
-         WHERE ID > %d AND post_type <> 'revision'
+         WHERE ID > %d AND ID <= %d AND post_type <> 'revision'
            AND ( " . $has_marker( 'post_title' ) . ' OR ' . $has_marker( 'post_excerpt' ) . ' OR ' . $has_marker( 'post_content' ) . ' )
-         ORDER BY ID ASC LIMIT 100',
-        $last_id
+         ORDER BY ID ASC',
+        $last_id,
+        $end_id
     ) );
 
     foreach ( $rows as $row ) {
@@ -3765,14 +3798,13 @@ function pro_repair_stored_mojibake() {
             $wpdb->update( $wpdb->posts, $changes, array( 'ID' => $row->ID ) );
             clean_post_cache( (int) $row->ID );
         }
-        $last_id = (int) $row->ID;
     }
 
-    if ( count( $rows ) < 100 ) {
+    if ( $end_id >= $max_id ) {
         update_option( 'pro_mojibake_repaired_v2', true, false );
         delete_option( 'pro_mojibake_last_post_id' );
     } else {
-        update_option( 'pro_mojibake_last_post_id', $last_id, false );
+        update_option( 'pro_mojibake_last_post_id', $end_id, false );
     }
 }
 add_action( 'admin_init', 'pro_repair_stored_mojibake' );

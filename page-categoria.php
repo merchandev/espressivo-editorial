@@ -111,7 +111,7 @@ $query = new WP_Query( $args );
                         </div>
                         <h2 class="entry-title hero-title"><a href="<?php the_permalink(); ?>" rel="bookmark"><?php the_title(); ?></a></h2>
                         <div class="entry-excerpt">
-                            <?php echo wp_trim_words( get_the_excerpt(), 35, '...' ); ?>
+                            <?php echo esc_html( wp_trim_words( get_the_excerpt(), 35, '...' ) ); ?>
                         </div>
                     </div>
                 </article>

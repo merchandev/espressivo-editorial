@@ -4,7 +4,7 @@
 
 ![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-21759b?logo=wordpress&logoColor=white)
 ![PHP](https://img.shields.io/badge/PHP-8.1%2B-777bb4?logo=php&logoColor=white)
-![Versión](https://img.shields.io/badge/versi%C3%B3n-2.1.1-cc3332)
+![Versión](https://img.shields.io/badge/versi%C3%B3n-2.1.2-cc3332)
 ![Idioma](https://img.shields.io/badge/idioma-espa%C3%B1ol-ffc407)
 
 ---

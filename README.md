@@ -2,7 +2,7 @@
 
 **Tema y framework de WordPress para diarios digitales y portales de noticias.** Construido desde cero bajo una arquitectura de marca blanca (white-label) y SaaS, para duplicarse y licenciarse a distintas editoriales con el menor número posible de plugins de terceros.
 
-![Versión](https://img.shields.io/badge/versi%C3%B3n-2.1.1-cc3332)
+![Versión](https://img.shields.io/badge/versi%C3%B3n-2.1.2-cc3332)
 ![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-21759b?logo=wordpress&logoColor=white)
 ![PHP](https://img.shields.io/badge/PHP-8.1%2B-777bb4?logo=php&logoColor=white)
 ![Idioma](https://img.shields.io/badge/idioma-espa%C3%B1ol-ffc407)
@@ -17,7 +17,7 @@ Instalación de referencia: **Diario El Oriental** (Maturín, Monagas, Venezuela
 |---|---|---|
 | 🕓 **[Historial de cambios](HISTORIAL_DE_CAMBIOS.md)** | Todos los commits del repositorio en orden cronológico, con detalle por archivo | [Línea de tiempo](HISTORIAL_DE_CAMBIOS.md#línea-de-tiempo) · [Mapa de ramas](HISTORIAL_DE_CAMBIOS.md#mapa-de-ramas) · [Pendientes](HISTORIAL_DE_CAMBIOS.md#observaciones-pendientes) |
 | 📄 **[Acerca del proyecto](ABOUT.md)** | Qué es el tema, módulos, roles, tecnología y estructura del repositorio | [Módulos](ABOUT.md#módulos-principales) · [Roles](ABOUT.md#roles-y-permisos) · [Estructura](ABOUT.md#estructura-del-repositorio) |
-| 📜 **[Changelog](#-changelog)** | Resumen de cambios por versión (v1.1.0 → v2.1.1) | [v2.1.1](#v211--cifras-del-panel-seo-alineadas-con-site-kit-25-de-septiembre-de-2026) · [v2.1.0](#v210--auditoría-25-de-septiembre-de-2026) |
+| 📜 **[Changelog](#-changelog)** | Resumen de cambios por versión (v1.1.0 → v2.1.2) | [v2.1.2](#v212--revisión-completa-25-de-septiembre-de-2026) · [v2.1.1](#v211--cifras-del-panel-seo-alineadas-con-site-kit-25-de-septiembre-de-2026) · [v2.1.0](#v210--auditoría-25-de-septiembre-de-2026) |
 
 ---
 
@@ -128,8 +128,8 @@ Instalación de referencia: **Diario El Oriental** (Maturín, Monagas, Venezuela
 ## 🔄 Actualizar una instalación existente
 
 1. Sustituye los archivos del tema por los de esta versión.
-2. **Entra al escritorio como administrador.** Al hacerlo se ejecutan, una sola vez, las tareas de la 2.1.0:
-   - reparación de acentos y Ñ en el contenido ya guardado (por lotes, sin tocar slugs ni URL);
+2. **Entra al escritorio como administrador.** Al hacerlo se ejecutan, una sola vez, las tareas de la 2.1.x:
+   - reparación de acentos y Ñ en el contenido ya guardado (por tramos de 2.000 ID en cada carga del escritorio, sin tocar slugs ni URL);
    - alta de "Clasificados" en los menús principal y móvil;
    - actualización de los permisos del panel SEO.
 3. **Vacía la caché** de página, CDN u objeto si la usas (LiteSpeed, Hostinger, etc.).
@@ -218,6 +218,7 @@ php composer.phar install   # solo si actualizas dompdf
 | Las cifras no coinciden con Site Kit | Compara el mismo periodo: el panel muestra las fechas exactas junto a "Periodo". Site Kit redondea (17K = 16.500–17.499). Tras actualizar el tema pulsa "↻ Actualizar ahora" para descartar datos en caché. |
 | "Google Site Kit no está activo" | El plugin está desactivado o no está instalado. |
 | Una entrada no se publica | Falta la **firma**: escribe el nombre en la caja *Firma* y publica de nuevo. |
+| Una entrada privada no sale en portada, categorías o búsqueda | Es lo esperado: los listados muestran solo contenido publicado para que la paginación no salte noticias. Ábrela desde *Entradas*. |
 | Clasificados o carteles devuelven 404 | Guarda de nuevo los enlaces permanentes. |
 | Siguen viéndose caracteres extraños (`Ã³`, `Ã±`) | Entra al escritorio como administrador para completar la reparación, que avanza por lotes, y vacía la caché. |
 | Los cambios de diseño no aparecen | Vacía la caché de página o CDN. |
@@ -227,6 +228,12 @@ php composer.phar install   # solo si actualizas dompdf
 ## 📜 Changelog
 
 > Historial detallado commit a commit en [HISTORIAL_DE_CAMBIOS.md](HISTORIAL_DE_CAMBIOS.md).
+
+### v2.1.2 — Revisión completa (25 de septiembre de 2026)
+- ✅ **Búsqueda con "Cargar más":** las tandas siguientes usan la misma consulta que la primera página (todos los tipos buscables y orden por relevancia). Antes cambiaba el orden a partir de la segunda tanda y se perdían páginas y avisos.
+- ✅ **Portada de entradas, etiquetas, autores, fechas y búsqueda** muestran solo contenido publicado y ordenan por fecha + ID, igual que "Cargar más". Con sesión de redacción, las entradas privadas desplazaban la paginación y se saltaban noticias.
+- ✅ **Reparación de acentos por tramos:** cada carga del escritorio revisa como máximo 2.000 ID, para que la migración no bloquee el escritorio en bases grandes.
+- ✅ **Extracto del destacado de categoría** escapado como el resto de tarjetas.
 
 ### v2.1.1 — Cifras del panel SEO alineadas con Site Kit (25 de septiembre de 2026)
 - ✅ **Mismo periodo que Site Kit:** N días terminando hoy en la fecha del sitio (antes N+1 días en hora UTC). Periodos de 7, 14, 28 y 90 días, como en Site Kit.
