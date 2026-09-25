@@ -231,6 +231,24 @@ $types = get_terms(
                         id="post-<?php the_ID(); ?>"
                         <?php post_class( 'classified-card' ); ?>
                     >
+                        <?php if ( has_post_thumbnail() ) : ?>
+                            <a
+                                class="classified-card__image"
+                                href="<?php the_permalink(); ?>"
+                                aria-label="<?php echo esc_attr( get_the_title() ); ?>"
+                            >
+                                <?php
+                                the_post_thumbnail(
+                                    'medium_large',
+                                    array(
+                                        'loading' => 'lazy',
+                                        'alt'     => get_the_title(),
+                                    )
+                                );
+                                ?>
+                            </a>
+                        <?php endif; ?>
+
                         <?php
                         if (
                             ! empty( $post_types )
