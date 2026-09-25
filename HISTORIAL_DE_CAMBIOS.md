@@ -1,0 +1,338 @@
+# Historial de cambios — Espressivo Editorial
+
+Registro cronológico de **todos los commits** del repositorio [`merchandev/espressivo-editorial`](https://github.com/merchandev/espressivo-editorial), de todas las ramas, ordenados del más antiguo al más reciente.
+
+- **Horas** en hora de Venezuela (VET, UTC−4). Es la zona horaria que fija el propio tema.
+- **Cifras** de líneas añadidas (+) y eliminadas (−) según `git`.
+- Para el resumen por versiones consulta también el *Changelog* del [README](README.md). La descripción general del proyecto está en [ABOUT.md](ABOUT.md).
+
+---
+
+## Índice
+
+1. [Resumen en cifras](#resumen-en-cifras)
+2. [Línea de tiempo](#línea-de-tiempo)
+3. [Mapa de ramas](#mapa-de-ramas)
+4. [Antecedentes (antes del repositorio)](#antecedentes-antes-del-repositorio)
+5. [Detalle por commit](#detalle-por-commit)
+   - [13 de agosto de 2026](#13-de-agosto-de-2026)
+   - [25 de septiembre de 2026](#25-de-septiembre-de-2026)
+6. [Estado de ramas y pull requests](#estado-de-ramas-y-pull-requests)
+7. [Observaciones pendientes](#observaciones-pendientes)
+8. [Cómo añadir nuevas entradas](#cómo-añadir-nuevas-entradas)
+
+**Leyenda de tipos:** 🟢 Inicial · 🔧 Corrección · ✨ Mejora · 🔀 Fusión · 📝 Documentación
+
+---
+
+## Resumen en cifras
+
+| Indicador | Valor |
+|---|---|
+| Commits registrados | 9 (8 previos + el de esta documentación) |
+| Ramas | `main`, `claude/laughing-planck-4m793a`, `fix/auditoria-editorial-2026-09-25` |
+| Pull requests | 2 (#2 fusionado, #1 abierto) |
+| Periodo | 13/08/2026 → 25/09/2026 |
+| Autores | Merchan.dev (7 commits) · Claude / Claude Code (2 commits) |
+
+---
+
+## Línea de tiempo
+
+| # | Fecha y hora (VET) | Commit | Rama | Autor | Tipo | Título |
+|---|---|---|---|---|---|---|
+| 1 | 13/08/2026 09:49 | [`eaf6786`](https://github.com/merchandev/espressivo-editorial/commit/eaf6786) | `main` | merchandev | 🟢 | Update SEO dashboard and credits |
+| 2 | 25/09/2026 07:32 | [`d7a9210`](https://github.com/merchandev/espressivo-editorial/commit/d7a9210) | `claude/laughing-planck-4m793a` | Claude | 🔧 ✨ | Auditoría: entradas ocultas, widgets, SEO/Site Kit, acentos y clasificados |
+| 3 | 25/09/2026 07:34 | [`74fe87e`](https://github.com/merchandev/espressivo-editorial/commit/74fe87e) | `fix/auditoria-editorial-2026-09-25` | Merchan.dev | 🔧 | Fix editorial listings, SEO visibility, widgets and classifieds |
+| 4 | 25/09/2026 07:34 | [`195c0ea`](https://github.com/merchandev/espressivo-editorial/commit/195c0ea) | `fix/auditoria-editorial-2026-09-25` | Merchan.dev | 🔧 | Load editorial audit fixes |
+| 5 | 25/09/2026 07:34 | [`986b9cd`](https://github.com/merchandev/espressivo-editorial/commit/986b9cd) | `fix/auditoria-editorial-2026-09-25` | Merchan.dev | 🔧 | Unify category pagination with AJAX |
+| 6 | 25/09/2026 07:35 | [`31e26db`](https://github.com/merchandev/espressivo-editorial/commit/31e26db) | `fix/auditoria-editorial-2026-09-25` | Merchan.dev | ✨ | Render classified featured images |
+| 7 | 25/09/2026 07:35 | [`58a6204`](https://github.com/merchandev/espressivo-editorial/commit/58a6204) | `fix/auditoria-editorial-2026-09-25` | Merchan.dev | ✨ | Show classified featured image on single view |
+| 8 | 25/09/2026 07:54 | [`7754bef`](https://github.com/merchandev/espressivo-editorial/commit/7754bef) | `main` | Merchan.dev | 🔀 | Merge pull request #2 |
+| 9 | 25/09/2026 | *(este commit)* | `claude/laughing-planck-4m793a` | Claude | 📝 | Documentación: ABOUT.md e historial de cambios |
+
+Otros eventos del 25/09/2026: el **PR #1** se abrió a las 07:39 y el **PR #2** a las 07:52; el PR #2 se fusionó en `main` a las 07:54.
+
+---
+
+## Mapa de ramas
+
+```text
+main ──●─────────────────────────────────────────────●── main (7754bef)
+      eaf6786 \                                     /
+               ├── claude/laughing-planck-4m793a ──● d7a9210  (PR #2, fusionado)
+               │
+               └── fix/auditoria-editorial-2026-09-25
+                    ● 74fe87e → ● 195c0ea → ● 986b9cd → ● 31e26db → ● 58a6204   (PR #1, abierto)
+```
+
+---
+
+## Antecedentes (antes del repositorio)
+
+Estas versiones son anteriores al control de versiones. No tienen commits propios: todo su trabajo quedó consolidado en el commit inicial `eaf6786`. Se documentan según el *Changelog* del README.
+
+| Versión | Contenido |
+|---|---|
+| **v1.1.0** — Auditoría de seguridad | Saneamiento completo de entradas, nonces y *guards* `ABSPATH`. URL de inicio de sesión personalizada `/turpial` con coincidencia exacta. |
+| **v1.2.0** — Auditoría y funcionalidades | Lightbox con zoom y desplazamiento para portadas. Buscador predictivo AJAX con validaciones. Ticker "Último minuto" con caché en *transients*. |
+| **v1.3.0** — Mejoras estructurales y legales | Plantillas autogenerables de "Términos y condiciones" y "Política de cookies". Reorganización del pie y retirada de metaetiquetas de la portada. |
+| **v2.0.0** — Refactorización Espressivo e integración SSIVO-SEO | Marca blanca con nomenclatura genérica. Motor SSIVO-SEO (React + PHP) sin plugins. Tabla indexable `ssivo_seo_indexable`. Panel lateral de legibilidad en Gutenberg. |
+
+---
+
+## Detalle por commit
+
+### 13 de agosto de 2026
+
+#### 1 · `eaf6786` — Update SEO dashboard and credits 🟢
+
+| | |
+|---|---|
+| **Rama** | `main` (commit raíz, sin padres) |
+| **Autor** | merchandev · soporte@merchan.dev |
+| **Fecha** | 13/08/2026 09:49:47 VET |
+| **Cambios** | 718 archivos · +255.405 líneas |
+
+Primer commit del repositorio. Incorpora el tema completo en su versión **2.0.0**, con el panel SEO y los créditos actualizados.
+
+**Contenido incorporado**
+
+| Grupo | Archivos |
+|---|---|
+| Tema (sin dependencias) | 74 archivos: 47 PHP, 7 JS, 7 CSS, 6 imágenes, 3 JSON, `README.md`, `.gitignore`, `composer.lock`, `composer.phar` |
+| Dependencias (`vendor/`) | 644 archivos de Composer: `dompdf/dompdf` 3.1.6, `php-font-lib`, `php-svg-lib`, `masterminds/html5` |
+
+**Módulos presentes desde el inicio**
+
+- Plantillas: portada editorial, categorías (`category.php` y `page-categoria.php`), entradas, páginas legales, contacto, radio y 404.
+- `inc/seo/`: SSIVO-SEO (metadatos, tabla indexable, automatizaciones, metabox, panel de métricas con Google Site Kit).
+- `src/seo/`: panel React de legibilidad y vista previa del resultado en Google.
+- `inc/ad-manager.php`: gestor de publicidad (cabecera, in-feed y patrocinio por categoría).
+- `inc/clasificados.php`: clasificados con tipos y URL propias.
+- `inc/portada-dia.php`: programación de la portada impresa.
+- `inc/reportes/`: reportes editoriales en PDF.
+- `inc/admin-whitelabel.php` e `inc/security.php`: panel con marca propia, roles y acceso `/turpial`.
+- `functions.php`: roles editoriales, firma obligatoria, widgets del escritorio, contacto, carteles, instalación automática de páginas y menús.
+
+---
+
+### 25 de septiembre de 2026
+
+#### 2 · `d7a9210` — Auditoría: entradas ocultas, widgets, SEO/Site Kit, acentos y clasificados 🔧 ✨
+
+| | |
+|---|---|
+| **Rama** | `claude/laughing-planck-4m793a` → fusionada en `main` por el PR #2 |
+| **Autor** | Claude (Claude Code) · noreply@anthropic.com |
+| **Fecha** | 25/09/2026 07:32:19 VET (subido a GitHub a las 07:52) |
+| **Cambios** | 22 archivos · +1.889 / −1.016 líneas |
+| **Versión** | 2.1.0 (Changelog del README) |
+
+Auditoría del tema que corrige seis incidencias reportadas. Cada corrección se verificó en un WordPress 7.1.2 de pruebas: en el navegador, el tema anterior pasaba 4 de 13 comprobaciones y el corregido las 13.
+
+##### a) Entradas publicadas que desaparecían
+
+| Archivo | Cambio |
+|---|---|
+| `functions.php` | `pro_enforce_firma_on_publish()` solo actúa al **pasar** a publicado o programado. Antes cualquier edición de una entrada publicada sin firma la devolvía a borrador. |
+| `functions.php` | Nuevas `pro_register_firma_meta()` y `pro_rest_firma()`, más el filtro `rest_pre_insert_post`: la firma viaja por REST en la misma petición de publicación de Gutenberg. |
+| `functions.php` | El script del editor sincroniza la firma con `core/editor`, y `pro_save_firma_autor_meta()` añade `wp_unslash()`. |
+| `functions.php` | Nuevas constantes `PRO_CATEGORY_PAGE_PER_PAGE` (12) y `PRO_CATEGORY_ARCHIVE_PER_PAGE` (20). |
+| `functions.php` | Nuevas `pro_category_includes_children()`, `pro_get_listing_query_args()`, `pro_get_main_query_loadmore_state()`, `pro_listing_data_attributes()` y `pro_check_public_ajax_nonce()`. |
+| `functions.php` | `pro_load_more_posts()` pagina por desplazamiento (*offset*) con orden fecha + ID y responde JSON `{ html, count, has_more }`. `pro_loadmore_params` queda solo con datos globales. |
+| `template-parts/content/card.php` | **Nuevo**: tarjeta de noticia compartida entre la primera carga y AJAX. |
+| `page-categoria.php`, `category.php`, `index.php` | Usan la consulta compartida, la tarjeta y los atributos `data-*` del listado. |
+
+##### b) Widgets que a veces no cargaban (navegación Swup)
+
+| Archivo | Cambio |
+|---|---|
+| `assets/js/main.js` | Reescrito: arranque único (`boot`), reinicio por página (`initPage`) y limpieza (`teardownPage`). Delegación de eventos para "Cargar más", carteles, contacto, búsqueda y portada. |
+| `assets/js/main.js` | Integración Swup con `ignoreVisit` (admin, login, archivos), cierre del menú móvil, sincronización de clases del `<body>`, re-ejecución solo de los scripts de `#swup`, rescate de imágenes con carga diferida y radio con un único `<audio>`. |
+| `assets/js/main.js` | Búsqueda con `/^[\p{L}\s.,\-¿?¡!]+$/u` (acepta Á, Í, Ü) y consentimiento del formulario de contacto validado. |
+| `footer.php` | Se retira `@swup/scripts-plugin`, que re-ejecutaba todos los scripts en cada navegación. |
+| `template-parts/ads/category-sponsor.php` | Sin script inline (lo rota `main.js`) y `mb_strtoupper()` en lugar de `strtoupper()`. |
+
+##### c) Imagen destacada en widgets y entradas programadas
+
+| Archivo | Cambio |
+|---|---|
+| `functions.php` | Nuevas `pro_find_content_image_id()`, `pro_get_post_image_id()` y `pro_the_post_image()`: usan la destacada válida o, si falta, la primera imagen del contenido. |
+| `inc/seo/class-automations.php` | La imagen destacada automática reconoce imágenes redimensionadas y funciona también cuando el cron publica una programada. La meta descripción se extrae de forma segura para UTF-8. |
+| `front-page.php`, `template-parts/home/hero.php`, `premium.php`, `secondary.php`, `index.php` | Usan los nuevos helpers de imagen. |
+
+##### d) Panel SEO vinculado a Google Site Kit
+
+| Archivo | Cambio |
+|---|---|
+| `inc/seo/class-site-kit-bridge.php` | **Nuevo** `SiteKitBridge`: Site Kit completo solo para administradores, lectura con el token del propietario de cada módulo (`with_shared_read()`) y redirección al panel SEO. |
+| `inc/seo/class-admin-page.php` | El proxy ya no usa `wp_set_current_user()`, que no cambia el token de Site Kit. Se retira la opción `ssivo_seo_sk_owner_id` y se añade un estado de conexión, la fecha real de actualización y la migración de capacidades 1.1.0. |
+| `inc/seo/init.php` | Carga y registro del puente. |
+| `inc/admin-whitelabel.php` | Se retira la regla que dejaba Site Kit a los editores. |
+
+##### e) Acentos y Ñ
+
+| Archivo | Cambio |
+|---|---|
+| `functions.php` | Se elimina `pro_fix_corrupted_terms()`, que rompía la Ñ, las mayúsculas acentuadas y las comillas. |
+| `functions.php` | Nueva `pro_repair_mojibake()`: reparación Windows-1252 → UTF-8 con lista blanca de caracteres del español. |
+| `functions.php` | Protección al guardar (`wp_insert_post_data`, `pre_insert_term`, `wp_update_term_data`). |
+| `functions.php` | Migración por lotes `pro_repair_stored_mojibake()` sobre términos, entradas, menús, firmas y datos SEO, sin tocar slugs. |
+
+##### f) Clasificados
+
+| Archivo | Cambio |
+|---|---|
+| `inc/clasificados.php` | Soporte de imagen destacada, bloques `core/image` y `core/gallery`, y alta automática de "Clasificados" en los menús principal (antes de "Más") y móvil. Estilos cargados en todo el sitio. |
+| `archive-clasificado.php`, `single-clasificado.php` | Imagen del aviso en la tarjeta del listado y en la página del aviso. |
+| `assets/css/clasificados.css` | Estilos de las imágenes. |
+
+##### g) Documentación
+
+| Archivo | Cambio |
+|---|---|
+| `README.md` | Entrada de changelog **v2.1.0 — Auditoría (septiembre 2026)**. |
+
+---
+
+#### 3 · `74fe87e` — Fix editorial listings, SEO visibility, widgets and classifieds 🔧
+
+| | |
+|---|---|
+| **Rama** | `fix/auditoria-editorial-2026-09-25` (PR #1, **abierto**, sin fusionar) |
+| **Autor** | Merchan.dev · merchan.dev@hotmail.com |
+| **Fecha** | 25/09/2026 07:34:07 VET |
+| **Cambios** | 1 archivo · +501 líneas |
+
+Añade `inc/editorial-audit-fixes.php`, que agrupa sus correcciones en un archivo aparte para no seguir ampliando `functions.php`:
+
+1. **Invalidación editorial**: limpia cachés y *transients* en `transition_post_status` cuando una entrada entra o sale de publicado, también si la publica el cron.
+2. **Paginación AJAX**: sustituye `pro_load_more_posts` por un endpoint de 20 entradas por página, orden fecha + ID e inclusión de subcategorías. Responde HTML y pagina por número de página.
+3. **SEO y Site Kit**: concede `view_ssivo_seo` a todos los roles, oculta los menús de Site Kit a quien no es administrador y lo redirige al panel SEO.
+4. **Widget "Últimas Publicaciones"**: lo vuelve a dibujar con miniatura (también para las programadas) y orden determinista por modificación + ID.
+5. **Clasificados**: soporte de imagen destacada, bloques de imagen, galería y medios y texto, y enlace "Clasificados" añadido a los menús `primary` y `mobile` mediante el filtro `wp_nav_menu_items`.
+6. **Mojibake**: reparación al mostrar el texto con un mapa fijo de secuencias (`strtr`) sobre título, extracto, contenido, widgets, menús y términos.
+7. **Estilos**: CSS en línea para las imágenes de clasificados.
+
+#### 4 · `195c0ea` — Load editorial audit fixes 🔧
+
+| | |
+|---|---|
+| **Rama** | `fix/auditoria-editorial-2026-09-25` |
+| **Fecha** | 25/09/2026 07:34:23 VET |
+| **Cambios** | `inc/seo/init.php` · +1 línea |
+
+Carga `inc/editorial-audit-fixes.php` desde el módulo SEO.
+
+#### 5 · `986b9cd` — Unify category pagination with AJAX 🔧
+
+| | |
+|---|---|
+| **Rama** | `fix/auditoria-editorial-2026-09-25` |
+| **Fecha** | 25/09/2026 07:34:51 VET |
+| **Cambios** | `page-categoria.php` · +9 / −2 líneas |
+
+Lee la página actual de `paged` o `page` y sube el tamaño de 12 a 20 entradas para igualarlo con su endpoint AJAX.
+
+#### 6 · `31e26db` — Render classified featured images ✨
+
+| | |
+|---|---|
+| **Rama** | `fix/auditoria-editorial-2026-09-25` |
+| **Fecha** | 25/09/2026 07:35:20 VET |
+| **Cambios** | `archive-clasificado.php` · +19 / −1 líneas |
+
+Muestra la imagen destacada (`medium_large`) en las tarjetas del listado de clasificados.
+
+#### 7 · `58a6204` — Show classified featured image on single view ✨
+
+| | |
+|---|---|
+| **Rama** | `fix/auditoria-editorial-2026-09-25` |
+| **Fecha** | 25/09/2026 07:35:32 VET |
+| **Cambios** | `single-clasificado.php` · +15 / −1 líneas |
+
+Muestra la imagen destacada (`large`) en la página de cada aviso.
+
+---
+
+#### 8 · `7754bef` — Merge pull request #2 🔀
+
+| | |
+|---|---|
+| **Rama** | `main` |
+| **Autor** | Merchan.dev |
+| **Fecha** | 25/09/2026 07:54:03 VET |
+| **Padres** | `eaf6786` (main) · `d7a9210` (claude/laughing-planck-4m793a) |
+
+Fusiona en `main` el [PR #2](https://github.com/merchandev/espressivo-editorial/pull/2). Desde este punto `main` contiene la auditoría v2.1.0 (22 archivos, +1.889 / −1.016 líneas).
+
+---
+
+#### 9 · Documentación: ABOUT.md e historial de cambios 📝
+
+| | |
+|---|---|
+| **Rama** | `claude/laughing-planck-4m793a` (creada a partir de `main` en `7754bef`) |
+| **Autor** | Claude (Claude Code) |
+| **Fecha** | 25/09/2026 |
+
+| Archivo | Cambio |
+|---|---|
+| `ABOUT.md` | **Nuevo**: descripción del proyecto, módulos, roles, tecnología, estructura y ficha para el panel "About" de GitHub. |
+| `HISTORIAL_DE_CAMBIOS.md` | **Nuevo**: este documento. |
+| `README.md` | Enlaces a ambos documentos. |
+
+---
+
+## Estado de ramas y pull requests
+
+| Rama | Último commit | Estado |
+|---|---|---|
+| `main` | `7754bef` | Rama principal. Contiene el commit inicial y la auditoría v2.1.0. |
+| `claude/laughing-planck-4m793a` | documentación | PR #2 fusionado. Esta rama continúa con la documentación. |
+| `fix/auditoria-editorial-2026-09-25` | `58a6204` | PR #1 **abierto**, sin fusionar. |
+
+| PR | Título | Estado |
+|---|---|---|
+| [#1](https://github.com/merchandev/espressivo-editorial/pull/1) | Corrige listados editoriales, SEO/Site Kit, widgets y Clasificados | Abierto |
+| [#2](https://github.com/merchandev/espressivo-editorial/pull/2) | Auditoría: entradas ocultas, widgets, SEO/Site Kit, acentos y clasificados | Fusionado el 25/09/2026 |
+
+---
+
+## Observaciones pendientes
+
+1. **El PR #1 no se puede fusionar tal cual sobre `main`.** Hay conflictos en `archive-clasificado.php`, `inc/seo/init.php`, `page-categoria.php` y `single-clasificado.php`. Además, su endpoint de "Cargar más" (HTML, paginado por número de página) sustituiría al actual (JSON, por desplazamiento) y rompería el scroll infinito. Se recomienda cerrarlo o rehacerlo sobre `main`.
+2. **Aporte del PR #1 que `main` no tiene:** miniaturas en el widget del escritorio "Últimas Publicaciones", incluidas las entradas programadas. Si se desea, puede incorporarse a `main` en un cambio aparte.
+3. **Versión del tema:** la cabecera de `style.css` sigue en `2.0.0`, mientras que el changelog ya registra la `2.1.0`.
+4. **Archivo sin uso:** `main_head.css` es una copia antigua de `main.css` en UTF-16 que ningún archivo carga.
+5. **Licencia:** `style.css` (GPL v2 o posterior), `composer.json` (*proprietary*) y los avisos legales de los archivos no coinciden.
+
+---
+
+## Cómo añadir nuevas entradas
+
+Cada commit nuevo se añade **al final de la línea de tiempo** y con su propia sección de detalle. Plantilla:
+
+```markdown
+#### N · `abc1234` — Título del commit 🔧
+
+| | |
+|---|---|
+| **Rama** | `nombre-de-la-rama` |
+| **Autor** | Nombre · correo |
+| **Fecha** | DD/MM/AAAA HH:MM:SS VET |
+| **Cambios** | X archivos · +A / −B líneas |
+
+| Archivo | Cambio |
+|---|---|
+| `ruta/archivo.php` | Qué se cambió y por qué. |
+```
+
+Comandos útiles:
+
+```bash
+git log --all --date=iso --format='%h %ad %an %s'   # todos los commits con fecha
+git show --stat <commit>                            # archivos y líneas de un commit
+```

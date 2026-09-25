@@ -72,6 +72,8 @@ Se invalidan automáticamente mediante el hook `transition_post_status`.
 
 ## 🔄 Changelog
 
+> Historial detallado commit a commit en [HISTORIAL_DE_CAMBIOS.md](HISTORIAL_DE_CAMBIOS.md) · Descripción del proyecto en [ABOUT.md](ABOUT.md).
+
 ### v2.1.0 — Auditoría (septiembre 2026)
 - ✅ **Entradas que desaparecían:** la validación de firma ya no pasa a Borrador entradas publicadas o programadas al editarlas (edición rápida/masiva, REST, plugins). En el editor de bloques la firma viaja en la misma petición de publicación.
 - ✅ **Listados completos:** la primera página y el scroll infinito / "Cargar más" comparten consulta (tamaño, orden fecha + ID, subcategorías) y avanzan por desplazamiento; ya no se saltan noticias.
