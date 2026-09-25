@@ -2,7 +2,7 @@
 
 **Tema y framework de WordPress para diarios digitales y portales de noticias.** Construido desde cero bajo una arquitectura de marca blanca (white-label) y SaaS, para duplicarse y licenciarse a distintas editoriales con el menor número posible de plugins de terceros.
 
-![Versión](https://img.shields.io/badge/versi%C3%B3n-2.1.3-cc3332)
+![Versión](https://img.shields.io/badge/versi%C3%B3n-2.1.4-cc3332)
 ![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-21759b?logo=wordpress&logoColor=white)
 ![PHP](https://img.shields.io/badge/PHP-8.1%2B-777bb4?logo=php&logoColor=white)
 ![Idioma](https://img.shields.io/badge/idioma-espa%C3%B1ol-ffc407)
@@ -17,7 +17,7 @@ Instalación de referencia: **Diario El Oriental** (Maturín, Monagas, Venezuela
 |---|---|---|
 | 🕓 **[Historial de cambios](HISTORIAL_DE_CAMBIOS.md)** | Todos los commits del repositorio en orden cronológico, con detalle por archivo | [Línea de tiempo](HISTORIAL_DE_CAMBIOS.md#línea-de-tiempo) · [Mapa de ramas](HISTORIAL_DE_CAMBIOS.md#mapa-de-ramas) · [Pendientes](HISTORIAL_DE_CAMBIOS.md#observaciones-pendientes) |
 | 📄 **[Acerca del proyecto](ABOUT.md)** | Qué es el tema, módulos, roles, tecnología y estructura del repositorio | [Módulos](ABOUT.md#módulos-principales) · [Roles](ABOUT.md#roles-y-permisos) · [Estructura](ABOUT.md#estructura-del-repositorio) |
-| 📜 **[Changelog](#-changelog)** | Resumen de cambios por versión (v1.1.0 → v2.1.3) | [v2.1.3](#v213--panel-seo-con-los-mismos-datos-que-site-kit-25-de-septiembre-de-2026) · [v2.1.2](#v212--revisión-completa-25-de-septiembre-de-2026) · [v2.1.1](#v211--cifras-del-panel-seo-alineadas-con-site-kit-25-de-septiembre-de-2026) · [v2.1.0](#v210--auditoría-25-de-septiembre-de-2026) |
+| 📜 **[Changelog](#-changelog)** | Resumen de cambios por versión (v1.1.0 → v2.1.4) | [v2.1.4](#v214--banner-de-cabecera-más-grande-25-de-septiembre-de-2026) · [v2.1.3](#v213--panel-seo-con-los-mismos-datos-que-site-kit-25-de-septiembre-de-2026) · [v2.1.2](#v212--revisión-completa-25-de-septiembre-de-2026) · [v2.1.1](#v211--cifras-del-panel-seo-alineadas-con-site-kit-25-de-septiembre-de-2026) · [v2.1.0](#v210--auditoría-25-de-septiembre-de-2026) |
 
 ---
 
@@ -229,6 +229,9 @@ php composer.phar install   # solo si actualizas dompdf
 ## 📜 Changelog
 
 > Historial detallado commit a commit en [HISTORIAL_DE_CAMBIOS.md](HISTORIAL_DE_CAMBIOS.md).
+
+### v2.1.4 — Banner de cabecera más grande (25 de septiembre de 2026)
+- ✅ **Publicidad de cabecera un 15 % más grande** en escritorio: el espacio pasa de 728 × 90 a 837 × 104 px con la misma proporción, así que la imagen crece sin deformarse ni recortarse. En móvil no cambia (ya ocupa todo el ancho).
 
 ### v2.1.3 — Panel SEO con los mismos datos que Site Kit (25 de septiembre de 2026)
 - ✅ **Search Console con la cuenta correcta:** el panel leía cada servicio con la cuenta de Google de quien lo conectó en Site Kit. Si esa cuenta no tenía permiso en la propiedad, Impresiones y Palabras clave salían en rojo aunque Site Kit sí mostrara los datos. Ahora, cuando un administrador conectado a Site Kit abre el panel, se prueba su propia cuenta (la misma de su Site Kit) y, si funciona, se usa para todo el equipo y para la actualización automática. No se modifican los ajustes de Site Kit.

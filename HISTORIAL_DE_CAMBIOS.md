@@ -29,12 +29,12 @@ Registro cronológico de **todos los commits** del repositorio [`merchandev/espr
 
 | Indicador | Valor |
 |---|---|
-| Commits registrados | 14 |
+| Commits registrados | 15 |
 | Ramas | `main`, `claude/laughing-planck-4m793a`, `fix/auditoria-editorial-2026-09-25` |
 | Pull requests | 2 (#2 fusionado, #1 abierto) |
 | Periodo | 13/08/2026 → 25/09/2026 |
-| Versión actual del tema | **2.1.3** |
-| Autores | Merchan.dev (7 commits) · Claude / Claude Code (7 commits) |
+| Versión actual del tema | **2.1.4** |
+| Autores | Merchan.dev (7 commits) · Claude / Claude Code (8 commits) |
 
 ---
 
@@ -55,7 +55,8 @@ Registro cronológico de **todos los commits** del repositorio [`merchandev/espr
 | 11 | 25/09/2026 08:13 | [`8678283`](https://github.com/merchandev/espressivo-editorial/commit/8678283) | `main` | Claude | 📝 | README: acceso rápido a la documentación; todo integrado en `main` |
 | 12 | 25/09/2026 08:29 | [`ecb6673`](https://github.com/merchandev/espressivo-editorial/commit/ecb6673) | `claude/laughing-planck-4m793a` | Claude | 🔧 | v2.1.1: cifras del panel SEO alineadas con Site Kit |
 | 13 | 25/09/2026 08:43 | [`f3df61f`](https://github.com/merchandev/espressivo-editorial/commit/f3df61f) | `claude/laughing-planck-4m793a` → `main` | Claude | 🔧 📝 | v2.1.2: revisión completa, listados y migración de acentos |
-| 14 | 25/09/2026 | *(este commit)* | `claude/laughing-planck-4m793a` → `main` | Claude | 🔧 ✨ | v2.1.3: panel SEO con los mismos datos que Site Kit |
+| 14 | 25/09/2026 09:26 | [`914109c`](https://github.com/merchandev/espressivo-editorial/commit/914109c) | `claude/laughing-planck-4m793a` → `main` | Claude | 🔧 ✨ | v2.1.3: panel SEO con los mismos datos que Site Kit |
+| 15 | 25/09/2026 | *(este commit)* | `claude/laughing-planck-4m793a` → `main` | Claude | ✨ | v2.1.4: banner de cabecera un 15 % más grande |
 
 Otros eventos del 25/09/2026: el **PR #1** se abrió a las 07:39 y el **PR #2** a las 07:52; el PR #2 se fusionó en `main` a las 07:54.
 
@@ -64,8 +65,8 @@ Otros eventos del 25/09/2026: el **PR #1** se abrió a las 07:39 y el **PR #2** 
 ## Mapa de ramas
 
 ```text
-main ──●──────────────────────────────────●── 7754bef ──● a97109f ──● afa897d ──● 8678283 ──● ecb6673 ──● f3df61f ──● commit 14 ── main
-      eaf6786 \                          /   (PR #2)     (documentación, v2.1.0 y README)   (v2.1.1)    (v2.1.2)    (v2.1.3)
+main ──●──────────────────────────────────●── 7754bef ──● a97109f ──● afa897d ──● 8678283 ──● ecb6673 ──● f3df61f ──● 914109c ──● commit 15 ── main
+      eaf6786 \                          /   (PR #2)     (documentación, v2.1.0 y README)   (v2.1.1)    (v2.1.2)    (v2.1.3)    (v2.1.4)
                ├── claude/laughing-planck-4m793a
                │    ● d7a9210 (auditoría)
                │
@@ -73,7 +74,7 @@ main ──●──────────────────────
                     ● 74fe87e → ● 195c0ea → ● 986b9cd → ● 31e26db → ● 58a6204   (PR #1, abierto)
 ```
 
-Los commits 9 a 14 se hicieron en `claude/laughing-planck-4m793a` sobre `7754bef` y se integraron en `main` por avance rápido (*fast-forward*), sin commit de fusión: ambas ramas apuntan al mismo commit.
+Los commits 9 a 15 se hicieron en `claude/laughing-planck-4m793a` sobre `7754bef` y se integraron en `main` por avance rápido (*fast-forward*), sin commit de fusión: ambas ramas apuntan al mismo commit.
 
 ---
 
@@ -385,13 +386,14 @@ Con este commit, `main` contiene todo el trabajo: auditoría v2.1.0, documentaci
 
 ---
 
-#### 14 · v2.1.3: panel SEO con los mismos datos que Site Kit 🔧 ✨
+#### 14 · `914109c` — v2.1.3: panel SEO con los mismos datos que Site Kit 🔧 ✨
 
 | | |
 |---|---|
 | **Rama** | `claude/laughing-planck-4m793a`, llevado a `main` por avance rápido |
 | **Autor** | Claude (Claude Code) |
-| **Fecha** | 25/09/2026 |
+| **Fecha** | 25/09/2026 09:26 VET |
+| **Cambios** | 6 archivos · +419 / −131 líneas |
 
 **Motivo:** en producción, el panel SEO mostraba Google Analytics bien, pero "Impresiones" y "Palabras clave" salían con *"User does not have sufficient permission for site 'https://diarioeloriental.com/'"*, mientras que el Site Kit del administrador sí mostraba Search Console (396K impresiones, 6,9K clics). Además, países y dispositivos no coincidían con los gráficos de Site Kit (Venezuela 72 % frente a 40,2 %). El objetivo del panel es mostrar al equipo exactamente los datos de Site Kit sin darle acceso a Site Kit.
 
@@ -415,12 +417,32 @@ Con este commit, `main` contiene todo el trabajo: auditoría v2.1.0, documentaci
 
 ---
 
+#### 15 · v2.1.4: banner de cabecera un 15 % más grande ✨
+
+| | |
+|---|---|
+| **Rama** | `claude/laughing-planck-4m793a`, llevado a `main` por avance rápido |
+| **Autor** | Claude (Claude Code) |
+| **Fecha** | 25/09/2026 |
+
+**Motivo:** que la imagen promocional de la cabecera (junto al logo) se vea más grande sin cambiar sus proporciones.
+
+| Archivo | Cambio |
+|---|---|
+| `assets/css/main.css` | `.header-ad`: `max-width` de 728 a 837 px y `height` de 90 a 104 px (+15 %, misma proporción). La imagen usa `object-fit: contain`, así que crece sin deformarse ni recortarse. La regla de móvil (≤ 767 px, ancho completo) no cambia. |
+| `style.css`, `README.md`, `ABOUT.md` | Versión **2.1.4** y entrada de changelog. |
+| `HISTORIAL_DE_CAMBIOS.md` | Hash del commit 14 y registro de este commit. |
+
+**Verificación** (navegador, con un banner de prueba de 850 × 110 px, la proporción del real): a 1440 y 1200 px de ancho la imagen pasa de 695 × 90 a 804 × 104 px; a 390 px (móvil) sigue en 359 × 46 px.
+
+---
+
 ## Estado de ramas y pull requests
 
 | Rama | Último commit | Estado |
 |---|---|---|
-| `main` | commit 14 | Rama principal. Contiene todo el trabajo: auditoría v2.1.0, panel SEO v2.1.1 y v2.1.3, revisión v2.1.2 y documentación. |
-| `claude/laughing-planck-4m793a` | commit 14 | Igual que `main`. |
+| `main` | commit 15 | Rama principal. Contiene todo el trabajo: auditoría v2.1.0, panel SEO v2.1.1 y v2.1.3, revisión v2.1.2, banner v2.1.4 y documentación. |
+| `claude/laughing-planck-4m793a` | commit 15 | Igual que `main`. |
 | `fix/auditoria-editorial-2026-09-25` | `58a6204` | PR #1 **abierto**, sin fusionar. |
 
 | PR | Título | Estado |
