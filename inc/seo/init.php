@@ -8,12 +8,17 @@ require_once get_template_directory() . '/inc/seo/class-automations.php';
 require_once get_template_directory() . '/inc/seo/class-frontend-meta.php';
 require_once get_template_directory() . '/inc/seo/class-admin-page.php';
 require_once get_template_directory() . '/inc/seo/class-metabox.php';
+require_once get_template_directory() . '/inc/seo/class-site-kit-bridge.php';
 
 use SSIVO_SEO\Includes\Database;
 use SSIVO_SEO\Includes\Automations;
 use SSIVO_SEO\Includes\FrontendMeta;
 use SSIVO_SEO\Includes\AdminPage;
 use SSIVO_SEO\Includes\Metabox;
+use SSIVO_SEO\Includes\SiteKitBridge;
+
+// Site Kit completo solo para administradores; el resto del equipo usa el panel SEO
+SiteKitBridge::register();
 
 // 1. Crear tabla si no existe
 add_action( 'admin_init', function() {

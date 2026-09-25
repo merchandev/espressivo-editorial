@@ -38,8 +38,9 @@ foreach ( $premium_cats as $cat_slug => $cat_name ) :
                         <article class="wapo-main-article">
                             <a href="<?php the_permalink(); ?>" class="post-thumbnail">
                                 <?php 
-                                if ( has_post_thumbnail() ) { the_post_thumbnail( 'card-thumbnail', array( 'loading' => 'lazy' ) ); } 
-                                else { echo '<div class="placeholder-image"><span>Foto</span></div>'; }
+                                if ( ! pro_the_post_image( 'card-thumbnail', array( 'loading' => 'lazy' ) ) ) {
+                                    echo '<div class="placeholder-image"><span>Foto</span></div>';
+                                }
                                 ?>
                             </a>
                             <div class="wapo-main-content">

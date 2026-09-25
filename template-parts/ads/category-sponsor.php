@@ -42,7 +42,7 @@ $slides       = !empty($banner_data['slides']) ? $banner_data['slides'] : array(
     <!-- Cabecera: Nombre de sección + "Patrocinado por" -->
     <div class="sponsor-header">
         <?php if ( ! empty( $cat_name ) ) : ?>
-            <span class="sponsor-section-name"><?php echo esc_html( strtoupper( $cat_name ) ); ?></span>
+            <span class="sponsor-section-name"><?php echo esc_html( mb_strtoupper( $cat_name, 'UTF-8' ) ); ?></span>
             <span class="sponsor-divider"></span>
         <?php endif; ?>
         <span class="sponsor-label">
@@ -83,23 +83,8 @@ $slides       = !empty($banner_data['slides']) ? $banner_data['slides'] : array(
                     </div>
                 <?php endforeach; ?>
             </div>
-            
-            <?php if ( count($slides) > 1 ) : ?>
-            <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    const slider = document.getElementById('pro-sponsor-slider-<?php echo $obj_id; ?>');
-                    const slides = slider.querySelectorAll('.pro-sponsor-slide');
-                    const totalSlides = slides.length;
-                    let currentIndex = 0;
-                    
-                    setInterval(function() {
-                        currentIndex = (currentIndex + 1) % totalSlides;
-                        slider.style.transform = `translateX(-${currentIndex * 100}%)`;
-                    }, 4000); // Rota cada 4 segundos
-                });
-            </script>
-            <?php endif; ?>
-            
+            <?php // La rotación de slides la gestiona assets/js/main.js (initAdSliders) ?>
+
         <?php else : ?>
             <!-- Placeholder cuando no hay anuncio publicado -->
             <?php if ( get_theme_mod( 'pro_show_ad_placeholders', true ) ) : ?>

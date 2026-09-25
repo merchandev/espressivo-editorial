@@ -29,39 +29,18 @@ if ( ! $category ) {
 }
 
 $paged = ( get_query_var( 'paged' ) ) ? get_query_var( 'paged' ) : 1;
-$args = array(
-    'post_type'           => 'post',
-    'post_status'         => 'publish',
-    'posts_per_page'      => 12,
-    // Desempate preciso: dos artículos en la misma fecha quedan ordenados por ID
-    'orderby'             => array( 'date' => 'DESC', 'ID' => 'DESC' ),
-    'ignore_sticky_posts' => 1,
-    'paged'               => $paged,
+
+// Misma consulta que el scroll infinito (pro_load_more_posts): tamaño de página,
+// orden fecha + ID y regla de subcategorías (Opinión y Bienestar no las mezclan).
+$args = pro_get_listing_query_args(
+    array( 'cat' => $category ? $category->term_id : 0 ),
+    array(
+        'posts_per_page' => PRO_CATEGORY_PAGE_PER_PAGE,
+        'paged'          => $paged,
+    )
 );
 
-if ( $category ) {
-    // Auditoría fix: usar tax_query con include_children explícito.
-    // category__in NO incluye hijos. cat SÍ, pero tax_query permite
-    // controlar el comportamiento de manera explícita por slug.
-    //
-    // opinion y bienestar: no mezclar subcategorías (si tuviesen).
-    // Resto (Monagas, Nacional, Sucesos, etc.): sí incluir hijos.
-    $include_children = ! in_array(
-        $category->slug,
-        array( 'opinion', 'bienestar' ),
-        true
-    );
-
-    $args['tax_query'] = array(
-        array(
-            'taxonomy'         => 'category',
-            'field'            => 'term_id',
-            'terms'            => array( $category->term_id ),
-            'include_children' => $include_children,
-            'operator'         => 'IN',
-        ),
-    );
-} else {
+if ( ! $category ) {
     // Categoría no encontrada: devolver conjunto vacío.
     $args['post__in'] = array( 0 );
 }
@@ -123,7 +102,7 @@ $query = new WP_Query( $args );
                 ?>
                 <article id="post-<?php the_ID(); ?>" <?php post_class('category-hero'); ?>>
                     <a href="<?php the_permalink(); ?>" class="post-thumbnail hero-thumbnail" aria-hidden="true" tabindex="-1">
-                        <?php the_post_thumbnail( 'large', array( 'loading' => 'eager' ) ); ?>
+                        <?php pro_the_post_image( 'large', array( 'loading' => 'eager' ) ); ?>
                     </a>
                     <div class="hero-content">
                         <div class="post-meta">
@@ -143,33 +122,18 @@ $query = new WP_Query( $args );
                 <?php
                 while ( $query->have_posts() ) :
                     $query->the_post();
-                    ?>
-                    <article id="post-<?php the_ID(); ?>" <?php post_class('card-post'); ?>>
-                        <?php if ( has_post_thumbnail() ) : ?>
-                            <a href="<?php the_permalink(); ?>" class="post-thumbnail" aria-hidden="true" tabindex="-1">
-                                <?php the_post_thumbnail( 'card-thumbnail', array( 'loading' => 'lazy' ) ); ?>
-                            </a>
-                        <?php endif; ?>
-                        <div class="card-content">
-                            <div class="post-meta">
-                                <?php pro_post_categories( null, $cat_slug ); ?>
-                                <time datetime="<?php echo get_the_date('c'); ?>"><?php echo get_the_date(); ?></time>
-                            </div>
-                            <h2 class="entry-title"><a href="<?php the_permalink(); ?>" rel="bookmark"><?php the_title(); ?></a></h2>
-                            <div class="entry-excerpt">
-                                <?php echo wp_trim_words( get_the_excerpt(), 20, '...' ); ?>
-                            </div>
-                        </div>
-                    </article>
-                    <?php
+                    get_template_part( 'template-parts/content/card', null, array( 'cat_slug' => $cat_slug ) );
                 endwhile;
                 wp_reset_postdata();
                 ?>
             </div>
         </div>
 
-        <?php if ( $query->max_num_pages > 1 && $paged < $query->max_num_pages ) : ?>
-            <div class="infinite-scroll-trigger" data-cat-id="<?php echo esc_attr( $category ? $category->term_id : 0 ); ?>" data-current-page="<?php echo esc_attr( $paged ); ?>" data-max-pages="<?php echo esc_attr( $query->max_num_pages ); ?>">
+        <?php
+        $shown_offset = ( $paged - 1 ) * PRO_CATEGORY_PAGE_PER_PAGE + $query->post_count;
+        if ( $shown_offset < $query->found_posts ) :
+            ?>
+            <div class="infinite-scroll-trigger"<?php pro_listing_data_attributes( array( 'cat' => $category->term_id ), $shown_offset, PRO_CATEGORY_PAGE_PER_PAGE, '.category-grid' ); ?>>
                 <div class="loading-spinner">Cargando más noticias...</div>
             </div>
         <?php endif; ?>

@@ -69,32 +69,15 @@ get_header();
             /* Iniciar el Loop */
             while ( have_posts() ) :
                 the_post();
-                ?>
-                <article id="post-<?php the_ID(); ?>" <?php post_class('card-post'); ?>>
-                    <?php if ( has_post_thumbnail() ) : ?>
-                        <a href="<?php the_permalink(); ?>" class="post-thumbnail" aria-hidden="true" tabindex="-1">
-                            <?php the_post_thumbnail( 'card-thumbnail', array( 'loading' => 'lazy' ) ); ?>
-                        </a>
-                    <?php endif; ?>
-                    <div class="card-content">
-                        <div class="post-meta">
-                            <?php pro_post_categories(); ?>
-                            <time datetime="<?php echo get_the_date('c'); ?>"><?php echo get_the_date(); ?></time>
-                        </div>
-                        <h2 class="entry-title"><a href="<?php the_permalink(); ?>" rel="bookmark"><?php the_title(); ?></a></h2>
-                        <div class="entry-excerpt">
-                            <?php echo wp_trim_words( get_the_excerpt(), 20, '...' ); ?>
-                        </div>
-                    </div>
-                </article>
-                <?php
+                get_template_part( 'template-parts/content/card' );
             endwhile;
             ?>
         </div>
 
-        <?php global $wp_query; if ( $wp_query->max_num_pages > 1 ) : ?>
+        <?php $loadmore = pro_get_main_query_loadmore_state(); ?>
+        <?php if ( $loadmore['has_more'] ) : ?>
             <div class="load-more-container text-center">
-                <button id="load-more-btn" class="btn-primary">Cargar más noticias</button>
+                <button id="load-more-btn" class="btn-primary"<?php pro_listing_data_attributes( $loadmore['context'], $loadmore['offset'], $loadmore['per_page'], '.category-grid' ); ?>>Cargar más noticias</button>
             </div>
         <?php endif; ?>
 

@@ -72,6 +72,15 @@ Se invalidan automáticamente mediante el hook `transition_post_status`.
 
 ## 🔄 Changelog
 
+### v2.1.0 — Auditoría (septiembre 2026)
+- ✅ **Entradas que desaparecían:** la validación de firma ya no pasa a Borrador entradas publicadas o programadas al editarlas (edición rápida/masiva, REST, plugins). En el editor de bloques la firma viaja en la misma petición de publicación.
+- ✅ **Listados completos:** la primera página y el scroll infinito / "Cargar más" comparten consulta (tamaño, orden fecha + ID, subcategorías) y avanzan por desplazamiento; ya no se saltan noticias.
+- ✅ **Navegación Swup:** scroll infinito, formulario de contacto, visores, sliders y radio funcionan también al llegar a una página desde el menú; solo se re-ejecutan los scripts del contenido nuevo.
+- ✅ **Imágenes en widgets:** si falta la imagen destacada (o está rota) se usa la primera imagen del contenido; la asignación automática reconoce las imágenes redimensionadas, también en las programadas.
+- ✅ **SEO + Site Kit:** el panel SEO muestra los datos de Site Kit a todos los usuarios con las credenciales del administrador que conectó cada servicio; el Site Kit completo queda solo para administradores.
+- ✅ **Acentos y Ñ:** reparación segura del texto con codificación dañada (categorías, menús, títulos, contenido, firmas y datos SEO) y protección al guardar.
+- ✅ **Clasificados:** entrada en los menús principal y móvil, imagen destacada y bloques de imagen/galería visibles en el listado y en el aviso.
+
 ### v2.0.0 — Refactorización Espressivo & Integración SSIVO-SEO (Sesión Actual)
 - ✅ **Marca Blanca (White-label):** Se reemplazaron las dependencias semánticas previas por nomenclatura genérica ("Espressivo", "MerchanDev").
 - ✅ **SSIVO-SEO Integrado:** Incorporación del motor de posicionamiento avanzado (React/PHP) sin depender de plugins de terceros.

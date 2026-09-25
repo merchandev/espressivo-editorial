@@ -27,9 +27,9 @@ get_header();
             the_post();
             ?>
             <article id="post-<?php the_ID(); ?>" <?php post_class('hero-post'); ?>>
-                <?php if ( has_post_thumbnail() ) : ?>
+                <?php if ( pro_get_post_image_id() ) : ?>
                     <a href="<?php the_permalink(); ?>" class="post-thumbnail" aria-hidden="true" tabindex="-1">
-                        <?php the_post_thumbnail( 'hero-thumbnail', array( 'loading' => 'eager' ) ); // Eager load for LCP ?>
+                        <?php pro_the_post_image( 'hero-thumbnail', array( 'loading' => 'eager' ) ); // Eager load for LCP ?>
                     </a>
                 <?php endif; ?>
                 <div class="hero-content">
@@ -58,9 +58,9 @@ get_header();
                     the_post();
                     ?>
                     <article id="post-<?php the_ID(); ?>" <?php post_class('card-post'); ?>>
-                        <?php if ( has_post_thumbnail() ) : ?>
+                        <?php if ( pro_get_post_image_id() ) : ?>
                             <a href="<?php the_permalink(); ?>" class="post-thumbnail" aria-hidden="true" tabindex="-1">
-                                <?php the_post_thumbnail( 'card-thumbnail', array( 'loading' => 'lazy' ) ); ?>
+                                <?php pro_the_post_image( 'card-thumbnail', array( 'loading' => 'lazy' ) ); ?>
                             </a>
                         <?php endif; ?>
                         <div class="card-content">
@@ -77,9 +77,10 @@ get_header();
 
         </div><!-- .home-layout-grid -->
 
-        <?php global $wp_query; if ( $wp_query->max_num_pages > 1 ) : ?>
+        <?php $loadmore = pro_get_main_query_loadmore_state(); ?>
+        <?php if ( $loadmore['has_more'] ) : ?>
             <div class="load-more-container text-center">
-                <button id="load-more-btn" class="btn-primary">Cargar más noticias</button>
+                <button id="load-more-btn" class="btn-primary"<?php pro_listing_data_attributes( $loadmore['context'], $loadmore['offset'], $loadmore['per_page'], '.secondary-posts-grid' ); ?>>Cargar más noticias</button>
             </div>
         <?php endif; ?>
 

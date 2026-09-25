@@ -58,9 +58,7 @@ get_header();
             <article id="post-<?php the_ID(); ?>" <?php post_class('hero-main-post'); ?>>
                 <a href="<?php the_permalink(); ?>" class="post-thumbnail" aria-hidden="true" tabindex="-1">
                     <?php 
-                    if ( has_post_thumbnail() ) {
-                        the_post_thumbnail( 'hero-thumbnail', array( 'loading' => 'eager' ) );
-                    } else {
+                    if ( ! pro_the_post_image( 'hero-thumbnail', array( 'loading' => 'eager' ) ) ) {
                         echo '<div class="placeholder-image"><span>Foto</span></div>';
                     }
                     ?>

@@ -128,7 +128,6 @@ function pro_scripts() {
         'nonce'    => $ajax_nonce
     ));
 
-    global $wp_query;
     // Usar transient para evitar query extra en cada carga de página
     $latest_date = get_transient( 'pro_latest_post_date' );
     if ( false === $latest_date ) {
@@ -148,31 +147,13 @@ function pro_scripts() {
         set_transient( 'pro_latest_post_date', $latest_date, 60 ); // Cache 60 segundos
     }
 
-    $cat_id = 0;
-    if ( is_category() ) {
-        $cat_id = get_queried_object_id();
-    } elseif ( is_page_template( 'page-categoria.php' ) ) {
-        // Usar slug de la página para detectar la categoría (más fiable que el título)
-        $queried_page = get_queried_object();
-        if ( $queried_page ) {
-            $category = get_term_by( 'slug', $queried_page->post_name, 'category' );
-            if ( ! $category ) {
-                $category = get_term_by( 'name', $queried_page->post_title, 'category' );
-            }
-            if ( $category ) {
-                $cat_id = $category->term_id;
-            }
-        }
-    }
-
+    // Solo datos globales: el estado de cada listado (categoría, desplazamiento,
+    // etc.) viaja en atributos data-* del propio listado. Este script queda fuera
+    // del contenedor de Swup y no se actualiza al navegar entre páginas.
     wp_localize_script( 'pro-main-js', 'pro_loadmore_params', array(
-        'ajax_url'     => admin_url( 'admin-ajax.php' ),
-        'current_page' => get_query_var( 'paged' ) ? get_query_var('paged') : 1,
-        'max_page'     => $wp_query->max_num_pages,
-        'query_vars'   => json_encode( $wp_query->query_vars ),
-        'category_id'  => $cat_id,
-        'latest_date'  => $latest_date,
-        'nonce'        => $ajax_nonce
+        'ajax_url'    => admin_url( 'admin-ajax.php' ),
+        'latest_date' => $latest_date,
+        'nonce'       => $ajax_nonce,
     ));
 }
 add_action( 'wp_enqueue_scripts', 'pro_scripts' );
@@ -291,10 +272,165 @@ add_action( 'pre_get_posts', function ( WP_Query $query ): void {
     }
 
     $query->set( 'post_status',         'publish' );
-    $query->set( 'posts_per_page',      20 );
+    $query->set( 'posts_per_page',      PRO_CATEGORY_ARCHIVE_PER_PAGE );
     $query->set( 'orderby',             array( 'date' => 'DESC', 'ID' => 'DESC' ) );
     $query->set( 'ignore_sticky_posts', true );
+
+    // Misma regla de subcategorías que page-categoria.php y el "cargar más"
+    $term = $query->get_queried_object();
+    if ( $term instanceof WP_Term && ! pro_category_includes_children( $term ) ) {
+        $query->set( 'tax_query', array(
+            array(
+                'taxonomy'         => 'category',
+                'field'            => 'term_id',
+                'terms'            => array( $term->term_id ),
+                'include_children' => false,
+            ),
+        ) );
+    }
 } );
+
+// =============================================================================
+// LISTADOS PAGINADOS Y "CARGAR MÁS" / SCROLL INFINITO
+// Auditoría fix: la primera página y las cargas AJAX usaban consultas distintas
+// (12 o 20 entradas frente a la opción "entradas por página", orden solo por
+// fecha y subcategorías incluidas o no). Con páginas de tamaño diferente se
+// saltaban bloques enteros de noticias, y las publicadas en el mismo minuto
+// (típico de las programadas) cambiaban de orden entre consultas. Ahora ambas
+// usan pro_get_listing_query_args() y la carga AJAX avanza por desplazamiento.
+// =============================================================================
+
+const PRO_CATEGORY_PAGE_PER_PAGE    = 12; // page-categoria.php
+const PRO_CATEGORY_ARCHIVE_PER_PAGE = 20; // category.php
+
+/**
+ * Indica si el listado de una categoría incluye sus subcategorías.
+ * Opinión y Bienestar no mezclan subcategorías.
+ */
+function pro_category_includes_children( WP_Term $term ): bool {
+    return ! in_array( $term->slug, array( 'opinion', 'bienestar' ), true );
+}
+
+/**
+ * Argumentos de WP_Query de un listado de noticias.
+ *
+ * @param array $context Filtros admitidos: cat, tag_id, author, s, year, monthnum, day.
+ * @param array $overrides Argumentos adicionales (posts_per_page, offset, paged...).
+ */
+function pro_get_listing_query_args( array $context, array $overrides = array() ): array {
+    $args = array(
+        'post_type'           => 'post',
+        'post_status'         => 'publish',
+        'orderby'             => array( 'date' => 'DESC', 'ID' => 'DESC' ),
+        'ignore_sticky_posts' => true,
+    );
+
+    if ( ! empty( $context['cat'] ) ) {
+        $term = get_term( (int) $context['cat'], 'category' );
+        if ( $term instanceof WP_Term ) {
+            $args['tax_query'] = array(
+                array(
+                    'taxonomy'         => 'category',
+                    'field'            => 'term_id',
+                    'terms'            => array( $term->term_id ),
+                    'include_children' => pro_category_includes_children( $term ),
+                ),
+            );
+        } else {
+            $args['post__in'] = array( 0 );
+        }
+    }
+
+    foreach ( array( 'tag_id', 'author', 'year', 'monthnum', 'day' ) as $key ) {
+        if ( ! empty( $context[ $key ] ) ) {
+            $args[ $key ] = (int) $context[ $key ];
+        }
+    }
+
+    if ( isset( $context['s'] ) && '' !== $context['s'] ) {
+        $args['s'] = $context['s'];
+    }
+
+    return array_merge( $args, $overrides );
+}
+
+/**
+ * Estado de "cargar más" para la consulta principal (category.php, index.php).
+ *
+ * @return array{context: array, offset: int, per_page: int, has_more: bool}
+ */
+function pro_get_main_query_loadmore_state(): array {
+    global $wp_query;
+
+    $context = array();
+    if ( is_category() ) {
+        $context['cat'] = get_queried_object_id();
+    } elseif ( is_tag() ) {
+        $context['tag_id'] = get_queried_object_id();
+    } elseif ( is_author() ) {
+        $context['author'] = get_queried_object_id();
+    } elseif ( is_date() ) {
+        $context['year']     = (int) get_query_var( 'year' );
+        $context['monthnum'] = (int) get_query_var( 'monthnum' );
+        $context['day']      = (int) get_query_var( 'day' );
+    }
+    if ( is_search() ) {
+        $context['s'] = get_search_query( false );
+    }
+
+    $per_page = max( 1, (int) $wp_query->get( 'posts_per_page' ) );
+    $paged    = max( 1, (int) get_query_var( 'paged' ) );
+    // Las fijadas se añaden aparte en la portada; se cuentan solo las del orden cronológico
+    $offset   = min( $paged * $per_page, (int) $wp_query->found_posts );
+
+    return array(
+        'context'  => $context,
+        'offset'   => $offset,
+        'per_page' => $per_page,
+        'has_more' => $offset < (int) $wp_query->found_posts,
+    );
+}
+
+/**
+ * Imprime los atributos data-* que main.js usa para pedir la siguiente tanda.
+ */
+function pro_listing_data_attributes( array $context, int $offset, int $per_page, string $target ): void {
+    $attrs = array(
+        'data-offset'   => $offset,
+        'data-per-page' => $per_page,
+        'data-target'   => $target,
+    );
+    $map = array(
+        'cat'      => 'data-cat-id',
+        'tag_id'   => 'data-tag-id',
+        'author'   => 'data-author-id',
+        's'        => 'data-search',
+        'year'     => 'data-year',
+        'monthnum' => 'data-monthnum',
+        'day'      => 'data-day',
+    );
+    foreach ( $map as $key => $attr ) {
+        if ( isset( $context[ $key ] ) && '' !== $context[ $key ] && 0 !== $context[ $key ] ) {
+            $attrs[ $attr ] = $context[ $key ];
+        }
+    }
+    foreach ( $attrs as $name => $value ) {
+        echo ' ' . esc_attr( $name ) . '="' . esc_attr( $value ) . '"';
+    }
+}
+
+/**
+ * Los endpoints públicos (cargar más, buscador, aviso de noticias nuevas) solo
+ * leen contenido publicado. Con la caché de página, el nonce impreso en el HTML
+ * caduca (12-24 h) y check_ajax_referer() respondía "-1": los bloques dejaban de
+ * cargar "a veces" e incluso se insertaba el texto "-1" en la página. El nonce se
+ * exige solo con sesión iniciada, cuyas páginas no se cachean.
+ */
+function pro_check_public_ajax_nonce(): void {
+    if ( is_user_logged_in() ) {
+        check_ajax_referer( 'pro_ajax_nonce', 'nonce' );
+    }
+}
 
 
 /**
@@ -360,9 +496,9 @@ remove_action('wp_head', 'wp_generator');
  * Buscador Predictivo (Ajax Endpoint)
  */
 function pro_ajax_search() {
-    check_ajax_referer('pro_ajax_nonce', 'nonce');
+    pro_check_public_ajax_nonce();
 
-    $search_query = isset($_POST['s']) ? sanitize_text_field($_POST['s']) : '';
+    $search_query = isset($_POST['s']) ? sanitize_text_field( wp_unslash( $_POST['s'] ) ) : '';
     
     if($search_query) {
         $args = array(
@@ -613,51 +749,53 @@ add_action( 'admin_menu', 'pro_restrict_direccion_menus', 999 );
 add_action('init', 'pro_register_cpts');
 
 /**
- * Paginación AJAX (Cargar más)
+ * Paginación AJAX (Cargar más / scroll infinito).
+ *
+ * Recibe el desplazamiento (noticias ya mostradas) y el tamaño de tanda del
+ * propio listado, y responde JSON: { html, count, has_more }.
  */
 function pro_load_more_posts() {
-    check_ajax_referer('pro_ajax_nonce', 'nonce');
+    pro_check_public_ajax_nonce();
 
-    // Seguridad Crítica: Reconstruir argumentos en el servidor
-    $paged = isset($_POST['page']) ? intval($_POST['page']) + 1 : 1;
-    $cat_id = isset($_POST['category_id']) ? intval($_POST['category_id']) : 0;
-    
-    $args = array(
-        'post_type'      => 'post',
-        'post_status'    => 'publish',
-        'posts_per_page' => get_option('posts_per_page'),
-        'paged'          => $paged,
+    // Seguridad: los argumentos se reconstruyen en el servidor a partir de valores saneados
+    $offset   = isset( $_POST['offset'] ) ? absint( $_POST['offset'] ) : 0;
+    $per_page = isset( $_POST['per_page'] ) ? absint( $_POST['per_page'] ) : PRO_CATEGORY_PAGE_PER_PAGE;
+    $per_page = min( max( $per_page, 1 ), 30 );
+
+    $context = array(
+        'cat'      => isset( $_POST['category_id'] ) ? absint( $_POST['category_id'] ) : 0,
+        'tag_id'   => isset( $_POST['tag_id'] ) ? absint( $_POST['tag_id'] ) : 0,
+        'author'   => isset( $_POST['author_id'] ) ? absint( $_POST['author_id'] ) : 0,
+        'year'     => isset( $_POST['year'] ) ? absint( $_POST['year'] ) : 0,
+        'monthnum' => isset( $_POST['monthnum'] ) ? absint( $_POST['monthnum'] ) : 0,
+        'day'      => isset( $_POST['day'] ) ? absint( $_POST['day'] ) : 0,
+        's'        => isset( $_POST['s'] ) ? sanitize_text_field( wp_unslash( $_POST['s'] ) ) : '',
     );
-    if ( $cat_id > 0 ) {
-        $args['cat'] = $cat_id;
+
+    $query = new WP_Query( pro_get_listing_query_args( $context, array(
+        'posts_per_page' => $per_page,
+        'offset'         => $offset,
+    ) ) );
+
+    // La etiqueta de cada tarjeta muestra la categoría del listado (igual que en la primera carga)
+    $cat_slug = '';
+    if ( $context['cat'] ) {
+        $term     = get_term( $context['cat'], 'category' );
+        $cat_slug = $term instanceof WP_Term ? $term->slug : '';
     }
 
-    $query = new WP_Query( $args );
+    ob_start();
+    while ( $query->have_posts() ) {
+        $query->the_post();
+        get_template_part( 'template-parts/content/card', null, array( 'cat_slug' => $cat_slug ) );
+    }
+    wp_reset_postdata();
 
-    if( $query->have_posts() ) :
-        while( $query->have_posts() ): $query->the_post();
-            ?>
-            <article id="post-<?php the_ID(); ?>" <?php post_class('card-post'); ?>>
-                <?php if ( has_post_thumbnail() ) : ?>
-                    <a href="<?php the_permalink(); ?>" class="post-thumbnail" aria-hidden="true" tabindex="-1">
-                        <?php the_post_thumbnail( 'card-thumbnail', array( 'loading' => 'lazy' ) ); ?>
-                    </a>
-                <?php endif; ?>
-                <div class="card-content">
-                    <div class="post-meta">
-                        <?php pro_post_categories(); ?>
-                        <time datetime="<?php echo get_the_date('c'); ?>"><?php echo get_the_date(); ?></time>
-                    </div>
-                    <h2 class="entry-title"><a href="<?php the_permalink(); ?>" rel="bookmark"><?php the_title(); ?></a></h2>
-                    <div class="entry-excerpt">
-                        <?php echo esc_html( wp_strip_all_tags( wp_trim_words( get_the_excerpt(), 20, '...' ) ) ); ?>
-                    </div>
-                </div>
-            </article>
-            <?php
-        endwhile;
-    endif;
-    wp_die();
+    wp_send_json_success( array(
+        'html'     => ob_get_clean(),
+        'count'    => (int) $query->post_count,
+        'has_more' => ( $offset + (int) $query->post_count ) < (int) $query->found_posts,
+    ) );
 }
 add_action('wp_ajax_nopriv_pro_load_more_posts', 'pro_load_more_posts');
 add_action('wp_ajax_pro_load_more_posts', 'pro_load_more_posts');
@@ -666,7 +804,7 @@ add_action('wp_ajax_pro_load_more_posts', 'pro_load_more_posts');
  * Polling AJAX: Comprobar si hay nuevas noticias
  */
 function pro_check_new_posts() {
-    check_ajax_referer( 'pro_ajax_nonce', 'nonce' );
+    pro_check_public_ajax_nonce();
 
     $latest_date = isset( $_POST['latest_date'] ) ? sanitize_text_field( wp_unslash( $_POST['latest_date'] ) ) : '';
 
@@ -812,6 +950,99 @@ function pro_post_categories( $post_id = null, $force_category_slug = null ) {
     }
 }
 
+// =============================================================================
+// IMAGEN DE LAS NOTICIAS EN LISTADOS Y WIDGETS
+// Auditoría fix: los bloques de noticias solo miraban la imagen destacada. Si el
+// autor no la asignaba (frecuente en las programadas, que dependían de la
+// asignación automática) o apuntaba a un adjunto borrado, el bloque salía sin
+// foto aunque el artículo tuviera imágenes en el contenido.
+// =============================================================================
+
+/**
+ * ID de la primera imagen de la biblioteca de medios insertada en un contenido.
+ */
+function pro_find_content_image_id( string $content ): int {
+    if ( '' === $content || ( false === stripos( $content, '<img' ) && false === strpos( $content, 'wp:image' ) ) ) {
+        return 0;
+    }
+
+    // Imágenes insertadas desde la biblioteca: clase wp-image-{ID} o atributo "id" del bloque
+    if ( preg_match_all( '/\bwp-image-(\d+)\b|<!--\s*wp:image\s+\{[^}]*"id":(\d+)/', $content, $matches, PREG_SET_ORDER ) ) {
+        foreach ( $matches as $match ) {
+            $id = (int) ( ! empty( $match[1] ) ? $match[1] : ( $match[2] ?? 0 ) );
+            if ( $id && wp_attachment_is_image( $id ) ) {
+                return $id;
+            }
+        }
+    }
+
+    // Último recurso: la URL del primer <img>. attachment_url_to_postid() solo
+    // reconoce el archivo original, así que se quita el sufijo de tamaño (-1024x683).
+    if ( preg_match( '/<img\s[^>]*?src=["\']([^"\']+)["\']/i', $content, $match ) ) {
+        $original = preg_replace( '/-\d+x\d+(?=\.[a-z0-9]+$)/i', '', strtok( $match[1], '?' ) );
+        $scaled   = preg_replace( '/(\.[a-z0-9]+)$/i', '-scaled$1', $original );
+        foreach ( array( $original, $scaled ) as $url ) {
+            $id = attachment_url_to_postid( $url );
+            if ( $id && wp_attachment_is_image( $id ) ) {
+                return $id;
+            }
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * ID de la imagen que representa a una entrada en listados y widgets:
+ * la destacada si es una imagen válida; si no, la primera del contenido.
+ *
+ * @param int|WP_Post|null $post Entrada (por defecto la actual del loop).
+ */
+function pro_get_post_image_id( $post = null ): int {
+    static $cache = array();
+
+    $post = get_post( $post );
+    if ( ! $post ) {
+        return 0;
+    }
+    if ( isset( $cache[ $post->ID ] ) ) {
+        return $cache[ $post->ID ];
+    }
+
+    $id = (int) get_post_thumbnail_id( $post );
+    if ( ! $id || ! wp_attachment_is_image( $id ) ) {
+        $id = pro_find_content_image_id( (string) $post->post_content );
+    }
+
+    return $cache[ $post->ID ] = $id;
+}
+
+/**
+ * Imprime la imagen de la entrada (ver pro_get_post_image_id()).
+ *
+ * @return bool True si se imprimió una imagen.
+ */
+function pro_the_post_image( $size = 'post-thumbnail', $attr = array(), $post = null ): bool {
+    $post = get_post( $post );
+    $id   = pro_get_post_image_id( $post );
+    if ( ! $id ) {
+        return false;
+    }
+
+    // La destacada pasa por get_the_post_thumbnail() para conservar sus filtros
+    if ( (int) get_post_thumbnail_id( $post ) === $id ) {
+        $html = get_the_post_thumbnail( $post, $size, $attr );
+    } else {
+        $html = wp_get_attachment_image( $id, $size, false, $attr );
+    }
+
+    if ( '' === $html ) {
+        return false;
+    }
+    echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML generado por WordPress
+    return true;
+}
+
 /**
  * Personalizador (Customizer)
  */
@@ -905,7 +1136,7 @@ function pro_save_firma_autor_meta( $post_id ) {
         return;
     }
     if ( isset( $_POST['pro_firma_autor_field'] ) ) {
-        update_post_meta( $post_id, '_pro_firma_autor', sanitize_text_field( $_POST['pro_firma_autor_field'] ) );
+        update_post_meta( $post_id, '_pro_firma_autor', sanitize_text_field( wp_unslash( $_POST['pro_firma_autor_field'] ) ) );
     }
 }
 add_action( 'save_post', 'pro_save_firma_autor_meta' );
@@ -3022,6 +3253,15 @@ function pro_firma_validation_admin_footer_scripts() {
                     return false;
                 }
             });
+
+            // C. Editor de bloques: copiar la firma a la meta REST de la entrada para
+            // que viaje en la misma petición de publicación (las metaboxes se
+            // guardan después y el servidor no la veía a tiempo).
+            if ( window.wp && wp.data && wp.data.select( 'core/editor' ) ) {
+                $(document).on('input change', '#pro_firma_autor_field', function() {
+                    wp.data.dispatch( 'core/editor' ).editPost( { meta: { _pro_firma_autor: this.value } } );
+                });
+            }
         });
     </script>
     <?php
@@ -3029,53 +3269,105 @@ function pro_firma_validation_admin_footer_scripts() {
 add_action( 'admin_footer', 'pro_firma_validation_admin_footer_scripts' );
 
 /**
- * 2. VALIDADOR BACK-END (PHP - Red de Seguridad Nuclear):
- * Intercepta el guardado en la base de datos. Si se intenta publicar/programar un post
- * sin firma, revierte su estado automáticamente a Borrador y crea un transitorio de error.
+ * 2. FIRMA VISIBLE PARA EL EDITOR DE BLOQUES (REST):
+ * Gutenberg guarda la entrada por REST y las metaboxes clásicas en una segunda
+ * petición posterior, así que al publicar el servidor todavía no veía la firma
+ * recién escrita. Registrar la meta en REST permite que viaje en la misma
+ * petición de publicación (el script del punto 1 la sincroniza).
+ */
+function pro_register_firma_meta() {
+    register_post_meta( 'post', '_pro_firma_autor', array(
+        'type'              => 'string',
+        'single'            => true,
+        'show_in_rest'      => true,
+        'sanitize_callback' => 'sanitize_text_field',
+        'auth_callback'     => static function ( $allowed, $meta_key, $post_id ) {
+            return current_user_can( 'edit_post', $post_id );
+        },
+    ) );
+}
+add_action( 'init', 'pro_register_firma_meta' );
+
+/**
+ * Firma recibida por REST en la petición en curso (null si no llegó ninguna).
+ *
+ * @param string|null $value Valor a recordar; se omite para solo leer.
+ * @return string|null
+ */
+function pro_rest_firma( $value = null ) {
+    static $firma = null;
+    if ( null !== $value ) {
+        $firma = $value;
+    }
+    return $firma;
+}
+
+add_filter( 'rest_pre_insert_post', function ( $prepared_post, $request ) {
+    // Se reinicia en cada inserción para que un lote REST no herede la firma de otra entrada
+    $meta = $request->get_param( 'meta' );
+    pro_rest_firma( is_array( $meta ) && isset( $meta['_pro_firma_autor'] ) ? sanitize_text_field( (string) $meta['_pro_firma_autor'] ) : '' );
+    return $prepared_post;
+}, 10, 2 );
+
+/**
+ * 3. VALIDADOR BACK-END (PHP - Red de Seguridad):
+ * Si se intenta PASAR a publicado/programado un post sin firma, se mantiene
+ * como borrador (o pendiente) y se crea un transitorio de error.
+ *
+ * Auditoría fix: antes se evaluaba en CUALQUIER guardado de un post publicado
+ * (edición rápida, edición masiva, REST, Ctrl+S en el editor, plugins que
+ * llaman a wp_update_post). Las entradas antiguas sin meta de firma pasaban a
+ * Borrador y desaparecían del inicio y de las categorías "al azar". Una entrada
+ * que ya está publicada o programada nunca se despublica desde aquí.
  */
 function pro_enforce_firma_on_publish( $data, $postarr ) {
-    // Aplicar únicamente al post_type 'post'
-    if ( $data['post_type'] !== 'post' ) {
+    if ( 'post' !== $data['post_type'] || ! in_array( $data['post_status'], array( 'publish', 'future' ), true ) ) {
         return $data;
     }
 
-    // Comprobar si el estado destino es público ('publish') o programado ('future')
-    if ( in_array( $data['post_status'], array( 'publish', 'future' ), true ) ) {
-        $post_id = isset( $postarr['ID'] ) ? $postarr['ID'] : 0;
-        $firma = '';
+    $post_id        = ! empty( $postarr['ID'] ) ? (int) $postarr['ID'] : 0;
+    $current_status = $post_id ? get_post_status( $post_id ) : false;
 
-        // 1. Buscar firma en la petición POST clásica
-        if ( isset( $_POST['pro_firma_autor_field'] ) ) {
-            $firma = sanitize_text_field( $_POST['pro_firma_autor_field'] );
-        }
-        // 2. Si no viene en $_POST (REST API / Gutenberg), consultar meta actual guardado
-        elseif ( $post_id ) {
-            $firma = get_post_meta( $post_id, '_pro_firma_autor', true );
-        }
-
-        // 3. Soporte adicional para peticiones crudas REST de metadatos
-        if ( empty( $firma ) && isset( $_POST['meta']['_pro_firma_autor'] ) ) {
-            $firma = sanitize_text_field( $_POST['meta']['_pro_firma_autor'] );
-        }
-
-        // Si la firma está completamente vacía
-        if ( empty( trim( $firma ) ) ) {
-            // Revertir el estado destino al estado previo (borrador o pendiente)
-            $original_status = isset( $postarr['original_post_status'] ) ? $postarr['original_post_status'] : 'draft';
-            $data['post_status'] = in_array( $original_status, array( 'draft', 'pending' ) ) ? $original_status : 'draft';
-
-            // Sembrar transitorio temporal para gatillar el aviso de error en la recarga del administrador
-            if ( $post_id ) {
-                set_transient( 'pro_firma_error_notice_' . $post_id, true, 45 );
-            }
-        }
+    if ( in_array( $current_status, array( 'publish', 'future' ), true ) ) {
+        return $data;
     }
+
+    // 1. Metabox clásica (editor clásico o guardado de metaboxes de Gutenberg)
+    $firma = isset( $_POST['pro_firma_autor_field'] ) ? sanitize_text_field( wp_unslash( $_POST['pro_firma_autor_field'] ) ) : '';
+
+    // 2. Meta enviada por REST en esta misma petición (editor de bloques)
+    if ( '' === trim( $firma ) && null !== pro_rest_firma() ) {
+        $firma = pro_rest_firma();
+    }
+
+    // 3. Inserciones programáticas con meta_input
+    if ( '' === trim( $firma ) && ! empty( $postarr['meta_input']['_pro_firma_autor'] ) ) {
+        $firma = sanitize_text_field( (string) $postarr['meta_input']['_pro_firma_autor'] );
+    }
+
+    // 4. Firma ya guardada
+    if ( '' === trim( $firma ) && $post_id ) {
+        $firma = (string) get_post_meta( $post_id, '_pro_firma_autor', true );
+    }
+
+    if ( '' !== trim( $firma ) ) {
+        return $data;
+    }
+
+    // Sin firma: conservar el estado previo no público (borrador o pendiente)
+    $data['post_status'] = in_array( $current_status, array( 'draft', 'pending' ), true ) ? $current_status : 'draft';
+
+    // Sembrar transitorio temporal para gatillar el aviso de error en la recarga del administrador
+    if ( $post_id ) {
+        set_transient( 'pro_firma_error_notice_' . $post_id, true, 45 );
+    }
+
     return $data;
 }
 add_filter( 'wp_insert_post_data', 'pro_enforce_firma_on_publish', 10, 2 );
 
 /**
- * 3. AVISO ADMINISTRATIVO DE ERROR (PHP):
+ * 4. AVISO ADMINISTRATIVO DE ERROR (PHP):
  * Si se activó la red de seguridad del back-end, despliega una alerta roja premium y explicativa en la pantalla de edición.
  */
 function pro_firma_error_admin_notices() {
@@ -3242,47 +3534,248 @@ add_action( 'admin_init', 'pro_apply_user_updates' );
 
 // ==========================================
 
-function pro_fix_corrupted_terms() {
-    if ( get_option( 'pro_terms_encoding_fixed_v1' ) ) {
+// =============================================================================
+// CODIFICACIÓN: ACENTOS Y Ñ ("mojibake")
+// Texto UTF-8 que en algún momento se leyó como Windows-1252 y se volvió a
+// guardar: "Política" → "PolÃ­tica", "ESPAÑA" → "ESPAÃ‘A", "–" → "â€“".
+//
+// Auditoría fix: la reparación anterior (pro_fix_corrupted_terms) convertía a
+// ISO-8859-1, que no tiene los caracteres de Windows-1252; justo la Ñ, las
+// mayúsculas acentuadas (Ó, Ú, É) y las comillas/guiones tipográficos quedaban
+// convertidos en "?" o en UTF-8 inválido. Además solo revisaba categorías y
+// etiquetas, no títulos de páginas, menús ni contenido.
+// =============================================================================
+
+/**
+ * Repara secuencias de mojibake UTF-8/Windows-1252 dentro de un texto.
+ *
+ * Solo sustituye secuencias inequívocas ("Ã" o "Â" + carácter de continuación,
+ * "â€" + carácter) cuyo resultado sea un carácter del español o puntuación
+ * tipográfica; el resto del texto queda intacto.
+ */
+function pro_repair_mojibake( $text ) {
+    if ( ! is_string( $text ) || '' === $text ) {
+        return $text;
+    }
+    // Vía rápida: "Ã", "Â" y "â" (C3 83, C3 82, C3 A2) casi nunca aparecen en español
+    if ( false === strpos( $text, "\xC3\x83" ) && false === strpos( $text, "\xC3\x82" ) && false === strpos( $text, "\xC3\xA2" ) ) {
+        return $text;
+    }
+    if ( ! preg_match( '//u', $text ) ) {
+        return $text; // UTF-8 inválido: mejor no tocar
+    }
+
+    // Caracteres de Windows-1252 en el rango 0x80-0x9F => byte original
+    static $cp1252 = array(
+        "\u{20AC}" => 0x80, "\u{201A}" => 0x82, "\u{0192}" => 0x83, "\u{201E}" => 0x84, "\u{2026}" => 0x85,
+        "\u{2020}" => 0x86, "\u{2021}" => 0x87, "\u{02C6}" => 0x88, "\u{2030}" => 0x89, "\u{0160}" => 0x8A,
+        "\u{2039}" => 0x8B, "\u{0152}" => 0x8C, "\u{017D}" => 0x8E, "\u{2018}" => 0x91, "\u{2019}" => 0x92,
+        "\u{201C}" => 0x93, "\u{201D}" => 0x94, "\u{2022}" => 0x95, "\u{2013}" => 0x96, "\u{2014}" => 0x97,
+        "\u{02DC}" => 0x98, "\u{2122}" => 0x99, "\u{0161}" => 0x9A, "\u{203A}" => 0x9B, "\u{0153}" => 0x9C,
+        "\u{017E}" => 0x9E, "\u{0178}" => 0x9F,
+    );
+
+    $specials     = '\x{20AC}\x{201A}\x{0192}\x{201E}\x{2026}\x{2020}\x{2021}\x{02C6}\x{2030}\x{0160}\x{2039}\x{0152}\x{017D}\x{2018}\x{2019}\x{201C}\x{201D}\x{2022}\x{2013}\x{2014}\x{02DC}\x{2122}\x{0161}\x{203A}\x{0153}\x{017E}\x{0178}';
+    $continuation = '[\x{0080}-\x{00BF}' . $specials . ']';
+    // Secuencia corrupta mínima: "Ã"/"Â" + continuación, o "â" + dos continuaciones
+    $sequence = '/[\x{00C2}\x{00C3}]' . $continuation . '|\x{00E2}' . $continuation . '{2}/u';
+    // Tramo de caracteres que Windows-1252 puede devolver a bytes
+    $run = '/[\x{0080}-\x{00FF}' . $specials . ']{2,}/u';
+
+    // Texto de Windows-1252 => bytes originales (null si algún carácter no pertenece)
+    $to_bytes = static function ( $chars ) use ( $cp1252 ) {
+        $bytes = '';
+        foreach ( mb_str_split( $chars, 1, 'UTF-8' ) as $char ) {
+            $code = mb_ord( $char, 'UTF-8' );
+            if ( $code >= 0x80 && $code <= 0xFF ) {
+                $bytes .= chr( $code );
+            } elseif ( isset( $cp1252[ $char ] ) ) {
+                $bytes .= chr( $cp1252[ $char ] );
+            } else {
+                return null;
+            }
+        }
+        return $bytes;
+    };
+
+    // Letras acentuadas, ñ, ¿, ¡, º... y puntuación tipográfica (– — ‘ ’ “ ” … €)
+    $is_spanish = static function ( $code ) {
+        return ( $code >= 0xA0 && $code <= 0xFF )
+            || ( $code >= 0x2010 && $code <= 0x2027 )
+            || in_array( $code, array( 0x2030, 0x2039, 0x203A, 0x20AC, 0x2122 ), true );
+    };
+
+    // Solo decodifica si el resultado son caracteres válidos (o, en corrupciones
+    // dobles, el paso intermedio que se resolverá en la siguiente pasada)
+    $decode = static function ( $chars ) use ( $to_bytes, $is_spanish, $cp1252 ) {
+        $bytes = $to_bytes( $chars );
+        if ( null === $bytes || ! mb_check_encoding( $bytes, 'UTF-8' ) ) {
+            return null;
+        }
+        foreach ( mb_str_split( $bytes, 1, 'UTF-8' ) as $char ) {
+            $code = mb_ord( $char, 'UTF-8' );
+            if ( ! $is_spanish( $code ) && ! isset( $cp1252[ $char ] ) && ! ( $code >= 0x80 && $code <= 0x9F ) ) {
+                return null;
+            }
+        }
+        return $bytes;
+    };
+
+    $repair_run = static function ( $match ) use ( $decode, $sequence ) {
+        // Tramo completo (resuelve corrupciones dobles: "Ã¢â‚¬Å“" → "â€œ" → "“")
+        $whole = $decode( $match[0] );
+        if ( null !== $whole ) {
+            return $whole;
+        }
+        // Tramo mixto (p. ej. corrupto junto a una letra acentuada correcta): secuencia a secuencia
+        return preg_replace_callback( $sequence, static function ( $seq ) use ( $decode ) {
+            $fixed = $decode( $seq[0] );
+            return null === $fixed ? $seq[0] : $fixed;
+        }, $match[0] );
+    };
+
+    for ( $pass = 0; $pass < 3; $pass++ ) {
+        $fixed = preg_replace_callback( $run, $repair_run, $text );
+        if ( null === $fixed || $fixed === $text ) {
+            break;
+        }
+        $text = $fixed;
+    }
+
+    return $text;
+}
+
+/**
+ * Protección al guardar: entradas y términos nuevos se guardan ya reparados
+ * (p. ej. texto pegado desde una fuente con la codificación dañada).
+ */
+add_filter( 'wp_insert_post_data', function ( $data ) {
+    foreach ( array( 'post_title', 'post_content', 'post_excerpt' ) as $field ) {
+        if ( isset( $data[ $field ] ) ) {
+            $data[ $field ] = pro_repair_mojibake( $data[ $field ] );
+        }
+    }
+    return $data;
+}, 5 );
+
+add_filter( 'pre_insert_term', function ( $term ) {
+    return is_string( $term ) ? pro_repair_mojibake( $term ) : $term;
+}, 5 );
+
+add_filter( 'wp_update_term_data', function ( $data ) {
+    if ( isset( $data['name'] ) ) {
+        $data['name'] = pro_repair_mojibake( $data['name'] );
+    }
+    return $data;
+}, 5 );
+
+/**
+ * Migración: repara el texto ya guardado (categorías, etiquetas, menús, títulos
+ * de páginas y entradas, contenido, extractos, firmas y datos SEO).
+ *
+ * Se ejecuta por lotes en el escritorio de un administrador hasta terminar.
+ * Escribe directamente en la base de datos para no disparar hooks de guardado
+ * (revisiones, validaciones, fechas de modificación). No cambia slugs ni URLs.
+ */
+function pro_repair_stored_mojibake() {
+    if ( get_option( 'pro_mojibake_repaired_v2' ) || ! current_user_can( 'manage_options' ) || wp_doing_ajax() ) {
         return;
     }
 
-    $taxonomies = get_taxonomies();
-    foreach ( $taxonomies as $taxonomy ) {
-        $terms = get_terms( array(
-            'taxonomy'   => $taxonomy,
-            'hide_empty' => false,
-        ) );
+    global $wpdb;
 
-        if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
-            foreach ( $terms as $term ) {
-                if ( strpos( $term->name, 'Ã' ) !== false ) {
-                    $correct_name = mb_convert_encoding( $term->name, 'ISO-8859-1', 'UTF-8' );
-                    
-                    $existing_term = term_exists( $correct_name, $taxonomy, $term->parent );
-                    
-                    if ( $existing_term && $existing_term['term_id'] != $term->term_id ) {
-                        $posts = get_objects_in_term( $term->term_id, $taxonomy );
-                        if ( ! is_wp_error( $posts ) && ! empty( $posts ) ) {
-                            foreach ( $posts as $post_id ) {
-                                wp_set_object_terms( $post_id, (int) $existing_term['term_id'], $taxonomy, true );
-                            }
-                        }
-                        wp_delete_term( $term->term_id, $taxonomy );
-                    } else {
-                        wp_update_term( $term->term_id, $taxonomy, array(
-                            'name' => $correct_name,
-                            'slug' => sanitize_title( $correct_name )
-                        ) );
-                    }
-                }
+    // Filtro SQL rápido por los bytes de "Ã", "Â" y "â€" (C3 83, C3 82, C3 A2 E2 80)
+    $has_marker = static function ( $column ) {
+        return "( HEX({$column}) LIKE '%C383%' OR HEX({$column}) LIKE '%C382%' OR HEX({$column}) LIKE '%C3A2E280%' )";
+    };
+
+    // 1. Términos (nombre y descripción), opciones del sitio y tabla SEO: volumen pequeño
+    if ( ! get_option( 'pro_mojibake_terms_repaired_v2' ) ) {
+        $terms = $wpdb->get_results( "SELECT term_id, name FROM {$wpdb->terms} WHERE " . $has_marker( 'name' ) );
+        foreach ( $terms as $term ) {
+            $name = pro_repair_mojibake( $term->name );
+            if ( $name !== $term->name ) {
+                $wpdb->update( $wpdb->terms, array( 'name' => $name ), array( 'term_id' => $term->term_id ) );
+                clean_term_cache( (int) $term->term_id );
             }
         }
+
+        $descriptions = $wpdb->get_results( "SELECT term_taxonomy_id, term_id, description FROM {$wpdb->term_taxonomy} WHERE " . $has_marker( 'description' ) );
+        foreach ( $descriptions as $row ) {
+            $description = pro_repair_mojibake( $row->description );
+            if ( $description !== $row->description ) {
+                $wpdb->update( $wpdb->term_taxonomy, array( 'description' => $description ), array( 'term_taxonomy_id' => $row->term_taxonomy_id ) );
+                clean_term_cache( (int) $row->term_id );
+            }
+        }
+
+        foreach ( array( 'blogname', 'blogdescription', 'ssivo_seo_default_title' ) as $option ) {
+            $value = get_option( $option );
+            if ( is_string( $value ) && pro_repair_mojibake( $value ) !== $value ) {
+                update_option( $option, pro_repair_mojibake( $value ) );
+            }
+        }
+
+        $meta_rows = $wpdb->get_results(
+            "SELECT meta_id, post_id, meta_value FROM {$wpdb->postmeta}
+             WHERE meta_key IN ( '_pro_firma_autor', '_ssivo_seo_custom_title', '_ssivo_seo_custom_desc' ) AND " . $has_marker( 'meta_value' )
+        );
+        foreach ( $meta_rows as $row ) {
+            $value = pro_repair_mojibake( $row->meta_value );
+            if ( $value !== $row->meta_value ) {
+                $wpdb->update( $wpdb->postmeta, array( 'meta_value' => $value ), array( 'meta_id' => $row->meta_id ) );
+                wp_cache_delete( (int) $row->post_id, 'post_meta' );
+            }
+        }
+
+        $seo_table = $wpdb->prefix . 'ssivo_seo_indexable';
+        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $seo_table ) ) === $seo_table ) {
+            $seo_rows = $wpdb->get_results( "SELECT id, meta_title, meta_desc FROM {$seo_table} WHERE " . $has_marker( 'meta_title' ) . ' OR ' . $has_marker( 'meta_desc' ) );
+            foreach ( $seo_rows as $row ) {
+                $wpdb->update(
+                    $seo_table,
+                    array( 'meta_title' => pro_repair_mojibake( $row->meta_title ), 'meta_desc' => pro_repair_mojibake( $row->meta_desc ) ),
+                    array( 'id' => $row->id )
+                );
+            }
+        }
+
+        update_option( 'pro_mojibake_terms_repaired_v2', true, false );
     }
-    
-    update_option( 'pro_terms_encoding_fixed_v1', true );
+
+    // 2. Entradas, páginas, clasificados, carteles, elementos de menú y adjuntos (por lotes)
+    $last_id = (int) get_option( 'pro_mojibake_last_post_id', 0 );
+    $rows    = $wpdb->get_results( $wpdb->prepare(
+        "SELECT ID, post_title, post_excerpt, post_content FROM {$wpdb->posts}
+         WHERE ID > %d AND post_type <> 'revision'
+           AND ( " . $has_marker( 'post_title' ) . ' OR ' . $has_marker( 'post_excerpt' ) . ' OR ' . $has_marker( 'post_content' ) . ' )
+         ORDER BY ID ASC LIMIT 100',
+        $last_id
+    ) );
+
+    foreach ( $rows as $row ) {
+        $changes = array();
+        foreach ( array( 'post_title', 'post_excerpt', 'post_content' ) as $field ) {
+            $repaired = pro_repair_mojibake( $row->$field );
+            if ( $repaired !== $row->$field ) {
+                $changes[ $field ] = $repaired;
+            }
+        }
+        if ( $changes ) {
+            $wpdb->update( $wpdb->posts, $changes, array( 'ID' => $row->ID ) );
+            clean_post_cache( (int) $row->ID );
+        }
+        $last_id = (int) $row->ID;
+    }
+
+    if ( count( $rows ) < 100 ) {
+        update_option( 'pro_mojibake_repaired_v2', true, false );
+        delete_option( 'pro_mojibake_last_post_id' );
+    } else {
+        update_option( 'pro_mojibake_last_post_id', $last_id, false );
+    }
 }
-add_action( 'init', 'pro_fix_corrupted_terms' );
+add_action( 'admin_init', 'pro_repair_stored_mojibake' );
 
 
 function pro_setup_espressivo_categories_and_menu() {
@@ -3436,4 +3929,4 @@ add_filter(
 );
 
 // Módulo nativo: reportes editoriales PDF.
-require_once get_template_directory() . '/inc/reportes/bootstrap.php';
+require_once get_template_directory() . '/inc/reportes/bootstrap.php';
