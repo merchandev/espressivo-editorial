@@ -231,6 +231,17 @@ $types = get_terms(
                         id="post-<?php the_ID(); ?>"
                         <?php post_class( 'classified-card' ); ?>
                     >
+                        <?php if ( pro_get_post_image_id() ) : ?>
+                            <a
+                                class="classified-card__image"
+                                href="<?php the_permalink(); ?>"
+                                tabindex="-1"
+                                aria-hidden="true"
+                            >
+                                <?php pro_the_post_image( 'medium_large', array( 'loading' => 'lazy' ) ); ?>
+                            </a>
+                        <?php endif; ?>
+
                         <?php
                         if (
                             ! empty( $post_types )

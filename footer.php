@@ -120,9 +120,8 @@
     </div>
 </div>
 
-<!-- Swup JS -->
+<!-- Swup JS (navegación sin recarga; la integración está en assets/js/main.js) -->
 <script src="https://unpkg.com/swup@4"></script>
-<script src="https://unpkg.com/@swup/scripts-plugin@2"></script>
 <?php wp_footer(); ?>
 <!-- Organization Schema -->
 <script type="application/ld+json">

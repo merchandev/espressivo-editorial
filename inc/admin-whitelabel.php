@@ -246,15 +246,8 @@ function pro_prevent_actions_on_admins() {
 }
 add_action( 'admin_init', 'pro_prevent_actions_on_admins' );
 
-// 7e. Ocultar menú Site Kit para todos los roles excepto Administrador y Editor
-function pro_hide_site_kit_menus() {
-    $current_user = wp_get_current_user();
-    if ( ! in_array( 'administrator', (array) $current_user->roles ) && ! in_array( 'editor', (array) $current_user->roles ) ) {
-        remove_menu_page( 'googlesitekit-dashboard' );
-        remove_menu_page( 'googlesitekit-splash' );
-    }
-}
-add_action( 'admin_menu', 'pro_hide_site_kit_menus', 999 );
+// 7e. Site Kit completo solo para Administradores: el resto del equipo ve sus
+// datos en el panel SEO. Ver inc/seo/class-site-kit-bridge.php.
 
 // 7f. Ocultar el menú de administración si se solicita a través de hide_wp_menu (para iframes)
 function pro_hide_admin_menu_for_iframe() {

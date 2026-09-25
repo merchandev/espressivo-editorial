@@ -75,14 +75,15 @@ function espressivo_register_clasificados(): void {
             'query_var' => true,
 
             /*
-             * Solo texto.
-             * No se habilita thumbnail.
+             * Texto e imágenes: "Imagen" (destacada) para la tarjeta del
+             * listado e imágenes/galerías dentro del aviso.
              */
             'supports' => array(
                 'title',
                 'editor',
                 'author',
                 'revisions',
+                'thumbnail',
             ),
 
             'taxonomies' => array(
@@ -216,9 +217,9 @@ function espressivo_migrate_clasificado_slugs() {
 add_action( 'init', 'espressivo_migrate_clasificado_slugs', 99 );
 
 /**
- * Limitar el editor a bloques de texto.
+ * Limitar el editor a bloques de texto e imágenes.
  *
- * Evita imágenes, videos, galerías y archivos.
+ * Evita videos, archivos, incrustaciones y bloques de diseño.
  */
 function espressivo_clasificados_allowed_blocks(
     $allowed_blocks,
@@ -238,6 +239,8 @@ function espressivo_clasificados_allowed_blocks(
         'core/list-item',
         'core/quote',
         'core/separator',
+        'core/image',
+        'core/gallery',
     );
 }
 add_filter(
@@ -762,17 +765,90 @@ add_action(
 );
 
 /**
- * Cargar estilos únicamente en clasificados.
+ * Añadir "Clasificados" a los menús principal y móvil (una sola vez).
+ *
+ * En el menú de escritorio se coloca antes de "Más"; en el móvil, al final.
+ * No se duplica si el enlace ya existe (p. ej. añadido a mano).
  */
-function espressivo_enqueue_clasificados_assets(): void {
-    if (
-        ! is_post_type_archive( 'clasificado' )
-        && ! is_singular( 'clasificado' )
-        && ! is_tax( 'tipo_clasificado' )
-    ) {
+function espressivo_add_clasificados_to_menus(): void {
+    if ( get_option( 'espressivo_clasificados_menu_added_v1' ) ) {
         return;
     }
 
+    $locations = get_nav_menu_locations();
+    $menu_ids  = array();
+    foreach ( array( 'primary', 'mobile' ) as $location ) {
+        if ( ! empty( $locations[ $location ] ) ) {
+            $menu_ids[] = (int) $locations[ $location ];
+        }
+    }
+
+    if ( empty( $menu_ids ) ) {
+        return; // Aún no hay menús asignados: se reintenta en la siguiente carga
+    }
+
+    global $wpdb;
+    $archive_path = trim( (string) wp_parse_url( get_post_type_archive_link( 'clasificado' ), PHP_URL_PATH ), '/' );
+
+    foreach ( array_unique( $menu_ids ) as $menu_id ) {
+        $items = wp_get_nav_menu_items( $menu_id, array( 'post_status' => 'any' ) );
+        if ( ! is_array( $items ) ) {
+            continue;
+        }
+
+        $exists = false;
+        $more   = null;
+        foreach ( $items as $item ) {
+            $item_path = trim( (string) wp_parse_url( (string) $item->url, PHP_URL_PATH ), '/' );
+            if ( ( 'post_type_archive' === $item->type && 'clasificado' === $item->object ) || $item_path === $archive_path ) {
+                $exists = true;
+                break;
+            }
+            if ( 0 === (int) $item->menu_item_parent && 'Más' === $item->title ) {
+                $more = $item;
+            }
+        }
+        if ( $exists ) {
+            continue;
+        }
+
+        $position = 0; // 0 = al final
+        if ( $more ) {
+            // Hacer hueco antes de "Más" desplazando los elementos siguientes
+            $position = (int) $more->menu_order;
+            foreach ( $items as $item ) {
+                if ( (int) $item->menu_order >= $position ) {
+                    $wpdb->update( $wpdb->posts, array( 'menu_order' => (int) $item->menu_order + 1 ), array( 'ID' => $item->ID ) );
+                    clean_post_cache( $item->ID );
+                }
+            }
+        }
+
+        wp_update_nav_menu_item(
+            $menu_id,
+            0,
+            array(
+                'menu-item-title'    => __( 'Clasificados', 'pro' ),
+                'menu-item-type'     => 'post_type_archive',
+                'menu-item-object'   => 'clasificado',
+                'menu-item-status'   => 'publish',
+                'menu-item-position' => $position,
+            )
+        );
+    }
+
+    update_option( 'espressivo_clasificados_menu_added_v1', true, false );
+}
+add_action( 'init', 'espressivo_add_clasificados_to_menus', 100 );
+
+/**
+ * Estilos de clasificados.
+ *
+ * Se cargan en todo el sitio: con la navegación sin recarga (Swup) solo se
+ * reemplaza el contenido y no el <head>, así que al entrar a Clasificados desde
+ * el menú la hoja de estilos debe estar ya cargada.
+ */
+function espressivo_enqueue_clasificados_assets(): void {
     $css_path =
         get_template_directory()
         . '/assets/css/clasificados.css';

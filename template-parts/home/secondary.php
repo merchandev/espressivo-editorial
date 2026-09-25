@@ -72,9 +72,7 @@ foreach($sec_cats as $slug => $name) :
                 <?php while($sec_q->have_posts()): $sec_q->the_post(); ?>
                     <a href="<?php the_permalink(); ?>" style="display:block; width:100%; aspect-ratio:16/9; overflow:hidden; border-radius:4px; margin-bottom:15px;">
                         <?php 
-                        if (has_post_thumbnail()) {
-                            the_post_thumbnail('medium', array('style' => 'width:100%; height:100%; object-fit:cover; transition:transform 0.5s ease;', 'onmouseover' => "this.style.transform='scale(1.05)'", 'onmouseout' => "this.style.transform='scale(1)'"));
-                        } else {
+                        if ( ! pro_the_post_image('medium', array('style' => 'width:100%; height:100%; object-fit:cover; transition:transform 0.5s ease;', 'onmouseover' => "this.style.transform='scale(1.05)'", 'onmouseout' => "this.style.transform='scale(1)'")) ) {
                             echo '<div style="width:100%; height:100%; background:#f1f5f9; display:flex; align-items:center; justify-content:center; font-size:0.8rem; color:#94a3b8; font-family:var(--font-ui);">Sin Foto</div>';
                         }
                         ?>

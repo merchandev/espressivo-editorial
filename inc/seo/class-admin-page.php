@@ -14,6 +14,14 @@ namespace SSIVO_SEO\Includes;
  *     - Si Site Kit devuelve error, el proxy lo incluye en la respuesta con __error.
  *     - El JS muestra "No disponible" + timestamp del último dato válido, nunca ceros falsos.
  *  5. Validación current_user_can() tanto en register_menu como en render_page y REST.
+ *
+ * Correcciones (auditoría 2026-09):
+ *  6. El proxy ya no suplanta al administrador con wp_set_current_user() (Site Kit
+ *     no cambia de token OAuth con esa función y fallaba para todo usuario que no
+ *     fuera el propietario). Ahora lee con el token del propietario de cada
+ *     módulo mediante SiteKitBridge::with_shared_read(), también desde el cron.
+ *  7. La capacidad se re-sincroniza (versión 1.1.0) para los roles creados después
+ *     de la primera migración.
  */
 class AdminPage {
 
@@ -53,11 +61,11 @@ class AdminPage {
      * Se ejecuta una sola vez por versión vía admin_init.
      */
     public function run_capability_migration(): void {
-        if ( version_compare( get_option( 'ssivo_seo_capabilities_version', '0' ), '1.0.0', '>=' ) ) {
+        if ( version_compare( get_option( 'ssivo_seo_capabilities_version', '0' ), '1.1.0', '>=' ) ) {
             return;
         }
         $this->sync_role_capabilities();
-        update_option( 'ssivo_seo_capabilities_version', '1.0.0', false );
+        update_option( 'ssivo_seo_capabilities_version', '1.1.0', false );
     }
 
     private function sync_role_capabilities(): void {
@@ -95,43 +103,12 @@ class AdminPage {
     }
 
     public function register_settings(): void {
-        register_setting( 'ssivo_seo_group', 'ssivo_seo_default_title' );
-        register_setting( 'ssivo_seo_group', 'ssivo_seo_default_image' );
-        register_setting( 'ssivo_seo_group', 'ssivo_seo_sk_owner_id', [
-            'type'              => 'integer',
-            'sanitize_callback' => 'absint',
+        register_setting( 'ssivo_seo_group', 'ssivo_seo_default_title', [
+            'sanitize_callback' => 'sanitize_text_field',
         ] );
-    }
-
-    // =========================================================================
-    // OWNER ID DE SITE KIT
-    // =========================================================================
-
-    /**
-     * Busca el ID del admin que tiene el token OAuth de Site Kit guardado.
-     * Primero consulta la opción configurada manualmente; si no existe,
-     * itera los administradores buscando el user meta del token.
-     */
-    private function get_sk_owner_id(): int {
-        $saved = absint( get_option( 'ssivo_seo_sk_owner_id', 0 ) );
-        if ( $saved > 0 ) {
-            return $saved;
-        }
-
-        $admin_users = get_users( [ 'role' => 'administrator', 'number' => 10 ] );
-        foreach ( $admin_users as $u ) {
-            $token = get_user_option( 'googlesitekit_access_token', $u->ID );
-            if ( ! empty( $token ) ) {
-                update_option( 'ssivo_seo_sk_owner_id', $u->ID );
-                return (int) $u->ID;
-            }
-        }
-
-        if ( ! empty( $admin_users ) ) {
-            return (int) $admin_users[0]->ID;
-        }
-
-        return 0;
+        register_setting( 'ssivo_seo_group', 'ssivo_seo_default_image', [
+            'sanitize_callback' => 'esc_url_raw',
+        ] );
     }
 
     // =========================================================================
@@ -192,16 +169,11 @@ class AdminPage {
             }
         }
 
-        // 2. Encontrar el propietario del token
-        $admin_id = $this->get_sk_owner_id();
-        if ( ! $admin_id ) {
-            error_log( 'SSIVO-SEO Analytics: No se encontró administrador con token de Site Kit.' );
+        // 2. Site Kit debe estar activo
+        if ( ! SiteKitBridge::is_active() ) {
             ob_end_clean();
-            return rest_ensure_response( $this->unavailable_response( 'no_sk_owner' ) );
+            return rest_ensure_response( $this->unavailable_response( 'site_kit_inactive' ) );
         }
-
-        $original_user = get_current_user_id();
-        wp_set_current_user( $admin_id );
 
         $start_date = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
         $end_date   = gmdate( 'Y-m-d' );
@@ -277,35 +249,36 @@ class AdminPage {
         $results    = [];
         $has_error  = false;
 
-        foreach ( $endpoints as $key => $config ) {
-            $rest_req = new \WP_REST_Request( 'GET', $config['route'] );
-            $rest_req->set_query_params( $config['params'] );
+        // Lectura con el token del propietario de cada módulo (Analytics y Search Console)
+        SiteKitBridge::with_shared_read( function () use ( $endpoints, &$results, &$has_error ) {
+            foreach ( $endpoints as $key => $config ) {
+                $rest_req = new \WP_REST_Request( 'GET', $config['route'] );
+                $rest_req->set_query_params( $config['params'] );
 
-            $rest_response = rest_do_request( $rest_req );
-            $status        = $rest_response->get_status();
-            $data          = $rest_response->get_data();
+                $rest_response = rest_do_request( $rest_req );
+                $status        = $rest_response->get_status();
+                $data          = $rest_response->get_data();
 
-            if ( $status >= 200 && $status < 300 ) {
-                $results[ $key ] = $data;
-            } else {
-                // Registrar el error real — nunca silenciarlo con ?? 0
-                error_log( sprintf(
-                    'SSIVO-SEO Analytics [%s]: HTTP %d — %s',
-                    $key,
-                    $status,
-                    wp_json_encode( $data )
-                ) );
-                $results[ $key ] = [
-                    '__error'  => true,
-                    '__status' => $status,
-                    '__key'    => $key,
-                    '__data'   => $data,
-                ];
-                $has_error = true;
+                if ( $status >= 200 && $status < 300 ) {
+                    $results[ $key ] = $data;
+                } else {
+                    // Registrar el error real — nunca silenciarlo con ?? 0
+                    error_log( sprintf(
+                        'SSIVO-SEO Analytics [%s]: HTTP %d — %s',
+                        $key,
+                        $status,
+                        wp_json_encode( $data )
+                    ) );
+                    $results[ $key ] = [
+                        '__error'  => true,
+                        '__status' => $status,
+                        '__key'    => $key,
+                        '__data'   => $data,
+                    ];
+                    $has_error = true;
+                }
             }
-        }
-
-        wp_set_current_user( $original_user );
+        } );
 
         // 3. Si todas las claves tienen error, devolver unavailable sin cachear
         $all_errors = array_reduce(
@@ -385,12 +358,6 @@ class AdminPage {
             LIMIT 5
         " );
 
-        // Metadatos de la caché para el panel
-        $cached_meta = get_transient( 'ssivo_seo_google_summary' );
-        $last_update = ( is_array( $cached_meta ) && ! empty( $cached_meta['updated_at'] ) )
-            ? esc_html( $cached_meta['updated_at'] ) . ' UTC'
-            : 'Sin datos previos';
-
         ?>
         <div class="wrap" style="max-width:900px;">
             <h1 style="font-weight:700;margin-bottom:20px;">
@@ -436,7 +403,7 @@ class AdminPage {
                     <strong>Datos de Google:</strong>
                     <span id="ssivo-cache-status">Cargando...</span>
                     &nbsp;·&nbsp;
-                    <em>Última actualización: <?php echo $last_update; ?></em>
+                    <em>Última actualización: <span id="ssivo-last-update">Sin datos previos</span></em>
                 </span>
                 <div style="display:flex;align-items:center;gap:10px;">
                     <select id="ssivo-date-filter" style="font-size:12px;padding:4px 28px 4px 8px;border-radius:4px;border:1px solid #cbd5e1;background-color:#fff;">
@@ -538,10 +505,18 @@ class AdminPage {
                 function renderDashboard(all, fromCache) {
                     var status = all.status || 'unavailable';
 
+                    var updatedEl = document.getElementById('ssivo-last-update');
+                    if (updatedEl) {
+                        updatedEl.textContent = all.updated_at ? all.updated_at + ' UTC' : 'Sin datos previos';
+                    }
+
                     // Barra de estado
                     var statusEl = document.getElementById('ssivo-cache-status');
                     if (statusEl) {
-                        if (status === 'unavailable') {
+                        if (status === 'unavailable' && all.reason === 'site_kit_inactive') {
+                            statusEl.textContent = '⚠ Google Site Kit no está activo';
+                            statusEl.style.color = '#ef4444';
+                        } else if (status === 'unavailable') {
                             statusEl.textContent = '⚠ No disponible';
                             statusEl.style.color = '#ef4444';
                         } else if (status === 'partial') {
@@ -773,14 +748,10 @@ class AdminPage {
                 <?php
                 settings_fields( 'ssivo_seo_group' );
                 do_settings_sections( 'ssivo_seo_group' );
-                $sk_owner_id      = absint( get_option( 'ssivo_seo_sk_owner_id', 0 ) );
-                $sk_owner_display = '';
-                if ( $sk_owner_id ) {
-                    $sk_user = get_user_by( 'ID', $sk_owner_id );
-                    if ( $sk_user ) {
-                        $sk_owner_display = ' — ' . esc_html( $sk_user->display_name ) . ' (' . esc_html( $sk_user->user_email ) . ')';
-                    }
-                }
+                $sk_owners = [
+                    'Google Analytics' => SiteKitBridge::get_module_owner_name( 'analytics-4' ),
+                    'Search Console'   => SiteKitBridge::get_module_owner_name( 'search-console' ),
+                ];
                 ?>
                 <table class="form-table" role="presentation"><tbody>
                     <tr>
@@ -798,18 +769,25 @@ class AdminPage {
                         </td>
                     </tr>
                     <tr>
-                        <th scope="row"><label for="ssivo_seo_sk_owner_id" style="font-weight:600;">ID Usuario de Site Kit</label></th>
+                        <th scope="row" style="font-weight:600;">Conexión con Google Site Kit</th>
                         <td>
-                            <input name="ssivo_seo_sk_owner_id" type="number" id="ssivo_seo_sk_owner_id"
-                                   value="<?php echo esc_attr( $sk_owner_id ); ?>"
-                                   class="small-text" min="0" step="1" />
+                            <?php if ( ! SiteKitBridge::is_active() ) : ?>
+                                <span style="color:#ef4444;">⚠ El plugin Google Site Kit no está activo.</span>
+                            <?php else : ?>
+                                <?php foreach ( $sk_owners as $service => $owner_name ) : ?>
+                                    <div>
+                                        <strong><?php echo esc_html( $service ); ?>:</strong>
+                                        <?php if ( $owner_name ) : ?>
+                                            conectado por <?php echo esc_html( $owner_name ); ?>
+                                        <?php else : ?>
+                                            <span style="color:#ef4444;">sin conectar</span>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                             <p class="description">
-                                ID del usuario WordPress que conectó Google Site Kit (OAuth).
-                                <?php if ( $sk_owner_display ) : ?>
-                                    <br><strong>Detectado:</strong> Usuario #<?php echo $sk_owner_id; ?><?php echo $sk_owner_display; ?>
-                                <?php else : ?>
-                                    <br><span style="color:#ef4444;">⚠ No detectado. Ingresa el ID del admin que conectó Site Kit y guarda.</span>
-                                <?php endif; ?>
+                                Este panel muestra los datos de Site Kit a todo el equipo usando la cuenta de Google del administrador que conectó cada servicio.
+                                El Site Kit completo solo es visible para los administradores.
                             </p>
                         </td>
                     </tr>
