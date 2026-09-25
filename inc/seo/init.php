@@ -8,6 +8,7 @@ require_once get_template_directory() . '/inc/seo/class-automations.php';
 require_once get_template_directory() . '/inc/seo/class-frontend-meta.php';
 require_once get_template_directory() . '/inc/seo/class-admin-page.php';
 require_once get_template_directory() . '/inc/seo/class-metabox.php';
+require_once get_template_directory() . '/inc/editorial-audit-fixes.php';
 
 use SSIVO_SEO\Includes\Database;
 use SSIVO_SEO\Includes\Automations;
