@@ -9,7 +9,15 @@
 
 Instalación de referencia: **Diario El Oriental** (Maturín, Monagas, Venezuela).
 
-📄 [Acerca del proyecto](ABOUT.md) · 🕓 [Historial de cambios](HISTORIAL_DE_CAMBIOS.md)
+---
+
+## 📚 Documentación rápida
+
+| Documento | Qué encontrarás | Accesos directos |
+|---|---|---|
+| 🕓 **[Historial de cambios](HISTORIAL_DE_CAMBIOS.md)** | Todos los commits del repositorio en orden cronológico, con detalle por archivo | [Línea de tiempo](HISTORIAL_DE_CAMBIOS.md#línea-de-tiempo) · [Mapa de ramas](HISTORIAL_DE_CAMBIOS.md#mapa-de-ramas) · [Pendientes](HISTORIAL_DE_CAMBIOS.md#observaciones-pendientes) |
+| 📄 **[Acerca del proyecto](ABOUT.md)** | Qué es el tema, módulos, roles, tecnología y estructura del repositorio | [Módulos](ABOUT.md#módulos-principales) · [Roles](ABOUT.md#roles-y-permisos) · [Estructura](ABOUT.md#estructura-del-repositorio) |
+| 📜 **[Changelog](#-changelog)** | Resumen de cambios por versión (v1.1.0 → v2.1.0) | [v2.1.0](#v210--auditoría-25-de-septiembre-de-2026) |
 
 ---
 

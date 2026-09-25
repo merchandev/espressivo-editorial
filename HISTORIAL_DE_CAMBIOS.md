@@ -29,12 +29,12 @@ Registro cronológico de **todos los commits** del repositorio [`merchandev/espr
 
 | Indicador | Valor |
 |---|---|
-| Commits registrados | 10 |
+| Commits registrados | 11 |
 | Ramas | `main`, `claude/laughing-planck-4m793a`, `fix/auditoria-editorial-2026-09-25` |
 | Pull requests | 2 (#2 fusionado, #1 abierto) |
 | Periodo | 13/08/2026 → 25/09/2026 |
 | Versión actual del tema | **2.1.0** |
-| Autores | Merchan.dev (7 commits) · Claude / Claude Code (3 commits) |
+| Autores | Merchan.dev (7 commits) · Claude / Claude Code (4 commits) |
 
 ---
 
@@ -51,7 +51,8 @@ Registro cronológico de **todos los commits** del repositorio [`merchandev/espr
 | 7 | 25/09/2026 07:35 | [`58a6204`](https://github.com/merchandev/espressivo-editorial/commit/58a6204) | `fix/auditoria-editorial-2026-09-25` | Merchan.dev | ✨ | Show classified featured image on single view |
 | 8 | 25/09/2026 07:54 | [`7754bef`](https://github.com/merchandev/espressivo-editorial/commit/7754bef) | `main` | Merchan.dev | 🔀 | Merge pull request #2 |
 | 9 | 25/09/2026 08:01 | [`a97109f`](https://github.com/merchandev/espressivo-editorial/commit/a97109f) | `claude/laughing-planck-4m793a` | Claude | 📝 | Documentación: ABOUT.md e historial de cambios |
-| 10 | 25/09/2026 | *(este commit)* | `claude/laughing-planck-4m793a` | Claude | ✨ 📝 | Versión 2.1.0, README renovado y menú de Clasificados en instalaciones nuevas |
+| 10 | 25/09/2026 08:07 | [`afa897d`](https://github.com/merchandev/espressivo-editorial/commit/afa897d) | `claude/laughing-planck-4m793a` | Claude | ✨ 📝 | Versión 2.1.0, README renovado y menú de Clasificados en instalaciones nuevas |
+| 11 | 25/09/2026 | *(este commit)* | `main` | Claude | 📝 | README: acceso rápido a la documentación; todo integrado en `main` |
 
 Otros eventos del 25/09/2026: el **PR #1** se abrió a las 07:39 y el **PR #2** a las 07:52; el PR #2 se fusionó en `main` a las 07:54.
 
@@ -60,14 +61,16 @@ Otros eventos del 25/09/2026: el **PR #1** se abrió a las 07:39 y el **PR #2** 
 ## Mapa de ramas
 
 ```text
-main ──●─────────────────────────────────────────────●── main (7754bef)
-      eaf6786 \                                     / \
-               ├── claude/laughing-planck-4m793a ──● d7a9210  ● a97109f → ● (commit 10)
-               │                                   (PR #2, fusionado)   (documentación y versión)
+main ──●──────────────────────────────────●── 7754bef ──● a97109f ──● afa897d ──● commit 11 ── main
+      eaf6786 \                          /   (PR #2)     (documentación, versión 2.1.0 y README)
+               ├── claude/laughing-planck-4m793a
+               │    ● d7a9210 (auditoría)
                │
                └── fix/auditoria-editorial-2026-09-25
                     ● 74fe87e → ● 195c0ea → ● 986b9cd → ● 31e26db → ● 58a6204   (PR #1, abierto)
 ```
+
+Los commits 9, 10 y 11 se hicieron en `claude/laughing-planck-4m793a` sobre `7754bef` y se integraron en `main` por avance rápido (*fast-forward*), sin commit de fusión: ambas ramas apuntan al mismo commit.
 
 ---
 
@@ -290,13 +293,14 @@ Fusiona en `main` el [PR #2](https://github.com/merchandev/espressivo-editorial/
 
 ---
 
-#### 10 · Versión 2.1.0, README renovado y menú de Clasificados en instalaciones nuevas ✨ 📝
+#### 10 · `afa897d` — Versión 2.1.0, README renovado y menú de Clasificados en instalaciones nuevas ✨ 📝
 
 | | |
 |---|---|
-| **Rama** | `claude/laughing-planck-4m793a` |
+| **Rama** | `claude/laughing-planck-4m793a` → `main` |
 | **Autor** | Claude (Claude Code) |
-| **Fecha** | 25/09/2026 |
+| **Fecha** | 25/09/2026 08:07:19 VET |
+| **Cambios** | 4 archivos · +251 / −76 líneas |
 
 | Archivo | Cambio |
 |---|---|
@@ -307,12 +311,29 @@ Fusiona en `main` el [PR #2](https://github.com/merchandev/espressivo-editorial/
 
 ---
 
+#### 11 · README: acceso rápido a la documentación; todo integrado en `main` 📝
+
+| | |
+|---|---|
+| **Rama** | `main` (también en `claude/laughing-planck-4m793a`) |
+| **Autor** | Claude (Claude Code) |
+| **Fecha** | 25/09/2026 |
+
+| Archivo | Cambio |
+|---|---|
+| `README.md` | Nueva sección **📚 Documentación rápida** bajo el título: enlaces al historial de cambios, al ABOUT y al changelog, con accesos directos a la línea de tiempo, el mapa de ramas, los pendientes, los módulos, los roles, la estructura y la versión 2.1.0. |
+| `HISTORIAL_DE_CAMBIOS.md` | Hash del commit 10, registro del commit 11, mapa de ramas y estado actualizados. |
+
+Con este commit, `main` contiene todo el trabajo: auditoría v2.1.0, documentación, versión del tema y README.
+
+---
+
 ## Estado de ramas y pull requests
 
 | Rama | Último commit | Estado |
 |---|---|---|
-| `main` | `7754bef` | Rama principal. Contiene el commit inicial y la auditoría v2.1.0. |
-| `claude/laughing-planck-4m793a` | commit 10 | PR #2 fusionado. Continúa con la documentación y la versión 2.1.0, pendiente de llevar a `main`. |
+| `main` | commit 11 | Rama principal. Contiene el commit inicial, la auditoría v2.1.0, la documentación y el README renovado. |
+| `claude/laughing-planck-4m793a` | commit 11 | Igual que `main` (integrada por avance rápido). |
 | `fix/auditoria-editorial-2026-09-25` | `58a6204` | PR #1 **abierto**, sin fusionar. |
 
 | PR | Título | Estado |
