@@ -67,6 +67,20 @@ get_header();
                     </p>
                 </header>
 
+                <?php if ( has_post_thumbnail() ) : ?>
+                    <figure class="classified-detail__featured-image">
+                        <?php
+                        the_post_thumbnail(
+                            'large',
+                            array(
+                                'loading' => 'eager',
+                                'alt'     => get_the_title(),
+                            )
+                        );
+                        ?>
+                    </figure>
+                <?php endif; ?>
+
                 <div class="classified-detail__content">
                     <?php the_content(); ?>
                 </div>
