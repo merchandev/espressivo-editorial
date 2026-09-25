@@ -22,8 +22,23 @@ namespace SSIVO_SEO\Includes;
  *     módulo mediante SiteKitBridge::with_shared_read(), también desde el cron.
  *  7. La capacidad se re-sincroniza (versión 1.1.0) para los roles creados después
  *     de la primera migración.
+ *  8. Cifras alineadas con Site Kit: mismo periodo (N días terminando hoy, fecha
+ *     del sitio, con 7/14/28/90 días como en Site Kit) y "Usuarios totales" con
+ *     totalUsers, igual que "Todos los visitantes". Antes se pedían N+1 días en
+ *     UTC y activeUsers, por eso los números no concordaban.
+ *  9. Si un servicio falla se muestra el error real de Google y sus últimos datos
+ *     válidos; los resultados parciales se cachean 15 minutos, no 4 horas.
  */
 class AdminPage {
+
+    /** Periodos disponibles, los mismos que ofrece Site Kit. */
+    const RANGES = [ 7, 14, 28, 90 ];
+
+    /** v2: métricas y fechas alineadas con Site Kit (descarta las cifras cacheadas antes). */
+    const CACHE_PREFIX = 'ssivo_seo_google_v2_';
+
+    /** Últimos datos válidos de cada servicio, por periodo. */
+    const LAST_GOOD_PREFIX = 'ssivo_seo_google_last_good_';
 
     public function __construct() {
         add_action( 'admin_menu',    [ $this, 'register_menu' ] );
@@ -43,8 +58,7 @@ class AdminPage {
     }
 
     public function run_auto_refresh() {
-        $ranges = [ 1, 7, 14, 28 ];
-        foreach ( $ranges as $days ) {
+        foreach ( self::RANGES as $days ) {
             $request = new \WP_REST_Request( 'GET', '/ssivo-seo/v1/analytics' );
             $request->set_param( 'force', '1' );
             $request->set_param( 'days', $days );
@@ -135,28 +149,57 @@ class AdminPage {
     }
 
     public function purge_analytics_cache( \WP_REST_Request $request ): \WP_REST_Response {
-        $ranges = [ 1, 7, 14, 28 ];
-        foreach ( $ranges as $days ) {
-            delete_transient( "ssivo_seo_google_summary_{$days}d" );
+        foreach ( self::RANGES as $days ) {
+            delete_transient( self::CACHE_PREFIX . "{$days}d" );
         }
         return rest_ensure_response( [ 'purged' => true ] );
     }
 
     /**
-     * Proxy: llama a Site Kit internamente usando rest_do_request() con el
-     * usuario propietario del token. Devuelve un resumen cacheado 4 horas.
+     * Periodo de N días igual al de Site Kit: termina HOY (fecha del sitio) e
+     * incluye N días en total. Antes se pedían N+1 días en hora UTC y las cifras
+     * no coincidían con las del panel de Site Kit.
      *
-     * Si Site Kit falla (401, 403, 500, error de red) devuelve los datos
-     * cacheados anteriores con un flag stale=true. Nunca devuelve ceros falsos.
+     * @return array{0: string, 1: string} [ fecha inicial, fecha final ] en Y-m-d.
+     */
+    private function date_range( int $days ): array {
+        $today = new \DateTimeImmutable( 'now', wp_timezone() );
+
+        return [
+            $today->modify( '-' . ( $days - 1 ) . ' days' )->format( 'Y-m-d' ),
+            $today->format( 'Y-m-d' ),
+        ];
+    }
+
+    /**
+     * Mensaje legible de una respuesta de error de Site Kit.
+     */
+    private function error_message( $data ): string {
+        if ( is_array( $data ) && ! empty( $data['message'] ) ) {
+            return wp_strip_all_tags( (string) $data['message'] );
+        }
+        if ( $data instanceof \WP_Error ) {
+            return wp_strip_all_tags( $data->get_error_message() );
+        }
+        return '';
+    }
+
+    /**
+     * Proxy: llama a Site Kit internamente usando rest_do_request() con el
+     * token del propietario de cada módulo. Devuelve un resumen cacheado.
+     *
+     * Si un servicio falla (401, 403, 500, error de red) se muestran sus últimos
+     * datos válidos marcados como desactualizados y el mensaje de error real.
+     * Nunca devuelve ceros falsos.
      */
     public function proxy_analytics_data( \WP_REST_Request $request ): \WP_REST_Response {
         ob_start();
         
         $days = (int) $request->get_param( 'days' );
-        if ( ! in_array( $days, [ 1, 7, 14, 28 ], true ) ) {
+        if ( ! in_array( $days, self::RANGES, true ) ) {
             $days = 28;
         }
-        $cache_key = "ssivo_seo_google_summary_{$days}d";
+        $cache_key = self::CACHE_PREFIX . "{$days}d";
 
         // 1. Servir desde caché si existe y no se fuerza refresco
         $force = (bool) $request->get_param( 'force' );
@@ -175,8 +218,7 @@ class AdminPage {
             return rest_ensure_response( $this->unavailable_response( 'site_kit_inactive' ) );
         }
 
-        $start_date = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
-        $end_date   = gmdate( 'Y-m-d' );
+        list( $start_date, $end_date ) = $this->date_range( $days );
 
         $endpoints = [
             // GA4: totales globales (sin dimensiones → Site Kit devuelve totals)
@@ -187,7 +229,8 @@ class AdminPage {
                     'endDate'   => $end_date,
                     'metrics'   => [
                         [ 'name' => 'screenPageViews' ],
-                        [ 'name' => 'activeUsers' ],
+                        // "Todos los visitantes" de Site Kit usa totalUsers (activeUsers da menos)
+                        [ 'name' => 'totalUsers' ],
                     ],
                 ],
             ],
@@ -280,26 +323,51 @@ class AdminPage {
             }
         } );
 
-        // 3. Si todas las claves tienen error, devolver unavailable sin cachear
-        $all_errors = array_reduce(
-            $results,
-            static fn( bool $carry, $item ) => $carry && isset( $item['__error'] ),
-            true
-        );
+        // 3. Últimos datos válidos por servicio: un fallo puntual no borra las cifras
+        $last_good_key = self::LAST_GOOD_PREFIX . "{$days}d";
+        $last_good     = get_option( $last_good_key, [] );
+        $last_good     = is_array( $last_good ) ? $last_good : [];
+        $errors        = [];
+        $stale         = [];
+        $fresh         = 0;
 
-        if ( $all_errors ) {
-            error_log( 'SSIVO-SEO Analytics: Todos los endpoints de Site Kit fallaron. Verificar token OAuth y permisos.' );
-            ob_end_clean();
-            return rest_ensure_response( $this->unavailable_response( 'all_endpoints_failed' ) );
+        foreach ( array_keys( $endpoints ) as $key ) {
+            if ( ! isset( $results[ $key ]['__error'] ) ) {
+                $last_good[ $key ] = [ 'data' => $results[ $key ], 'updated_at' => gmdate( 'Y-m-d H:i:s' ) ];
+                $fresh++;
+                continue;
+            }
+
+            $errors[ $key ] = $this->error_message( $results[ $key ]['__data'] ?? null );
+            if ( isset( $last_good[ $key ]['data'] ) ) {
+                $results[ $key ] = $last_good[ $key ]['data'];
+                $stale[ $key ]   = $last_good[ $key ]['updated_at'];
+            }
         }
 
-        // 4. Guardar en caché 4 horas (solo si al menos un endpoint tuvo éxito)
-        $results['from_cache']  = false;
-        $results['has_error']   = $has_error;
-        $results['updated_at']  = gmdate( 'Y-m-d H:i:s' );
-        $results['status']      = $has_error ? 'partial' : 'ok';
+        if ( $fresh > 0 ) {
+            update_option( $last_good_key, $last_good, false );
+        }
 
-        set_transient( $cache_key, $results, 4 * HOUR_IN_SECONDS );
+        if ( 0 === $fresh && empty( $stale ) ) {
+            error_log( 'SSIVO-SEO Analytics: Todos los endpoints de Site Kit fallaron. Verificar token OAuth y permisos.' );
+            ob_end_clean();
+            $unavailable           = $this->unavailable_response( 'all_endpoints_failed' );
+            $unavailable['errors'] = $errors;
+            return rest_ensure_response( $unavailable );
+        }
+
+        // 4. Caché: 4 horas si todo respondió; 15 minutos si algún servicio falló
+        $results['from_cache'] = false;
+        $results['has_error']  = $has_error;
+        $results['errors']     = $errors;
+        $results['stale']      = $stale;
+        $results['start_date'] = $start_date;
+        $results['end_date']   = $end_date;
+        $results['updated_at'] = gmdate( 'Y-m-d H:i:s' );
+        $results['status']     = $has_error ? 'partial' : 'ok';
+
+        set_transient( $cache_key, $results, $has_error ? 15 * MINUTE_IN_SECONDS : 4 * HOUR_IN_SECONDS );
 
         ob_end_clean();
         return rest_ensure_response( $results );
@@ -404,13 +472,15 @@ class AdminPage {
                     <span id="ssivo-cache-status">Cargando...</span>
                     &nbsp;·&nbsp;
                     <em>Última actualización: <span id="ssivo-last-update">Sin datos previos</span></em>
+                    &nbsp;·&nbsp;
+                    Periodo: <strong id="ssivo-range">—</strong>
                 </span>
                 <div style="display:flex;align-items:center;gap:10px;">
                     <select id="ssivo-date-filter" style="font-size:12px;padding:4px 28px 4px 8px;border-radius:4px;border:1px solid #cbd5e1;background-color:#fff;">
-                        <option value="1">Últimas 24 horas</option>
                         <option value="7">Últimos 7 días</option>
                         <option value="14">Últimos 14 días</option>
                         <option value="28" selected>Últimos 28 días</option>
+                        <option value="90">Últimos 90 días</option>
                     </select>
                     <?php if ( current_user_can( 'manage_options' ) ) : ?>
                         <button id="ssivo-refresh-btn" style="background:#3b82f6;color:#fff;border:none;border-radius:4px;padding:5px 14px;cursor:pointer;font-size:12px;font-weight:600;">
@@ -429,14 +499,16 @@ class AdminPage {
                         <span id="sk-visitas" style="font-size:36px;font-weight:800;color:#1e293b;line-height:1;">...</span>
                         <span style="font-size:14px;color:#64748b;margin-bottom:5px;">vistas de página</span>
                     </div>
+                    <p id="sk-visitas-note" style="margin:10px 0 0;font-size:12px;color:#94a3b8;"></p>
                 </div>
 
                 <div style="background:#fff;padding:20px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1);border:1px solid #e2e8f0;border-top:4px solid #10b981;">
-                    <h3 style="margin-top:0;color:#1e293b;font-size:15px;margin-bottom:15px;">Usuarios Únicos</h3>
+                    <h3 style="margin-top:0;color:#1e293b;font-size:15px;margin-bottom:15px;">Usuarios totales</h3>
                     <div style="display:flex;align-items:flex-end;gap:10px;">
                         <span id="sk-usuarios" style="font-size:36px;font-weight:800;color:#1e293b;line-height:1;">...</span>
                         <span style="font-size:14px;color:#64748b;margin-bottom:5px;">usuarios</span>
                     </div>
+                    <p id="sk-usuarios-note" style="margin:10px 0 0;font-size:12px;color:#94a3b8;">Equivale a "Todos los visitantes" de Site Kit.</p>
                 </div>
 
                 <div style="background:#fff;padding:20px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1);border:1px solid #e2e8f0;border-top:4px solid #f59e0b;">
@@ -445,6 +517,7 @@ class AdminPage {
                         <span id="sk-impresiones" style="font-size:36px;font-weight:800;color:#1e293b;line-height:1;">...</span>
                         <span style="font-size:14px;color:#64748b;margin-bottom:5px;">veces visto</span>
                     </div>
+                    <p id="sk-impresiones-note" style="margin:10px 0 0;font-size:12px;color:#94a3b8;"></p>
                 </div>
             </div>
 
@@ -497,13 +570,54 @@ class AdminPage {
                     el.appendChild(li);
                 }
 
-                function setUnavailable(id) {
-                    setMsg(id, 'Datos temporalmente no disponibles.', '#94a3b8');
+                // Errores reales de Google por servicio y datos que se muestran desactualizados
+                var lastErrors = {}, lastStale = {};
+
+                function setUnavailable(id, key) {
+                    var msg = key && lastErrors[key] ? 'No disponible: ' + lastErrors[key] : 'Datos temporalmente no disponibles.';
+                    setMsg(id, msg, key && lastErrors[key] ? '#ef4444' : '#94a3b8');
+                }
+
+                function formatDate(ymd) {
+                    var p = (ymd || '').split('-');
+                    return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : '—';
+                }
+
+                // Nota bajo una tarjeta: error de Google o aviso de datos desactualizados
+                function setNote(id, key, fallback) {
+                    var el = document.getElementById(id);
+                    if (!el) return;
+                    if (lastStale[key]) {
+                        el.textContent = 'Datos del ' + lastStale[key] + ' UTC: Google no respondió' + (lastErrors[key] ? ' (' + lastErrors[key] + ')' : '') + '.';
+                        el.style.color = '#f59e0b';
+                    } else if (lastErrors[key]) {
+                        el.textContent = 'No disponible: ' + lastErrors[key];
+                        el.style.color = '#ef4444';
+                    } else {
+                        el.textContent = fallback || '';
+                        el.style.color = '#94a3b8';
+                    }
+                }
+
+                // Aviso al pie de una lista cuando sus datos son los últimos válidos
+                function appendStaleNote(ul, key) {
+                    if (!ul || !lastStale[key]) return;
+                    var li = document.createElement('li');
+                    li.style.cssText = 'font-size:12px;color:#f59e0b;padding-top:8px;';
+                    li.textContent = 'Datos del ' + lastStale[key] + ' UTC: Google no respondió' + (lastErrors[key] ? ' (' + lastErrors[key] + ')' : '') + '.';
+                    ul.appendChild(li);
                 }
 
                 /* ── Función principal de renderizado ───────────────────────── */
                 function renderDashboard(all, fromCache) {
                     var status = all.status || 'unavailable';
+                    lastErrors = all.errors || {};
+                    lastStale  = all.stale || {};
+
+                    var rangeEl = document.getElementById('ssivo-range');
+                    if (rangeEl) {
+                        rangeEl.textContent = all.start_date ? formatDate(all.start_date) + ' – ' + formatDate(all.end_date) : '—';
+                    }
 
                     var updatedEl = document.getElementById('ssivo-last-update');
                     if (updatedEl) {
@@ -520,7 +634,7 @@ class AdminPage {
                             statusEl.textContent = '⚠ No disponible';
                             statusEl.style.color = '#ef4444';
                         } else if (status === 'partial') {
-                            statusEl.textContent = '⚠ Parcial (algunos servicios fallaron — ver error_log)';
+                            statusEl.textContent = '⚠ Algún servicio de Google no respondió (ver el aviso en cada bloque)';
                             statusEl.style.color = '#f59e0b';
                         } else {
                             statusEl.textContent = fromCache ? '✓ Desde caché' : '✓ Actualizado';
@@ -561,6 +675,8 @@ class AdminPage {
                     var skU = document.getElementById('sk-usuarios');
                     if (skV) skV.textContent = visitas !== null ? visitas.toLocaleString() : '—';
                     if (skU) skU.textContent = usuarios !== null ? usuarios.toLocaleString() : '—';
+                    setNote('sk-visitas-note', 'ga4', '');
+                    setNote('sk-usuarios-note', 'ga4', 'Equivale a "Todos los visitantes" de Site Kit.');
 
                     /* ── Search Console: Impresiones ─────────────────────── */
                     var sc = all.search;
@@ -574,6 +690,7 @@ class AdminPage {
                     }
                     var skI = document.getElementById('sk-impresiones');
                     if (skI) skI.textContent = totalImp !== null ? totalImp.toLocaleString() : '—';
+                    setNote('sk-impresiones-note', 'search', 'Fuente: Google Search Console.');
 
                     /* ── Top Contenidos ──────────────────────────────────── */
                     var tp = all.top_pages;
@@ -588,8 +705,9 @@ class AdminPage {
                             });
                         } else {
                             if (tp && tp.__error) console.error('[SSIVO-SEO] top_pages error', tp.__status);
-                            setUnavailable('sk-top-content');
+                            setUnavailable('sk-top-content', 'top_pages');
                         }
+                        appendStaleNote(ulC, 'top_pages');
                     }
 
                     /* ── Top Keywords ────────────────────────────────────── */
@@ -606,8 +724,9 @@ class AdminPage {
                             });
                         } else {
                             if (kw && kw.__error) console.error('[SSIVO-SEO] keywords error', kw.__status);
-                            setUnavailable('sk-top-keywords');
+                            setUnavailable('sk-top-keywords', 'keywords');
                         }
+                        appendStaleNote(ulK, 'keywords');
                     }
 
                     /* ── Países ──────────────────────────────────────────── */
@@ -623,8 +742,9 @@ class AdminPage {
                             });
                         } else {
                             if (co && co.__error) console.error('[SSIVO-SEO] countries error', co.__status);
-                            setUnavailable('sk-top-countries');
+                            setUnavailable('sk-top-countries', 'countries');
                         }
+                        appendStaleNote(ulCo, 'countries');
                     }
 
                     /* ── Dispositivos ────────────────────────────────────── */
@@ -643,8 +763,9 @@ class AdminPage {
                             });
                         } else {
                             if (dv && dv.__error) console.error('[SSIVO-SEO] devices error', dv.__status);
-                            setUnavailable('sk-devices');
+                            setUnavailable('sk-devices', 'devices');
                         }
+                        appendStaleNote(ulDv, 'devices');
                     }
                 }
 
@@ -657,7 +778,7 @@ class AdminPage {
                     var url   = base + '?days=' + days + (force ? '&force=1' : '');
 
                     // Update title
-                    var titleText = days == '1' ? 'Últimas 24 horas' : 'Últimos ' + days + ' días';
+                    var titleText = 'Últimos ' + days + ' días';
                     document.querySelectorAll('h3').forEach(function(el) {
                         if (el.textContent.includes('Visitas (')) {
                             el.textContent = 'Visitas (' + titleText + ')';

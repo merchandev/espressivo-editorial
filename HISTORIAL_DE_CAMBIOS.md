@@ -29,12 +29,12 @@ Registro cronológico de **todos los commits** del repositorio [`merchandev/espr
 
 | Indicador | Valor |
 |---|---|
-| Commits registrados | 11 |
+| Commits registrados | 12 |
 | Ramas | `main`, `claude/laughing-planck-4m793a`, `fix/auditoria-editorial-2026-09-25` |
 | Pull requests | 2 (#2 fusionado, #1 abierto) |
 | Periodo | 13/08/2026 → 25/09/2026 |
-| Versión actual del tema | **2.1.0** |
-| Autores | Merchan.dev (7 commits) · Claude / Claude Code (4 commits) |
+| Versión actual del tema | **2.1.1** |
+| Autores | Merchan.dev (7 commits) · Claude / Claude Code (5 commits) |
 
 ---
 
@@ -52,7 +52,8 @@ Registro cronológico de **todos los commits** del repositorio [`merchandev/espr
 | 8 | 25/09/2026 07:54 | [`7754bef`](https://github.com/merchandev/espressivo-editorial/commit/7754bef) | `main` | Merchan.dev | 🔀 | Merge pull request #2 |
 | 9 | 25/09/2026 08:01 | [`a97109f`](https://github.com/merchandev/espressivo-editorial/commit/a97109f) | `claude/laughing-planck-4m793a` | Claude | 📝 | Documentación: ABOUT.md e historial de cambios |
 | 10 | 25/09/2026 08:07 | [`afa897d`](https://github.com/merchandev/espressivo-editorial/commit/afa897d) | `claude/laughing-planck-4m793a` | Claude | ✨ 📝 | Versión 2.1.0, README renovado y menú de Clasificados en instalaciones nuevas |
-| 11 | 25/09/2026 | *(este commit)* | `main` | Claude | 📝 | README: acceso rápido a la documentación; todo integrado en `main` |
+| 11 | 25/09/2026 08:13 | [`8678283`](https://github.com/merchandev/espressivo-editorial/commit/8678283) | `main` | Claude | 📝 | README: acceso rápido a la documentación; todo integrado en `main` |
+| 12 | 25/09/2026 | *(este commit)* | `claude/laughing-planck-4m793a` | Claude | 🔧 | v2.1.1: cifras del panel SEO alineadas con Site Kit |
 
 Otros eventos del 25/09/2026: el **PR #1** se abrió a las 07:39 y el **PR #2** a las 07:52; el PR #2 se fusionó en `main` a las 07:54.
 
@@ -311,13 +312,14 @@ Fusiona en `main` el [PR #2](https://github.com/merchandev/espressivo-editorial/
 
 ---
 
-#### 11 · README: acceso rápido a la documentación; todo integrado en `main` 📝
+#### 11 · `8678283` — README: acceso rápido a la documentación; todo integrado en `main` 📝
 
 | | |
 |---|---|
 | **Rama** | `main` (también en `claude/laughing-planck-4m793a`) |
 | **Autor** | Claude (Claude Code) |
-| **Fecha** | 25/09/2026 |
+| **Fecha** | 25/09/2026 08:13:02 VET |
+| **Cambios** | 2 archivos · +42 / −13 líneas |
 
 | Archivo | Cambio |
 |---|---|
@@ -328,12 +330,36 @@ Con este commit, `main` contiene todo el trabajo: auditoría v2.1.0, documentaci
 
 ---
 
+#### 12 · v2.1.1: cifras del panel SEO alineadas con Site Kit 🔧
+
+| | |
+|---|---|
+| **Rama** | `claude/laughing-planck-4m793a` |
+| **Autor** | Claude (Claude Code) |
+| **Fecha** | 25/09/2026 |
+
+**Motivo:** en producción el panel SEO mostraba 16.517 usuarios mientras que Site Kit mostraba 17K para los "últimos 28 días", y "Impresiones" y "Palabras clave" aparecían vacías sin explicar por qué.
+
+**Causas encontradas** (verificadas en el código fuente de Site Kit):
+- Site Kit calcula "Todos los visitantes" con la métrica `totalUsers`; el panel pedía `activeUsers`, que siempre da menos.
+- Site Kit usa N días que **terminan hoy** en la fecha local (28 días: 29/08–25/09); el panel pedía N+1 días en hora UTC.
+- Cuando Search Console fallaba, el panel ocultaba el error de Google y guardaba el resultado parcial 4 horas en caché.
+
+| Archivo | Cambio |
+|---|---|
+| `inc/seo/class-admin-page.php` | Nuevo `date_range()` con el periodo de Site Kit en la zona horaria del sitio y periodos de 7, 14, 28 y 90 días (se retira "24 horas"). Métrica `totalUsers`. Caché nueva `ssivo_seo_google_v2_*` para descartar las cifras anteriores. Últimos datos válidos por servicio (`ssivo_seo_google_last_good_*`), error real de Google en cada bloque y caché de 15 minutos cuando un servicio falla. La vista muestra el periodo exacto y renombra la tarjeta a "Usuarios totales". |
+| `style.css` | Versión **2.1.1**. |
+| `README.md`, `ABOUT.md` | Versión 2.1.1, entrada de changelog y nuevas filas en "Solución de problemas" (errores de Google y comparación con Site Kit). |
+| `HISTORIAL_DE_CAMBIOS.md` | Hash del commit 11 y registro de este commit. |
+
+---
+
 ## Estado de ramas y pull requests
 
 | Rama | Último commit | Estado |
 |---|---|---|
-| `main` | commit 11 | Rama principal. Contiene el commit inicial, la auditoría v2.1.0, la documentación y el README renovado. |
-| `claude/laughing-planck-4m793a` | commit 11 | Igual que `main` (integrada por avance rápido). |
+| `main` | `8678283` (commit 11) | Rama principal. Contiene el commit inicial, la auditoría v2.1.0, la documentación y el README renovado. |
+| `claude/laughing-planck-4m793a` | commit 12 | Incluye la corrección v2.1.1 del panel SEO, pendiente de llevar a `main`. |
 | `fix/auditoria-editorial-2026-09-25` | `58a6204` | PR #1 **abierto**, sin fusionar. |
 
 | PR | Título | Estado |

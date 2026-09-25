@@ -2,7 +2,7 @@
 
 **Tema y framework de WordPress para diarios digitales y portales de noticias.** Construido desde cero bajo una arquitectura de marca blanca (white-label) y SaaS, para duplicarse y licenciarse a distintas editoriales con el menor número posible de plugins de terceros.
 
-![Versión](https://img.shields.io/badge/versi%C3%B3n-2.1.0-cc3332)
+![Versión](https://img.shields.io/badge/versi%C3%B3n-2.1.1-cc3332)
 ![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-21759b?logo=wordpress&logoColor=white)
 ![PHP](https://img.shields.io/badge/PHP-8.1%2B-777bb4?logo=php&logoColor=white)
 ![Idioma](https://img.shields.io/badge/idioma-espa%C3%B1ol-ffc407)
@@ -17,7 +17,7 @@ Instalación de referencia: **Diario El Oriental** (Maturín, Monagas, Venezuela
 |---|---|---|
 | 🕓 **[Historial de cambios](HISTORIAL_DE_CAMBIOS.md)** | Todos los commits del repositorio en orden cronológico, con detalle por archivo | [Línea de tiempo](HISTORIAL_DE_CAMBIOS.md#línea-de-tiempo) · [Mapa de ramas](HISTORIAL_DE_CAMBIOS.md#mapa-de-ramas) · [Pendientes](HISTORIAL_DE_CAMBIOS.md#observaciones-pendientes) |
 | 📄 **[Acerca del proyecto](ABOUT.md)** | Qué es el tema, módulos, roles, tecnología y estructura del repositorio | [Módulos](ABOUT.md#módulos-principales) · [Roles](ABOUT.md#roles-y-permisos) · [Estructura](ABOUT.md#estructura-del-repositorio) |
-| 📜 **[Changelog](#-changelog)** | Resumen de cambios por versión (v1.1.0 → v2.1.0) | [v2.1.0](#v210--auditoría-25-de-septiembre-de-2026) |
+| 📜 **[Changelog](#-changelog)** | Resumen de cambios por versión (v1.1.0 → v2.1.1) | [v2.1.1](#v211--cifras-del-panel-seo-alineadas-con-site-kit-25-de-septiembre-de-2026) · [v2.1.0](#v210--auditoría-25-de-septiembre-de-2026) |
 
 ---
 
@@ -53,7 +53,8 @@ Instalación de referencia: **Diario El Oriental** (Maturín, Monagas, Venezuela
 - **Tabla indexable** `ssivo_seo_indexable`: los datos SEO se guardan en una tabla propia y no en `wp_postmeta`.
 - **Automatización:** meta descripción generada al guardar e imagen destacada asignada automáticamente desde el contenido (también en las entradas programadas).
 - **Panel lateral en Gutenberg** con análisis de legibilidad en el navegador y vista previa del resultado en Google.
-- **Panel SEO para todo el equipo:** visitas, usuarios, impresiones, contenidos más vistos, palabras clave, países y dispositivos de **Google Site Kit**, con caché de 4 horas y actualización automática cada hora.
+- **Panel SEO para todo el equipo:** visitas, usuarios, impresiones, contenidos más vistos, palabras clave, países y dispositivos de **Google Site Kit**, con los mismos periodos y métricas que Site Kit (7, 14, 28 y 90 días terminando hoy; "Usuarios totales" = "Todos los visitantes"). Caché de 4 horas y actualización automática cada hora.
+- **Errores visibles:** si un servicio de Google no responde, el bloque muestra el mensaje real de Google y los últimos datos válidos con su fecha.
 - **Site Kit completo solo para administradores:** el resto de usuarios ve los datos en el panel SEO, que usa la cuenta de Google del administrador que conectó cada servicio.
 
 ### Redacción y control editorial
@@ -213,6 +214,8 @@ php composer.phar install   # solo si actualizas dompdf
 | Síntoma | Qué revisar |
 |---|---|
 | El panel SEO muestra "No disponible" | Que Google Site Kit esté activo y que un administrador haya conectado Analytics y Search Console. El estado aparece en *SEO → Ajustes globales*. |
+| Un bloque muestra "No disponible: …" o "Datos del …" | El texto es el error que devolvió Google. Por ejemplo, *"User does not have sufficient permission for site"* significa que la cuenta de Google que conectó Search Console en Site Kit no tiene acceso a esa propiedad: reconéctala desde Site Kit con una cuenta propietaria de la propiedad. |
+| Las cifras no coinciden con Site Kit | Compara el mismo periodo: el panel muestra las fechas exactas junto a "Periodo". Site Kit redondea (17K = 16.500–17.499). Tras actualizar el tema pulsa "↻ Actualizar ahora" para descartar datos en caché. |
 | "Google Site Kit no está activo" | El plugin está desactivado o no está instalado. |
 | Una entrada no se publica | Falta la **firma**: escribe el nombre en la caja *Firma* y publica de nuevo. |
 | Clasificados o carteles devuelven 404 | Guarda de nuevo los enlaces permanentes. |
@@ -224,6 +227,12 @@ php composer.phar install   # solo si actualizas dompdf
 ## 📜 Changelog
 
 > Historial detallado commit a commit en [HISTORIAL_DE_CAMBIOS.md](HISTORIAL_DE_CAMBIOS.md).
+
+### v2.1.1 — Cifras del panel SEO alineadas con Site Kit (25 de septiembre de 2026)
+- ✅ **Mismo periodo que Site Kit:** N días terminando hoy en la fecha del sitio (antes N+1 días en hora UTC). Periodos de 7, 14, 28 y 90 días, como en Site Kit.
+- ✅ **"Usuarios totales"** con la métrica `totalUsers`, la misma de "Todos los visitantes" en Site Kit (antes `activeUsers`, que da menos).
+- ✅ **Errores reales de Google** en cada bloque y últimos datos válidos cuando un servicio falla. Los resultados parciales se cachean 15 minutos en lugar de 4 horas.
+- ✅ **Caché renovada:** se descartan las cifras calculadas con el método anterior.
 
 ### v2.1.0 — Auditoría (25 de septiembre de 2026)
 - ✅ **Entradas que desaparecían:** la validación de firma ya no pasa a Borrador entradas publicadas o programadas al editarlas (edición rápida o masiva, REST, plugins). En el editor de bloques la firma viaja en la misma petición de publicación.
