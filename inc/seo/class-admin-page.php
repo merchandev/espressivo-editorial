@@ -28,22 +28,39 @@ namespace SSIVO_SEO\Includes;
  *     UTC y activeUsers, por eso los números no concordaban.
  *  9. Si un servicio falla se muestra el error real de Google y sus últimos datos
  *     válidos; los resultados parciales se cachean 15 minutos, no 4 horas.
+ * 10. Cuenta de Google con permiso: si la cuenta de quien conectó un servicio en
+ *     Site Kit no tiene acceso a la propiedad ("User does not have sufficient
+ *     permission"), el panel prueba la cuenta del administrador que lo consulta
+ *     (la misma con la que él ve Site Kit) y, si funciona, la usa para todo el
+ *     equipo (SiteKitBridge::get_reader()).
+ * 11. Países y dispositivos como en Site Kit: usuarios totales en porcentaje
+ *     (4 principales + "Otros"). Clics totales de Search Console.
  */
 class AdminPage {
 
     /** Periodos disponibles, los mismos que ofrece Site Kit. */
     const RANGES = [ 7, 14, 28, 90 ];
 
-    /** v2: métricas y fechas alineadas con Site Kit (descarta las cifras cacheadas antes). */
-    const CACHE_PREFIX = 'ssivo_seo_google_v2_';
+    /** v3: países y dispositivos con usuarios totales (descarta las cifras cacheadas antes). */
+    const CACHE_PREFIX = 'ssivo_seo_google_v3_';
 
     /** Últimos datos válidos de cada servicio, por periodo. */
-    const LAST_GOOD_PREFIX = 'ssivo_seo_google_last_good_';
+    const LAST_GOOD_PREFIX = 'ssivo_seo_google_last_good_v3_';
+
+    /** Versión del formato de los datos guardados (caché y últimos datos válidos). */
+    const DATA_VERSION = '3';
+
+    /** Bloques del panel que aporta cada servicio de Site Kit. */
+    const MODULE_KEYS = [
+        'analytics-4'    => [ 'ga4', 'top_pages', 'countries', 'devices' ],
+        'search-console' => [ 'search', 'keywords' ],
+    ];
 
     public function __construct() {
         add_action( 'admin_menu',    [ $this, 'register_menu' ] );
         add_action( 'admin_init',    [ $this, 'register_settings' ] );
         add_action( 'admin_init',    [ $this, 'run_capability_migration' ] );
+        add_action( 'admin_init',    [ $this, 'run_data_migration' ] );
         add_action( 'rest_api_init', [ $this, 'register_rest_routes' ] );
 
         // Configurar Cron para actualización automática
@@ -80,6 +97,21 @@ class AdminPage {
         }
         $this->sync_role_capabilities();
         update_option( 'ssivo_seo_capabilities_version', '1.1.0', false );
+    }
+
+    /**
+     * Borra la caché y los últimos datos válidos de formatos anteriores.
+     */
+    public function run_data_migration(): void {
+        if ( self::DATA_VERSION === get_option( 'ssivo_seo_data_version' ) ) {
+            return;
+        }
+        foreach ( [ 1, 7, 14, 28, 90 ] as $days ) {
+            delete_transient( "ssivo_seo_google_v2_{$days}d" );
+            delete_option( "ssivo_seo_google_last_good_{$days}d" );
+        }
+        delete_transient( 'ssivo_seo_google_summary' );
+        update_option( 'ssivo_seo_data_version', self::DATA_VERSION, false );
     }
 
     private function sync_role_capabilities(): void {
@@ -202,13 +234,15 @@ class AdminPage {
         $cache_key = self::CACHE_PREFIX . "{$days}d";
 
         // 1. Servir desde caché si existe y no se fuerza refresco
-        $force = (bool) $request->get_param( 'force' );
+        $force       = (bool) $request->get_param( 'force' );
+        $can_use_own = SiteKitBridge::can_read_with_own_account( get_current_user_id() );
         if ( ! $force ) {
             $cached = get_transient( $cache_key );
-            if ( is_array( $cached ) ) {
+            // Un administrador conectado a Site Kit reintenta con su cuenta si la caché tiene errores
+            if ( is_array( $cached ) && ! ( $can_use_own && ! empty( $cached['errors'] ) ) ) {
                 $cached['from_cache'] = true;
                 ob_end_clean();
-                return rest_ensure_response( $cached );
+                return rest_ensure_response( $this->with_accounts( $cached ) );
             }
         }
 
@@ -234,7 +268,7 @@ class AdminPage {
                     ],
                 ],
             ],
-            // Search Console: impresiones totales agrupadas por fecha
+            // Search Console: impresiones y clics totales agrupados por fecha ("Tráfico de búsquedas")
             'search' => [
                 'route'  => '/google-site-kit/v1/modules/search-console/data/searchanalytics',
                 'params' => [
@@ -265,62 +299,68 @@ class AdminPage {
                     'limit'      => 5,
                 ],
             ],
-            // GA4: países
+            // GA4: países, como el gráfico "Ubicaciones" de Site Kit (usuarios totales,
+            // todas las filas para calcular el porcentaje sobre el total)
             'countries' => [
                 'route'  => '/google-site-kit/v1/modules/analytics-4/data/report',
                 'params' => [
                     'startDate'  => $start_date,
                     'endDate'    => $end_date,
-                    'metrics'    => [ [ 'name' => 'screenPageViews' ] ],
+                    'metrics'    => [ [ 'name' => 'totalUsers' ] ],
                     'dimensions' => [ [ 'name' => 'country' ] ],
-                    'orderby'    => [ [ 'metric' => [ 'metricName' => 'screenPageViews' ], 'desc' => true ] ],
-                    'limit'      => 5,
+                    'orderby'    => [ [ 'metric' => [ 'metricName' => 'totalUsers' ], 'desc' => true ] ],
                 ],
             ],
-            // GA4: dispositivos
+            // GA4: dispositivos, como el gráfico "Dispositivos" de Site Kit
             'devices' => [
                 'route'  => '/google-site-kit/v1/modules/analytics-4/data/report',
                 'params' => [
                     'startDate'  => $start_date,
                     'endDate'    => $end_date,
-                    'metrics'    => [ [ 'name' => 'screenPageViews' ] ],
+                    'metrics'    => [ [ 'name' => 'totalUsers' ] ],
                     'dimensions' => [ [ 'name' => 'deviceCategory' ] ],
+                    'orderby'    => [ [ 'metric' => [ 'metricName' => 'totalUsers' ], 'desc' => true ] ],
                 ],
             ],
         ];
 
-        $results    = [];
-        $has_error  = false;
+        // Lectura con la cuenta de lectura de cada servicio (Analytics y Search Console)
+        $results = SiteKitBridge::with_shared_read( function () use ( $endpoints ) {
+            return $this->fetch_endpoints( $endpoints );
+        } );
 
-        // Lectura con el token del propietario de cada módulo (Analytics y Search Console)
-        SiteKitBridge::with_shared_read( function () use ( $endpoints, &$results, &$has_error ) {
-            foreach ( $endpoints as $key => $config ) {
-                $rest_req = new \WP_REST_Request( 'GET', $config['route'] );
-                $rest_req->set_query_params( $config['params'] );
+        // Si un servicio falló y quien consulta es un administrador conectado a Site
+        // Kit, se repite con su propia cuenta de Google (la misma de su Site Kit). Si
+        // funciona, esa cuenta pasa a leer ese servicio para todo el equipo.
+        if ( $can_use_own ) {
+            foreach ( self::MODULE_KEYS as $module => $keys ) {
+                $failed = array_filter( $keys, static function ( $key ) use ( $results ) {
+                    return isset( $results[ $key ]['__error'] );
+                } );
+                if ( ! $failed ) {
+                    continue;
+                }
 
-                $rest_response = rest_do_request( $rest_req );
-                $status        = $rest_response->get_status();
-                $data          = $rest_response->get_data();
+                $subset = array_intersect_key( $endpoints, array_flip( $keys ) );
+                $own    = SiteKitBridge::with_own_credentials( function () use ( $subset ) {
+                    return $this->fetch_endpoints( $subset );
+                } );
+                if ( array_filter( $own, static function ( $item ) { return isset( $item['__error'] ); } ) ) {
+                    continue;
+                }
 
-                if ( $status >= 200 && $status < 300 ) {
-                    $results[ $key ] = $data;
-                } else {
-                    // Registrar el error real — nunca silenciarlo con ?? 0
-                    error_log( sprintf(
-                        'SSIVO-SEO Analytics [%s]: HTTP %d — %s',
-                        $key,
-                        $status,
-                        wp_json_encode( $data )
-                    ) );
-                    $results[ $key ] = [
-                        '__error'  => true,
-                        '__status' => $status,
-                        '__key'    => $key,
-                        '__data'   => $data,
-                    ];
-                    $has_error = true;
+                $results = array_merge( $results, $own );
+                if ( SiteKitBridge::set_reader( $module, get_current_user_id() ) ) {
+                    // Los demás periodos se vuelven a leer con la nueva cuenta
+                    foreach ( self::RANGES as $range ) {
+                        delete_transient( self::CACHE_PREFIX . "{$range}d" );
+                    }
                 }
             }
+        }
+
+        $has_error = (bool) array_filter( $results, static function ( $item ) {
+            return isset( $item['__error'] );
         } );
 
         // 3. Últimos datos válidos por servicio: un fallo puntual no borra las cifras
@@ -370,7 +410,76 @@ class AdminPage {
         set_transient( $cache_key, $results, $has_error ? 15 * MINUTE_IN_SECONDS : 4 * HOUR_IN_SECONDS );
 
         ob_end_clean();
-        return rest_ensure_response( $results );
+        return rest_ensure_response( $this->with_accounts( $results ) );
+    }
+
+    /**
+     * Añade a la respuesta, solo para administradores, la cuenta que lee cada servicio.
+     */
+    private function with_accounts( array $response ): array {
+        if ( current_user_can( 'manage_options' ) && SiteKitBridge::is_active() ) {
+            foreach ( SiteKitBridge::MODULES as $slug ) {
+                $response['accounts'][ $slug ] = $this->account_description( $slug );
+            }
+        }
+        return $response;
+    }
+
+    /**
+     * Texto de "Ajustes globales" con la cuenta de Google que lee un servicio.
+     */
+    private function account_description( string $slug ): string {
+        $owner_name  = SiteKitBridge::get_module_owner_name( $slug );
+        $reader      = SiteKitBridge::get_reader( $slug );
+        $reader_user = $reader ? get_userdata( $reader ) : false;
+
+        if ( ! $owner_name && ! $reader_user ) {
+            return 'sin conectar en Site Kit';
+        }
+        if ( $reader_user && SiteKitBridge::get_module_owner_id( $slug ) !== $reader ) {
+            return sprintf( 'se lee con la cuenta de Google de %s', $reader_user->display_name )
+                . ( $owner_name ? sprintf( ' (en Site Kit lo conectó %s)', $owner_name ) : '' );
+        }
+        return sprintf( 'se lee con la cuenta de Google de %s, que lo conectó en Site Kit', $reader_user ? $reader_user->display_name : $owner_name );
+    }
+
+    /**
+     * Llama internamente a las rutas de datos de Site Kit.
+     *
+     * @return array Datos por bloque; si falla, [ '__error' => true, '__status', '__key', '__data' ].
+     */
+    private function fetch_endpoints( array $endpoints ): array {
+        $results = [];
+
+        foreach ( $endpoints as $key => $config ) {
+            $rest_req = new \WP_REST_Request( 'GET', $config['route'] );
+            $rest_req->set_query_params( $config['params'] );
+
+            $rest_response = rest_do_request( $rest_req );
+            $status        = $rest_response->get_status();
+            $data          = $rest_response->get_data();
+
+            if ( $status >= 200 && $status < 300 ) {
+                $results[ $key ] = $data;
+                continue;
+            }
+
+            // Registrar el error real — nunca silenciarlo con ?? 0
+            error_log( sprintf(
+                'SSIVO-SEO Analytics [%s]: HTTP %d — %s',
+                $key,
+                $status,
+                wp_json_encode( $data )
+            ) );
+            $results[ $key ] = [
+                '__error'  => true,
+                '__status' => $status,
+                '__key'    => $key,
+                '__data'   => $data,
+            ];
+        }
+
+        return $results;
     }
 
     /**
@@ -491,7 +600,7 @@ class AdminPage {
             </div>
 
             <!-- MÉTRICAS GOOGLE (cargadas vía JS) -->
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin-bottom:30px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:20px;margin-bottom:30px;">
 
                 <div style="background:#fff;padding:20px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1);border:1px solid #e2e8f0;border-top:4px solid #3b82f6;">
                     <h3 style="margin-top:0;color:#1e293b;font-size:15px;margin-bottom:15px;">Visitas (Últimos 28 días)</h3>
@@ -512,12 +621,21 @@ class AdminPage {
                 </div>
 
                 <div style="background:#fff;padding:20px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1);border:1px solid #e2e8f0;border-top:4px solid #f59e0b;">
-                    <h3 style="margin-top:0;color:#1e293b;font-size:15px;margin-bottom:15px;">Impresiones en Buscador</h3>
+                    <h3 style="margin-top:0;color:#1e293b;font-size:15px;margin-bottom:15px;">Impresiones totales en Google</h3>
                     <div style="display:flex;align-items:flex-end;gap:10px;">
                         <span id="sk-impresiones" style="font-size:36px;font-weight:800;color:#1e293b;line-height:1;">...</span>
                         <span style="font-size:14px;color:#64748b;margin-bottom:5px;">veces visto</span>
                     </div>
                     <p id="sk-impresiones-note" style="margin:10px 0 0;font-size:12px;color:#94a3b8;"></p>
+                </div>
+
+                <div style="background:#fff;padding:20px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1);border:1px solid #e2e8f0;border-top:4px solid #8b5cf6;">
+                    <h3 style="margin-top:0;color:#1e293b;font-size:15px;margin-bottom:15px;">Clics totales desde Google</h3>
+                    <div style="display:flex;align-items:flex-end;gap:10px;">
+                        <span id="sk-clics" style="font-size:36px;font-weight:800;color:#1e293b;line-height:1;">...</span>
+                        <span style="font-size:14px;color:#64748b;margin-bottom:5px;">clics</span>
+                    </div>
+                    <p id="sk-clics-note" style="margin:10px 0 0;font-size:12px;color:#94a3b8;"></p>
                 </div>
             </div>
 
@@ -534,12 +652,14 @@ class AdminPage {
 
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:20px;margin-bottom:30px;">
                 <div style="background:#fff;padding:20px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1);border:1px solid #e2e8f0;border-top:4px solid #10b981;">
-                    <h3 style="margin-top:0;color:#1e293b;font-size:15px;margin-bottom:15px;">Tráfico por Países</h3>
+                    <h3 style="margin-top:0;color:#1e293b;font-size:15px;margin-bottom:15px;">Usuarios por país</h3>
                     <ul id="sk-top-countries" style="margin:0;padding:0;list-style:none;"><li style="font-size:13px;color:#64748b;">Cargando...</li></ul>
+                    <p style="margin:10px 0 0;font-size:12px;color:#94a3b8;">Como el gráfico "Ubicaciones" de Site Kit.</p>
                 </div>
                 <div style="background:#fff;padding:20px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1);border:1px solid #e2e8f0;border-top:4px solid #3b82f6;">
-                    <h3 style="margin-top:0;color:#1e293b;font-size:15px;margin-bottom:15px;">Distribución por Dispositivo</h3>
+                    <h3 style="margin-top:0;color:#1e293b;font-size:15px;margin-bottom:15px;">Usuarios por dispositivo</h3>
                     <ul id="sk-devices" style="margin:0;padding:0;list-style:none;"><li style="font-size:13px;color:#64748b;">Cargando...</li></ul>
+                    <p style="margin:10px 0 0;font-size:12px;color:#94a3b8;">Como el gráfico "Dispositivos" de Site Kit.</p>
                 </div>
             </div>
 
@@ -680,17 +800,23 @@ class AdminPage {
 
                     /* ── Search Console: Impresiones ─────────────────────── */
                     var sc = all.search;
-                    var totalImp = null;
+                    var totalImp = null, totalClicks = null;
                     if (sc && !sc.__error) {
                         var rows = Array.isArray(sc) ? sc : (sc.rows || []);
-                        totalImp = 0;
-                        rows.forEach(function(row) { totalImp += parseInt(row.impressions || 0); });
+                        totalImp = 0; totalClicks = 0;
+                        rows.forEach(function(row) {
+                            totalImp    += parseInt(row.impressions || 0);
+                            totalClicks += parseInt(row.clicks || 0);
+                        });
                     } else if (sc && sc.__error) {
                         console.error('[SSIVO-SEO] search-console error HTTP', sc.__status, sc.__data);
                     }
                     var skI = document.getElementById('sk-impresiones');
                     if (skI) skI.textContent = totalImp !== null ? totalImp.toLocaleString() : '—';
-                    setNote('sk-impresiones-note', 'search', 'Fuente: Google Search Console.');
+                    var skC = document.getElementById('sk-clics');
+                    if (skC) skC.textContent = totalClicks !== null ? totalClicks.toLocaleString() : '—';
+                    setNote('sk-impresiones-note', 'search', 'Equivale a "Impresiones totales" de Site Kit (Search Console).');
+                    setNote('sk-clics-note', 'search', 'Equivale a "Clics totales" de Site Kit (Search Console).');
 
                     /* ── Top Contenidos ──────────────────────────────────── */
                     var tp = all.top_pages;
@@ -729,44 +855,50 @@ class AdminPage {
                         appendStaleNote(ulK, 'keywords');
                     }
 
-                    /* ── Países ──────────────────────────────────────────── */
-                    var co = all.countries;
-                    var ulCo = document.getElementById('sk-top-countries');
-                    if (ulCo) {
-                        ulCo.innerHTML = '';
-                        if (co && !co.__error && co.rows && co.rows.length > 0) {
-                            co.rows.forEach(function(row) {
-                                var c = row.dimensionValues[0].value;
-                                var v = parseInt(row.metricValues[0].value).toLocaleString() + ' vis';
-                                ulCo.appendChild(makeLi(c, v));
-                            });
-                        } else {
-                            if (co && co.__error) console.error('[SSIVO-SEO] countries error', co.__status);
-                            setUnavailable('sk-top-countries', 'countries');
-                        }
-                        appendStaleNote(ulCo, 'countries');
+                    /* ── Cuenta de Google que lee cada servicio (solo administradores) ── */
+                    if (all.accounts) {
+                        document.querySelectorAll('.ssivo-account').forEach(function(el) {
+                            if (all.accounts[el.dataset.module]) el.textContent = all.accounts[el.dataset.module];
+                        });
                     }
 
-                    /* ── Dispositivos ────────────────────────────────────── */
-                    var dv = all.devices;
-                    var ulDv = document.getElementById('sk-devices');
-                    if (ulDv) {
-                        ulDv.innerHTML = '';
-                        if (dv && !dv.__error && dv.rows && dv.rows.length > 0) {
-                            var tot = 0;
-                            dv.rows.forEach(function(r) { tot += parseInt(r.metricValues[0].value); });
-                            dv.rows.forEach(function(row) {
-                                var dev = row.dimensionValues[0].value;
-                                var val = parseInt(row.metricValues[0].value);
-                                var pct = tot > 0 ? Math.round((val / tot) * 100) + '%' : '0%';
-                                ulDv.appendChild(makeLi(dev, pct, 'text-transform:capitalize;'));
-                            });
-                        } else {
-                            if (dv && dv.__error) console.error('[SSIVO-SEO] devices error', dv.__status);
-                            setUnavailable('sk-devices', 'devices');
-                        }
-                        appendStaleNote(ulDv, 'devices');
+                    /* ── Países y dispositivos: usuarios totales en % ──────── */
+                    renderShares('sk-top-countries', all.countries, 'countries');
+                    renderShares('sk-devices', all.devices, 'devices');
+                }
+
+                /*
+                 * Reparto de usuarios como los gráficos circulares de Site Kit:
+                 * porcentaje sobre el total de todas las filas y, si hay más de 5,
+                 * los 4 primeros más "Otros".
+                 */
+                function renderShares(id, report, key) {
+                    var ul = document.getElementById(id);
+                    if (!ul) return;
+                    ul.innerHTML = '';
+                    var rows = report && !report.__error && report.rows ? report.rows : [];
+                    if (!rows.length) {
+                        if (report && report.__error) console.error('[SSIVO-SEO] ' + key + ' error', report.__status);
+                        setUnavailable(id, key);
+                        appendStaleNote(ul, key);
+                        return;
                     }
+                    var value = function(row) { return parseInt(row.metricValues[0].value, 10) || 0; };
+                    var total = rows.reduce(function(sum, row) { return sum + value(row); }, 0);
+                    var shown = rows.length > 5 ? rows.slice(0, 4) : rows;
+                    var items = shown.map(function(row) {
+                        var label = row.dimensionValues[0].value || '';
+                        return [label.charAt(0).toUpperCase() + label.slice(1), value(row)];
+                    });
+                    if (rows.length > 5) {
+                        var others = total - items.reduce(function(sum, item) { return sum + item[1]; }, 0);
+                        items.push(['Otros', others]);
+                    }
+                    items.forEach(function(item) {
+                        var pct = total > 0 ? (item[1] / total).toLocaleString(undefined, { style: 'percent', maximumFractionDigits: 1 }) : '0 %';
+                        ul.appendChild(makeLi(item[0], item[1].toLocaleString() + ' usuarios · ' + pct));
+                    });
+                    appendStaleNote(ul, key);
                 }
 
                 /* ── Función de carga (con force opcional) ──────────────────── */
@@ -818,7 +950,7 @@ class AdminPage {
                             statusEl.textContent = '✗ ' + (err.message || 'Error de conexión'); 
                             statusEl.style.color = '#ef4444'; 
                         }
-                        ['sk-visitas','sk-usuarios','sk-impresiones'].forEach(function(id) {
+                        ['sk-visitas','sk-usuarios','sk-impresiones','sk-clics'].forEach(function(id) {
                             var el = document.getElementById(id);
                             if (el) el.textContent = '—';  // Nunca mostrar 0 falso
                         });
@@ -869,9 +1001,9 @@ class AdminPage {
                 <?php
                 settings_fields( 'ssivo_seo_group' );
                 do_settings_sections( 'ssivo_seo_group' );
-                $sk_owners = [
-                    'Google Analytics' => SiteKitBridge::get_module_owner_name( 'analytics-4' ),
-                    'Search Console'   => SiteKitBridge::get_module_owner_name( 'search-console' ),
+                $sk_services = [
+                    'analytics-4'    => 'Google Analytics',
+                    'search-console' => 'Search Console',
                 ];
                 ?>
                 <table class="form-table" role="presentation"><tbody>
@@ -895,20 +1027,16 @@ class AdminPage {
                             <?php if ( ! SiteKitBridge::is_active() ) : ?>
                                 <span style="color:#ef4444;">⚠ El plugin Google Site Kit no está activo.</span>
                             <?php else : ?>
-                                <?php foreach ( $sk_owners as $service => $owner_name ) : ?>
-                                    <div>
+                                <?php foreach ( $sk_services as $slug => $service ) : ?>
+                                    <div style="margin-bottom:4px;">
                                         <strong><?php echo esc_html( $service ); ?>:</strong>
-                                        <?php if ( $owner_name ) : ?>
-                                            conectado por <?php echo esc_html( $owner_name ); ?>
-                                        <?php else : ?>
-                                            <span style="color:#ef4444;">sin conectar</span>
-                                        <?php endif; ?>
+                                        <span class="ssivo-account" data-module="<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $this->account_description( $slug ) ); ?></span>
                                     </div>
                                 <?php endforeach; ?>
                             <?php endif; ?>
                             <p class="description">
-                                Este panel muestra los datos de Site Kit a todo el equipo usando la cuenta de Google del administrador que conectó cada servicio.
-                                El Site Kit completo solo es visible para los administradores.
+                                Este panel muestra a todo el equipo los mismos datos de Site Kit, leídos con la cuenta de Google de un administrador. El Site Kit completo solo es visible para los administradores.
+                                Si la cuenta de quien conectó un servicio no tiene permiso en la propiedad, al abrir este panel un administrador conectado a Site Kit se prueba su propia cuenta y, si funciona, se usa para todo el equipo.
                             </p>
                         </td>
                     </tr>

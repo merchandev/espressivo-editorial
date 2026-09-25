@@ -29,12 +29,12 @@ Registro cronológico de **todos los commits** del repositorio [`merchandev/espr
 
 | Indicador | Valor |
 |---|---|
-| Commits registrados | 13 |
+| Commits registrados | 14 |
 | Ramas | `main`, `claude/laughing-planck-4m793a`, `fix/auditoria-editorial-2026-09-25` |
 | Pull requests | 2 (#2 fusionado, #1 abierto) |
 | Periodo | 13/08/2026 → 25/09/2026 |
-| Versión actual del tema | **2.1.2** |
-| Autores | Merchan.dev (7 commits) · Claude / Claude Code (6 commits) |
+| Versión actual del tema | **2.1.3** |
+| Autores | Merchan.dev (7 commits) · Claude / Claude Code (7 commits) |
 
 ---
 
@@ -54,7 +54,8 @@ Registro cronológico de **todos los commits** del repositorio [`merchandev/espr
 | 10 | 25/09/2026 08:07 | [`afa897d`](https://github.com/merchandev/espressivo-editorial/commit/afa897d) | `claude/laughing-planck-4m793a` | Claude | ✨ 📝 | Versión 2.1.0, README renovado y menú de Clasificados en instalaciones nuevas |
 | 11 | 25/09/2026 08:13 | [`8678283`](https://github.com/merchandev/espressivo-editorial/commit/8678283) | `main` | Claude | 📝 | README: acceso rápido a la documentación; todo integrado en `main` |
 | 12 | 25/09/2026 08:29 | [`ecb6673`](https://github.com/merchandev/espressivo-editorial/commit/ecb6673) | `claude/laughing-planck-4m793a` | Claude | 🔧 | v2.1.1: cifras del panel SEO alineadas con Site Kit |
-| 13 | 25/09/2026 | *(este commit)* | `claude/laughing-planck-4m793a` → `main` | Claude | 🔧 📝 | v2.1.2: revisión completa, listados y migración de acentos |
+| 13 | 25/09/2026 08:43 | [`f3df61f`](https://github.com/merchandev/espressivo-editorial/commit/f3df61f) | `claude/laughing-planck-4m793a` → `main` | Claude | 🔧 📝 | v2.1.2: revisión completa, listados y migración de acentos |
+| 14 | 25/09/2026 | *(este commit)* | `claude/laughing-planck-4m793a` → `main` | Claude | 🔧 ✨ | v2.1.3: panel SEO con los mismos datos que Site Kit |
 
 Otros eventos del 25/09/2026: el **PR #1** se abrió a las 07:39 y el **PR #2** a las 07:52; el PR #2 se fusionó en `main` a las 07:54.
 
@@ -63,8 +64,8 @@ Otros eventos del 25/09/2026: el **PR #1** se abrió a las 07:39 y el **PR #2** 
 ## Mapa de ramas
 
 ```text
-main ──●──────────────────────────────────●── 7754bef ──● a97109f ──● afa897d ──● 8678283 ──● ecb6673 ──● commit 13 ── main
-      eaf6786 \                          /   (PR #2)     (documentación, v2.1.0 y README)   (v2.1.1)    (v2.1.2)
+main ──●──────────────────────────────────●── 7754bef ──● a97109f ──● afa897d ──● 8678283 ──● ecb6673 ──● f3df61f ──● commit 14 ── main
+      eaf6786 \                          /   (PR #2)     (documentación, v2.1.0 y README)   (v2.1.1)    (v2.1.2)    (v2.1.3)
                ├── claude/laughing-planck-4m793a
                │    ● d7a9210 (auditoría)
                │
@@ -72,7 +73,7 @@ main ──●──────────────────────
                     ● 74fe87e → ● 195c0ea → ● 986b9cd → ● 31e26db → ● 58a6204   (PR #1, abierto)
 ```
 
-Los commits 9 a 13 se hicieron en `claude/laughing-planck-4m793a` sobre `7754bef` y se integraron en `main` por avance rápido (*fast-forward*), sin commit de fusión: ambas ramas apuntan al mismo commit.
+Los commits 9 a 14 se hicieron en `claude/laughing-planck-4m793a` sobre `7754bef` y se integraron en `main` por avance rápido (*fast-forward*), sin commit de fusión: ambas ramas apuntan al mismo commit.
 
 ---
 
@@ -356,13 +357,14 @@ Con este commit, `main` contiene todo el trabajo: auditoría v2.1.0, documentaci
 
 ---
 
-#### 13 · v2.1.2: revisión completa, listados y migración de acentos 🔧 📝
+#### 13 · `f3df61f` — v2.1.2: revisión completa, listados y migración de acentos 🔧 📝
 
 | | |
 |---|---|
 | **Rama** | `claude/laughing-planck-4m793a`, llevado a `main` por avance rápido |
 | **Autor** | Claude (Claude Code) |
-| **Fecha** | 25/09/2026 |
+| **Fecha** | 25/09/2026 08:43 VET |
+| **Cambios** | 6 archivos · +97 / −27 líneas |
 
 **Motivo:** revisión completa de todos los cambios desde `eaf6786` (PHP, JavaScript, CSS y plantillas), con las pruebas repetidas en una instalación local de WordPress 7.1.2.
 
@@ -383,12 +385,42 @@ Con este commit, `main` contiene todo el trabajo: auditoría v2.1.0, documentaci
 
 ---
 
+#### 14 · v2.1.3: panel SEO con los mismos datos que Site Kit 🔧 ✨
+
+| | |
+|---|---|
+| **Rama** | `claude/laughing-planck-4m793a`, llevado a `main` por avance rápido |
+| **Autor** | Claude (Claude Code) |
+| **Fecha** | 25/09/2026 |
+
+**Motivo:** en producción, el panel SEO mostraba Google Analytics bien, pero "Impresiones" y "Palabras clave" salían con *"User does not have sufficient permission for site 'https://diarioeloriental.com/'"*, mientras que el Site Kit del administrador sí mostraba Search Console (396K impresiones, 6,9K clics). Además, países y dispositivos no coincidían con los gráficos de Site Kit (Venezuela 72 % frente a 40,2 %). El objetivo del panel es mostrar al equipo exactamente los datos de Site Kit sin darle acceso a Site Kit.
+
+**Causas encontradas** (en el código fuente de Site Kit):
+- Para los datos compartidos, Site Kit usa el token del **propietario** del módulo (el administrador que lo conectó, `ownerID`). El Site Kit de cada administrador usa en cambio **su propia** cuenta de Google. La cuenta que conectó Search Console no tiene permiso en la propiedad; la del administrador que lo consulta, sí.
+- Los gráficos "Ubicaciones" y "Dispositivos" de Site Kit usan `totalUsers` en porcentaje sobre el total (4 primeros + "Otros"); el panel usaba vistas de página.
+
+| Archivo | Cambio |
+|---|---|
+| `inc/seo/class-site-kit-bridge.php` | Cuenta de lectura por servicio (`ssivo_seo_sitekit_readers`): por defecto la del propietario; `with_shared_read()` la aplica en memoria durante la lectura, sin modificar los ajustes de Site Kit. Nuevos `with_own_credentials()`, `can_read_with_own_account()`, `get_reader()`, `set_reader()` y `get_module_owner_id()`. Se ignora una cuenta de lectura que deja de ser administrador o cierra su sesión de Site Kit. |
+| `inc/seo/class-admin-page.php` | Si un servicio falla y consulta un administrador conectado a Site Kit, se repite con su cuenta; si funciona, se guarda como cuenta de lectura para todo el equipo y el cron, y se vacía la caché de los demás periodos. Ese administrador no recibe la caché con errores. Países y dispositivos con `totalUsers` en porcentaje (4 + "Otros"); tarjeta "Clics totales"; tarjetas en rejilla 2 × 2. *Ajustes globales* muestra la cuenta que lee cada servicio. Caché `v3` y migración que borra la caché y los últimos datos válidos anteriores. |
+| `style.css` | Versión **2.1.3**. |
+| `README.md`, `ABOUT.md` | Versión 2.1.3, changelog, configuración de Site Kit y "Solución de problemas" del error de permisos. |
+| `HISTORIAL_DE_CAMBIOS.md` | Hash del commit 13 y registro de este commit. |
+
+**Verificación** (Site Kit simulado con su lógica real de propietario y token; Search Console conectado por un administrador sin permiso):
+- Antes: Search Console fallaba para la editora, la directora, el administrador y el cron.
+- Después: cuando el administrador abre el panel, Search Console funciona para todos. El `ownerID` guardado en Site Kit no cambia.
+- Casos límite: caché parcial, cuenta de lectura sin sesión de Site Kit (se vuelve al propietario) y ninguna cuenta con permiso (no cambia nada).
+- En el navegador, la directora ve los datos y no ve el menú de Site Kit. Si abre su dirección, se la redirige al panel SEO.
+
+---
+
 ## Estado de ramas y pull requests
 
 | Rama | Último commit | Estado |
 |---|---|---|
-| `main` | commit 13 | Rama principal. Contiene todo el trabajo: auditoría v2.1.0, panel SEO v2.1.1, revisión v2.1.2 y documentación. |
-| `claude/laughing-planck-4m793a` | commit 13 | Igual que `main`. |
+| `main` | commit 14 | Rama principal. Contiene todo el trabajo: auditoría v2.1.0, panel SEO v2.1.1 y v2.1.3, revisión v2.1.2 y documentación. |
+| `claude/laughing-planck-4m793a` | commit 14 | Igual que `main`. |
 | `fix/auditoria-editorial-2026-09-25` | `58a6204` | PR #1 **abierto**, sin fusionar. |
 
 | PR | Título | Estado |

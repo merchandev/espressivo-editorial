@@ -4,7 +4,7 @@
 
 ![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-21759b?logo=wordpress&logoColor=white)
 ![PHP](https://img.shields.io/badge/PHP-8.1%2B-777bb4?logo=php&logoColor=white)
-![Versión](https://img.shields.io/badge/versi%C3%B3n-2.1.2-cc3332)
+![Versión](https://img.shields.io/badge/versi%C3%B3n-2.1.3-cc3332)
 ![Idioma](https://img.shields.io/badge/idioma-espa%C3%B1ol-ffc407)
 
 ---
@@ -54,7 +54,7 @@ La instalación de referencia es **Diario El Oriental** (Maturín, estado Monaga
 | **Publicista** | Publicidad y subida de archivos. |
 | **Autor / Editor** | Redacción. La firma es obligatoria para publicar. |
 
-Todos los roles, salvo *suscriptor*, ven el **panel SEO** con los datos de Google Site Kit. El Site Kit completo es exclusivo de los administradores.
+Todos los roles, salvo *suscriptor*, ven el **panel SEO** con los datos de Google Site Kit (las mismas cifras que Site Kit). El menú y las pantallas de Site Kit son exclusivos de los administradores: el resto del equipo no los ve y, si intenta abrirlos, se le lleva al panel SEO.
 
 ## Tecnología
 

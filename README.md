@@ -2,7 +2,7 @@
 
 **Tema y framework de WordPress para diarios digitales y portales de noticias.** Construido desde cero bajo una arquitectura de marca blanca (white-label) y SaaS, para duplicarse y licenciarse a distintas editoriales con el menor número posible de plugins de terceros.
 
-![Versión](https://img.shields.io/badge/versi%C3%B3n-2.1.2-cc3332)
+![Versión](https://img.shields.io/badge/versi%C3%B3n-2.1.3-cc3332)
 ![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-21759b?logo=wordpress&logoColor=white)
 ![PHP](https://img.shields.io/badge/PHP-8.1%2B-777bb4?logo=php&logoColor=white)
 ![Idioma](https://img.shields.io/badge/idioma-espa%C3%B1ol-ffc407)
@@ -17,7 +17,7 @@ Instalación de referencia: **Diario El Oriental** (Maturín, Monagas, Venezuela
 |---|---|---|
 | 🕓 **[Historial de cambios](HISTORIAL_DE_CAMBIOS.md)** | Todos los commits del repositorio en orden cronológico, con detalle por archivo | [Línea de tiempo](HISTORIAL_DE_CAMBIOS.md#línea-de-tiempo) · [Mapa de ramas](HISTORIAL_DE_CAMBIOS.md#mapa-de-ramas) · [Pendientes](HISTORIAL_DE_CAMBIOS.md#observaciones-pendientes) |
 | 📄 **[Acerca del proyecto](ABOUT.md)** | Qué es el tema, módulos, roles, tecnología y estructura del repositorio | [Módulos](ABOUT.md#módulos-principales) · [Roles](ABOUT.md#roles-y-permisos) · [Estructura](ABOUT.md#estructura-del-repositorio) |
-| 📜 **[Changelog](#-changelog)** | Resumen de cambios por versión (v1.1.0 → v2.1.2) | [v2.1.2](#v212--revisión-completa-25-de-septiembre-de-2026) · [v2.1.1](#v211--cifras-del-panel-seo-alineadas-con-site-kit-25-de-septiembre-de-2026) · [v2.1.0](#v210--auditoría-25-de-septiembre-de-2026) |
+| 📜 **[Changelog](#-changelog)** | Resumen de cambios por versión (v1.1.0 → v2.1.3) | [v2.1.3](#v213--panel-seo-con-los-mismos-datos-que-site-kit-25-de-septiembre-de-2026) · [v2.1.2](#v212--revisión-completa-25-de-septiembre-de-2026) · [v2.1.1](#v211--cifras-del-panel-seo-alineadas-con-site-kit-25-de-septiembre-de-2026) · [v2.1.0](#v210--auditoría-25-de-septiembre-de-2026) |
 
 ---
 
@@ -53,9 +53,9 @@ Instalación de referencia: **Diario El Oriental** (Maturín, Monagas, Venezuela
 - **Tabla indexable** `ssivo_seo_indexable`: los datos SEO se guardan en una tabla propia y no en `wp_postmeta`.
 - **Automatización:** meta descripción generada al guardar e imagen destacada asignada automáticamente desde el contenido (también en las entradas programadas).
 - **Panel lateral en Gutenberg** con análisis de legibilidad en el navegador y vista previa del resultado en Google.
-- **Panel SEO para todo el equipo:** visitas, usuarios, impresiones, contenidos más vistos, palabras clave, países y dispositivos de **Google Site Kit**, con los mismos periodos y métricas que Site Kit (7, 14, 28 y 90 días terminando hoy; "Usuarios totales" = "Todos los visitantes"). Caché de 4 horas y actualización automática cada hora.
+- **Panel SEO para todo el equipo:** visitas, usuarios, impresiones y clics totales, contenidos más vistos, palabras clave, usuarios por país y por dispositivo de **Google Site Kit**, con los mismos periodos y métricas que Site Kit (7, 14, 28 y 90 días terminando hoy; "Usuarios totales" = "Todos los visitantes"; países y dispositivos en porcentaje de usuarios, como sus gráficos). Caché de 4 horas y actualización automática cada hora.
 - **Errores visibles:** si un servicio de Google no responde, el bloque muestra el mensaje real de Google y los últimos datos válidos con su fecha.
-- **Site Kit completo solo para administradores:** el resto de usuarios ve los datos en el panel SEO, que usa la cuenta de Google del administrador que conectó cada servicio.
+- **Site Kit completo solo para administradores:** el resto del equipo no ve el menú ni las pantallas de Site Kit; ve los datos en el panel SEO, leídos con la cuenta de Google de un administrador. Si la cuenta de quien conectó un servicio no tiene permiso en la propiedad, el panel usa la de un administrador que sí lo tenga (se detecta sola cuando ese administrador abre el panel).
 
 ### Redacción y control editorial
 - **Firma obligatoria** para publicar, también desde el editor de bloques. Nunca despublica entradas que ya están publicadas o programadas.
@@ -116,8 +116,8 @@ Instalación de referencia: **Diario El Oriental** (Maturín, Monagas, Venezuela
 |---|---|
 | **Inicio de sesión** | `https://tu-dominio/turpial` (`wp-login.php` está bloqueado) |
 | **Menús** | *Apariencia → Menús*: ubicaciones *Menú Principal (PC)*, *Menú Móvil (Teléfonos)*, *Menú del Pie de Página* y *Menú Superior* |
-| **Google Site Kit** | Instala Site Kit y conéctalo **con una cuenta de administrador**. El panel **SEO** muestra sus datos a todo el equipo sin más configuración. |
-| **Ajustes SEO** | *SEO → Ajustes globales* (solo administradores): sufijo del título, imagen por defecto para compartir y estado de la conexión con Site Kit |
+| **Google Site Kit** | Instala Site Kit y conéctalo **con una cuenta de administrador**. Después, ese administrador abre una vez *SEO* en el escritorio: el panel comprueba qué cuenta de Google tiene acceso a Analytics y a Search Console y la usa para todo el equipo. |
+| **Ajustes SEO** | *SEO → Ajustes globales* (solo administradores): sufijo del título, imagen por defecto para compartir y cuenta de Google con la que se lee cada servicio |
 | **Portada del día** | Menú *Portada del Día* |
 | **Publicidad** | Menú *Publicidad* (banners de inicio y de categorías) |
 | **Placeholders de anuncios** | *Apariencia → Personalizar → Publicidad*: "Mostrar placeholders vacíos" (desactívalo en producción) |
@@ -132,7 +132,8 @@ Instalación de referencia: **Diario El Oriental** (Maturín, Monagas, Venezuela
    - reparación de acentos y Ñ en el contenido ya guardado (por tramos de 2.000 ID en cada carga del escritorio, sin tocar slugs ni URL);
    - alta de "Clasificados" en los menús principal y móvil;
    - actualización de los permisos del panel SEO.
-3. **Vacía la caché** de página, CDN u objeto si la usas (LiteSpeed, Hostinger, etc.).
+3. **Abre *SEO* una vez** con un administrador conectado a Site Kit, para que el panel compruebe qué cuenta de Google puede leer Analytics y Search Console.
+4. **Vacía la caché** de página, CDN u objeto si la usas (LiteSpeed, Hostinger, etc.).
 
 ---
 
@@ -214,7 +215,7 @@ php composer.phar install   # solo si actualizas dompdf
 | Síntoma | Qué revisar |
 |---|---|
 | El panel SEO muestra "No disponible" | Que Google Site Kit esté activo y que un administrador haya conectado Analytics y Search Console. El estado aparece en *SEO → Ajustes globales*. |
-| Un bloque muestra "No disponible: …" o "Datos del …" | El texto es el error que devolvió Google. Por ejemplo, *"User does not have sufficient permission for site"* significa que la cuenta de Google que conectó Search Console en Site Kit no tiene acceso a esa propiedad: reconéctala desde Site Kit con una cuenta propietaria de la propiedad. |
+| Un bloque muestra "No disponible: …" o "Datos del …" | El texto es el error que devolvió Google. *"User does not have sufficient permission for site"* significa que la cuenta de Google con la que se lee ese servicio no tiene acceso a la propiedad. **Abre *SEO* como administrador conectado a Site Kit**: si tu cuenta sí tiene acceso (es la que ves en tu Site Kit), el panel pasa a usarla para todo el equipo. *Ajustes globales* muestra qué cuenta se usa. Si ninguna la tiene, da acceso a la propiedad en Search Console. |
 | Las cifras no coinciden con Site Kit | Compara el mismo periodo: el panel muestra las fechas exactas junto a "Periodo". Site Kit redondea (17K = 16.500–17.499). Tras actualizar el tema pulsa "↻ Actualizar ahora" para descartar datos en caché. |
 | "Google Site Kit no está activo" | El plugin está desactivado o no está instalado. |
 | Una entrada no se publica | Falta la **firma**: escribe el nombre en la caja *Firma* y publica de nuevo. |
@@ -228,6 +229,13 @@ php composer.phar install   # solo si actualizas dompdf
 ## 📜 Changelog
 
 > Historial detallado commit a commit en [HISTORIAL_DE_CAMBIOS.md](HISTORIAL_DE_CAMBIOS.md).
+
+### v2.1.3 — Panel SEO con los mismos datos que Site Kit (25 de septiembre de 2026)
+- ✅ **Search Console con la cuenta correcta:** el panel leía cada servicio con la cuenta de Google de quien lo conectó en Site Kit. Si esa cuenta no tenía permiso en la propiedad, Impresiones y Palabras clave salían en rojo aunque Site Kit sí mostrara los datos. Ahora, cuando un administrador conectado a Site Kit abre el panel, se prueba su propia cuenta (la misma de su Site Kit) y, si funciona, se usa para todo el equipo y para la actualización automática. No se modifican los ajustes de Site Kit.
+- ✅ **Países y dispositivos como en Site Kit:** usuarios totales en porcentaje, los 4 primeros más "Otros" (antes vistas de página, por eso Venezuela no coincidía).
+- ✅ **Clics totales** de Search Console junto a "Impresiones totales", como en "Tráfico de búsquedas" de Site Kit.
+- ✅ *Ajustes globales* indica con qué cuenta de Google se lee cada servicio.
+- ✅ Caché nueva (`ssivo_seo_google_v3_*`): se descartan las cifras calculadas antes.
 
 ### v2.1.2 — Revisión completa (25 de septiembre de 2026)
 - ✅ **Búsqueda con "Cargar más":** las tandas siguientes usan la misma consulta que la primera página (todos los tipos buscables y orden por relevancia). Antes cambiaba el orden a partir de la segunda tanda y se perdían páginas y avisos.
