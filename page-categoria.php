@@ -28,11 +28,18 @@ if ( ! $category ) {
     $category = get_term_by( 'name', $cat_name, 'category' );
 }
 
-$paged = ( get_query_var( 'paged' ) ) ? get_query_var( 'paged' ) : 1;
+// En plantillas de página WordPress puede usar `page` en lugar de `paged`.
+$paged = max(
+    1,
+    absint( get_query_var( 'paged' ) ),
+    absint( get_query_var( 'page' ) )
+);
+
 $args = array(
     'post_type'           => 'post',
     'post_status'         => 'publish',
-    'posts_per_page'      => 12,
+    // Debe coincidir con el endpoint AJAX de categorías para no saltar entradas.
+    'posts_per_page'      => 20,
     // Desempate preciso: dos artículos en la misma fecha quedan ordenados por ID
     'orderby'             => array( 'date' => 'DESC', 'ID' => 'DESC' ),
     'ignore_sticky_posts' => 1,
