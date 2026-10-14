@@ -17,9 +17,9 @@
                     </ul>
                 <?php } ?>
             </div>
-            <div class="footer-categories"><h3 class="footer-heading">Secciones populares</h3><ul class="footer-category-list">
-                <?php foreach ( get_categories( array( 'orderby' => 'count', 'order' => 'DESC', 'number' => 5, 'exclude' => get_option( 'default_category' ) ) ) as $cat ) : ?>
-                    <li><a href="<?php echo esc_url( get_category_link( $cat ) ); ?>"><?php echo esc_html( $cat->name ); ?></a></li>
+            <div class="footer-categories"><h3 class="footer-heading">Secciones</h3><ul class="footer-category-list">
+                <?php foreach ( cms_editorial_sections() as $slug => $title ) : ?>
+                    <li><a href="<?php echo esc_url( cms_editorial_section_url( $slug ) ); ?>"><?php echo esc_html( $title ); ?></a></li>
                 <?php endforeach; ?>
             </ul></div>
             <div class="footer-social-section"><h3 class="footer-heading">Contacto y redes</h3><ul class="footer-category-list">

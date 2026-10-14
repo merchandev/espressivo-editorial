@@ -43,7 +43,7 @@ with sync_playwright() as p:
         assert page.evaluate('document.body.style.overflow') == ''
 
     def no_overflow():
-        assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+2')
+        assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+2'), page.evaluate('({width:innerWidth,scroll:document.documentElement.scrollWidth,overflow:[...document.querySelectorAll("body *")].filter(e=>e.getClientRects().length&&e.getBoundingClientRect().right>innerWidth+2).map(e=>({tag:e.tagName,cls:e.className,right:e.getBoundingClientRect().right})).slice(0,8)})')
         assert nav.evaluate('e=>e.scrollWidth<=e.clientWidth+2')
 
     ids = page.locator('[id]').evaluate_all('els=>els.map(e=>e.id)')
@@ -51,6 +51,15 @@ with sync_playwright() as p:
     open_menu()
     assert nav.locator('.sub-menu:visible').count() == 0
     screenshot('menu-tablet-collapsed.png')
+    # Cuando el menú inicial es plano, crear ramas únicamente en el DOM de esta prueba.
+    if nav.locator('.cms-menu-list > li > button[aria-controls]').count()<2:
+        nav.evaluate('''nav=>{
+            [...nav.querySelector('.cms-menu-list').children].slice(1,3).forEach((item,index)=>{
+                item.classList.add('menu-item-has-children');
+                const id='qa-drawer-children-'+index;
+                item.insertAdjacentHTML('beforeend','<button class="cms-submenu-toggle" type="button" aria-expanded="false" aria-controls="'+id+'" aria-label="Subsecciones de prueba"><span class="cms-menu-chevron" aria-hidden="true"></span></button><ul class="sub-menu" id="'+id+'"><li><a href="#qa-child">Subsección de prueba</a></li></ul>');
+            });
+        }''')
     groups = nav.locator('.cms-menu-list > li > button[aria-controls]')
     assert groups.count() >= 2, 'La instalación debe tener al menos dos secciones con subsecciones.'
     first, second = groups.nth(0), groups.nth(1)
@@ -115,6 +124,11 @@ with sync_playwright() as p:
     assert not toggle.is_visible()
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+2')
     desktop = page.locator('.cms-desktop-menu')
+    if desktop.locator('.cms-menu-list > li > button[aria-controls]').count()==0:
+        desktop.evaluate('''nav=>{
+            const list=nav.querySelector('.cms-menu-list');
+            list.insertAdjacentHTML('beforeend','<li class="menu-item-has-children cms-menu-wide"><button class="cms-menu-group" type="button" aria-expanded="false" aria-controls="qa-desktop-children"><span>Más de prueba</span><span class="cms-menu-chevron" aria-hidden="true"></span></button><ul id="qa-desktop-children" class="sub-menu">'+Array.from({length:12},(_,i)=>'<li><a href="/qa-'+i+'/">Enlace de prueba '+i+'</a></li>').join('')+'</ul></li>');
+        }''')
     rows = desktop.locator('.cms-menu-list > li').evaluate_all('els=>els.map(e=>Math.round(e.getBoundingClientRect().top))')
     assert len(set(rows)) == 1, 'Menú de escritorio en una sola fila'
     desktop_group = desktop.locator('.cms-menu-list > li > button[aria-controls]').last

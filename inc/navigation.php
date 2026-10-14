@@ -39,8 +39,8 @@ add_filter( 'nav_menu_item_id', function( $id, $item, $args ) {
 
 function cms_editorial_menu_fallback( $args ) {
     echo '<ul id="' . esc_attr( $args['menu_id'] ) . '" class="cms-menu-list"><li><a href="' . esc_url( home_url( '/' ) ) . '">Inicio</a></li>';
-    foreach ( get_categories( array( 'parent' => 0, 'number' => 8, 'hide_empty' => true ) ) as $category ) {
-        echo '<li><a href="' . esc_url( get_category_link( $category ) ) . '">' . esc_html( $category->name ) . '</a></li>';
+    foreach ( cms_editorial_sections() as $slug => $title ) {
+        echo '<li><a href="' . esc_url( cms_editorial_section_url( $slug ) ) . '">' . esc_html( $title ) . '</a></li>';
     }
     echo '</ul>';
 }

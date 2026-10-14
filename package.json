@@ -1,6 +1,6 @@
 {
   "name": "cms-editorial",
-  "version": "3.1.1",
+  "version": "3.2.0",
   "scripts": {
     "build": "wp-scripts build src/seo/index.js --output-path=build",
     "start": "wp-scripts start src/seo/index.js --output-path=build"

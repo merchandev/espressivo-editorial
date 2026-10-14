@@ -1,5 +1,5 @@
 <?php
-$premium_cats = array('nacional' => 'Nacional', 'mundo' => 'Mundo', 'economia' => 'Economía', 'sucesos' => 'Sucesos');
+$premium_cats = cms_editorial_sections();
 foreach ( $premium_cats as $cat_slug => $cat_name ) :
     $cat_obj = get_category_by_slug( $cat_slug );
     if ( ! $cat_obj ) continue; // La categoría no existe en WordPress, saltar
@@ -57,7 +57,7 @@ foreach ( $premium_cats as $cat_slug => $cat_name ) :
     </section>
     <?php endif; wp_reset_postdata(); ?>
 
-    <?php if ( $cat_slug === 'mundo' ) : ?>
+    <?php if ( $cat_slug === 'internacional' ) : ?>
         <!-- Publicidad Extra Entre Secciones -->
         <div class="premium-ads-single" style="margin: 40px 0;">
             <?php get_template_part('template-parts/ads/in-feed', null, array('location' => 'internacional-ad', 'size' => '1200x200')); ?>

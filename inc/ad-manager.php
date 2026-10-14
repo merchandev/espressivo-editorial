@@ -138,9 +138,10 @@ function pro_ad_meta_box_html( $post ) {
                 <option value="in-feed-2"       <?php selected( $location, 'in-feed-2' ); ?>>Después de la sexta sección (In-Feed 2)</option>
                 <option value="nacional-ad"     <?php selected( $location, 'nacional-ad' ); ?>>Después de Nacional</option>
                 <option value="internacional-ad"<?php selected( $location, 'internacional-ad' ); ?>>Después de Internacional</option>
-                <option value="economia-ad"     <?php selected( $location, 'economia-ad' ); ?>>Después de Economía</option>
-                <option value="seguridad-ad"    <?php selected( $location, 'seguridad-ad' ); ?>>Después de Seguridad</option>
-                <option value="zona-deportiva-ad"<?php selected( $location, 'zona-deportiva-ad' ); ?>>Después de Zona deportiva</option>
+                <option value="zona-deportiva-ad"<?php selected( $location, 'zona-deportiva-ad' ); ?>>Después de Deportes</option>
+                <option value="farandula-ad"    <?php selected( $location, 'farandula-ad' ); ?>>Después de Farándula</option>
+                <option value="ciencias-ad"     <?php selected( $location, 'ciencias-ad' ); ?>>Después de Ciencias</option>
+                <option value="genericas-ad"    <?php selected( $location, 'genericas-ad' ); ?>>Después de Genéricas</option>
             </select>
         </div>
         <div class="pro-field">

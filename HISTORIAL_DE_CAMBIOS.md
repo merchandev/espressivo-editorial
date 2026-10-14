@@ -1,5 +1,16 @@
 # Historial de cambios — CMS-Editorial
 
+## 3.2.0 — 14 de octubre de 2026
+
+- Seis categorías iniciales: Nacional, Deportes, Internacional, Farándula, Ciencias y Genéricas.
+- Menús y portada simplificados, sin subcategorías ni secciones anteriores.
+- Sustitución de tres instaladores superpuestos por una migración única.
+- Reorganización por lotes de 100 entradas, con continuación automática desde el administrador.
+- Conservación de contenido, estados, autores, firmas y asignaciones válidas; Genéricas como categoría predeterminada.
+- Redirecciones de secciones antiguas y retirada de páginas de categoría vacías.
+- Publicidad y patrocinadores vinculados a las nuevas secciones.
+- Registro previo de la estructura y pruebas de migración, permisos, páginas y navegación.
+
 ## 3.1.1 — 14 de octubre de 2026
 
 - Nuevo panel de navegación para móvil y tablet con cabecera, búsqueda y cierre siempre visibles.

@@ -41,7 +41,7 @@ $cover = get_option( 'pro_portada_actual', '' );
                 <?php
                 $shown = $featured_ids;
                 $section_index = 0;
-                $section_ads = array( 'nacional' => 'nacional-ad', 'mundo' => 'internacional-ad', 'internacional' => 'internacional-ad', 'economia' => 'economia-ad', 'seguridad' => 'seguridad-ad', 'sucesos' => 'seguridad-ad', 'deportes' => 'zona-deportiva-ad', 'zona-deportiva' => 'zona-deportiva-ad' );
+                $section_ads = array( 'nacional' => 'nacional-ad', 'deportes' => 'zona-deportiva-ad', 'internacional' => 'internacional-ad', 'farandula' => 'farandula-ad', 'ciencias' => 'ciencias-ad', 'genericas' => 'genericas-ad' );
                 $rendered_ads = array();
                 $slugs = array_unique( array_filter( array_map( 'trim', explode( ',', cms_editorial_setting( 'home_sections' ) . ',' . cms_editorial_setting( 'local_categories' ) ) ) ) );
                 foreach ( $slugs as $slug ) :
@@ -52,7 +52,7 @@ $cover = get_option( 'pro_portada_actual', '' );
                     $shown = array_merge( $shown, wp_list_pluck( $stories, 'ID' ) );
                     ?>
                     <section class="ed-news-section" aria-label="<?php echo esc_attr( $category->name ); ?>">
-                        <?php cms_editorial_section_heading( $category->name, get_category_link( $category ), $section_index === 0 ? 'El contexto, en cada sección' : '' ); ?>
+                        <?php cms_editorial_section_heading( $category->name, cms_editorial_section_url( $slug ), $section_index === 0 ? 'El contexto, en cada sección' : '' ); ?>
                         <div class="ed-section-grid<?php echo count( $stories ) === 1 ? ' ed-section-grid--single' : ''; ?>"><?php foreach ( $stories as $story ) { cms_editorial_story( $story ); } ?></div>
                     </section>
                     <?php
@@ -84,7 +84,8 @@ $cover = get_option( 'pro_portada_actual', '' );
                     <section class="ed-services-panel" aria-labelledby="ed-services-title">
                         <span class="ed-eyebrow">Más cerca de ti</span><h2 id="ed-services-title">Servicios del medio</h2>
                         <?php foreach ( array( 'clasificados' => array( 'Clasificados', 'Anuncios y oportunidades', 'format_list_bulleted' ), 'carteles' => array( 'Carteles y edictos', 'Avisos y documentos públicos', 'description' ), 'contacto' => array( 'Contacta con la redacción', 'Tu historia también cuenta', 'chat_bubble_outline' ) ) as $path => $service ) : ?>
-                        <a class="ed-service-link" href="<?php echo esc_url( home_url( '/' . $path . '/' ) ); ?>"><span class="material-symbols-outlined ed-service-icon" aria-hidden="true"><?php echo esc_html( $service[2] ); ?></span><span><strong><?php echo esc_html( $service[0] ); ?></strong><small><?php echo esc_html( $service[1] ); ?></small></span><span aria-hidden="true">↗</span></a>
+                        <?php $service_page = $path === 'carteles' ? pro_find_page( 'Carteles y Edictos' ) : null; ?>
+                        <a class="ed-service-link" href="<?php echo esc_url( $service_page ? get_permalink( $service_page ) : home_url( '/' . $path . '/' ) ); ?>"><span class="material-symbols-outlined ed-service-icon" aria-hidden="true"><?php echo esc_html( $service[2] ); ?></span><span><strong><?php echo esc_html( $service[0] ); ?></strong><small><?php echo esc_html( $service[1] ); ?></small></span><span aria-hidden="true">↗</span></a>
                         <?php endforeach; ?>
                     </section>
                     <?php endif; ?>

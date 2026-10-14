@@ -11,7 +11,7 @@ $prefix = 'cms-ui-' . wp_generate_password( 8, false );
 $original_server_name = $_SERVER['SERVER_NAME'] ?? null;
 if ( $original_server_name === null ) { $_SERVER['SERVER_NAME'] = wp_parse_url( home_url(), PHP_URL_HOST ); }
 try {
-    $slugs = array( 'nacional', 'mundo', 'economia', 'sucesos', 'deportes', $prefix . '-local' );
+    $slugs = array_keys( cms_editorial_sections() );
     $settings = cms_editorial_sanitize_settings( array(
         'home_title' => 'Portada de prueba', 'home_featured_category' => $prefix . '-destacados',
         'home_sections' => implode( ',', $slugs ), 'local_categories' => '',
@@ -33,7 +33,7 @@ try {
             ) );
         }
     }
-    $locations = array( 'below-hero', 'in-feed-1', 'in-feed-2', 'nacional-ad', 'internacional-ad', 'economia-ad', 'seguridad-ad', 'zona-deportiva-ad' );
+    $locations = array( 'below-hero', 'in-feed-1', 'in-feed-2', 'nacional-ad', 'internacional-ad', 'farandula-ad', 'ciencias-ad', 'genericas-ad', 'zona-deportiva-ad' );
     foreach ( $locations as $location ) {
         $created_posts[] = wp_insert_post( array(
             'post_type' => 'pro_ad_banner', 'post_title' => $prefix . ' ' . $location, 'post_status' => 'publish',
@@ -55,7 +55,7 @@ try {
     if ( count( $matches[1] ) !== count( array_unique( $matches[1] ) ) ) { throw new RuntimeException( 'IDs de artículos repetidos.' ); }
     ob_start(); cms_editorial_ad_slot( $prefix . '-vacio' ); $empty = ob_get_clean();
     if ( $empty !== '' ) { throw new RuntimeException( 'Un anuncio vacío deja un hueco.' ); }
-    WP_CLI::success( 'Portada configurable, IDs únicos y ocho ubicaciones publicitarias verificados.' );
+    WP_CLI::success( 'Portada configurable, IDs únicos y nueve ubicaciones publicitarias verificados.' );
 } finally {
     foreach ( $created_posts as $id ) { wp_delete_post( $id, true ); }
     foreach ( $created_terms as $id ) { wp_delete_term( $id, 'category' ); }

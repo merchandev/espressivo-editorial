@@ -2,6 +2,16 @@
 
 Tema de WordPress para publicaciones digitales. La identidad, los colores y los servicios se administran desde WordPress; el código no incluye logos ni enlaces de una publicación de referencia.
 
+## Secciones editoriales
+
+La estructura inicial tiene seis categorías, sin subcategorías: **Nacional, Deportes, Internacional, Farándula, Ciencias y Genéricas**. Los menús principal y móvil muestran Inicio y esas seis secciones; la portada y el pie usan el mismo orden.
+
+Al actualizar a 3.2.0, una migración única se inicia al entrar en WordPress como administrador. Conserva todas las entradas, sus estados, autores y firmas. Agrupa Mundo y sus equivalentes en Internacional; las secciones de entretenimiento en Farándula; Ciencia y Tecnología y sus equivalentes en Ciencias. Las entradas de categorías retiradas conservan sus otras secciones válidas y, cuando no tienen ninguna, pasan a Genéricas. Genéricas es la categoría predeterminada.
+
+La migración procesa hasta 100 entradas por petición y continúa automáticamente desde el administrador. Conserva un registro previo de categorías, asignaciones, menús, páginas y publicidad en la opción `cms_editorial_sections_backup_v1`, sin carga automática en el frontal. Los antiguos archivos de categoría redirigen a sus secciones correspondientes; las páginas vacías de secciones retiradas pasan a borrador. Contacto, clasificados, carteles y páginas legales siguen disponibles como servicios.
+
+La reorganización se aplica una vez. Después puedes editar categorías, menús y portada desde WordPress; las visitas posteriores no restablecen la estructura ni vuelven a crear las categorías anteriores.
+
 ## Configuración desde WordPress
 
 Abre **Apariencia → CMS-Editorial** con una cuenta Administrador:
@@ -9,7 +19,7 @@ Abre **Apariencia → CMS-Editorial** con una cuenta Administrador:
 - **Identidad:** título y descripción nativos del sitio, logo principal, variante para modo oscuro, logos de acceso/panel, pie y reportes PDF, favicon, imagen para compartir, sufijo SEO y texto del pie.
 - **Contacto y redes:** correo público, teléfono, dirección y enlaces sociales. Los enlaces vacíos no se muestran.
 - **Radio:** nombre, descripción, URL de transmisión y activación. El reproductor está desactivado hasta configurarlo.
-- **Portada:** encabezado, categoría de destacados, orden de secciones, categorías locales y activación de edición impresa/servicios. Los nombres de sección se toman de WordPress.
+- **Portada:** encabezado, categoría de destacados opcional, orden de secciones, secciones adicionales y activación de edición impresa/servicios. Los nombres de sección se toman de WordPress. Si los destacados están vacíos, se usan las últimas noticias.
 - **Colores:** fondos, texto, enlaces, acentos, navegación, pie, banners, última hora, botones, administrador y modo oscuro.
 
 El panel se organiza por pestañas, con navegación por teclado y guardado común. Todos estos ajustes también están disponibles en **Apariencia → Personalizar → CMS-Editorial** con vista previa. En **Identidad del sitio** están el logo principal, el favicon y el título/descripción nativos. Ambos caminos comparten los mismos valores. Se recomienda un icono cuadrado de al menos 512 × 512 píxeles.
@@ -62,11 +72,14 @@ wp eval-file wp-content/themes/cms-editorial/tests/integration/editorial-ui.php 
 wp eval-file wp-content/themes/cms-editorial/tests/integration/navigation.php --user=administrador-local
 ```
 
-`tests/browser/navigation.py` verifica el menú con Python, Playwright y Microsoft Edge en una instalación local con el menú inicial del tema. Incluye acordeones, menús largos, foco, modo oscuro, búsqueda y navegación entre páginas. El parámetro opcional `--screenshots` guarda capturas fuera del repositorio:
+`tests/browser/navigation.py` verifica el menú con Python, Playwright y Microsoft Edge en una instalación local. Incluye ramas temporales en el DOM de prueba para comprobar acordeones y menús largos, además de foco, modo oscuro, búsqueda y navegación. `tests/browser/sections.py` comprueba la estructura real de seis secciones, sus páginas, redirecciones y presentación móvil. El parámetro opcional `--screenshots` guarda capturas fuera del repositorio:
 
 ```sh
 python tests/browser/navigation.py --url http://127.0.0.1:8093 --screenshots /ruta/temporal/capturas
+python tests/browser/sections.py --url http://127.0.0.1:8093 --screenshots /ruta/temporal/capturas
 ```
+
+`tests/integration/sections.php` prueba la migración con más de 200 entradas, permisos, conservación de datos y repetición de instaladores. Requiere una **copia desechable de la base**, además de `CMS_EDITORIAL_STRUCTURE_TEST=true` definido antes de cargar WordPress; reorganiza sus categorías y crea datos de prueba.
 
 ## Compatibilidad
 
@@ -75,6 +88,7 @@ Las claves de opciones, metadatos, capacidades, namespaces y tablas de versiones
 ## Estructura
 
 - `inc/theme-settings.php`: opciones, validación, personalizador, CSS dinámico, logos y radio.
+- `inc/sections.php`: estructura inicial, migración por lotes, menús y redirecciones de categorías anteriores.
 - `assets/js/theme-settings.js`: pestañas, biblioteca de medios y selectores de color.
 - `inc/editorial-ui.php`, `assets/css/editorial-ui.css` y `assets/js/editorial-ui.js`: presentación editorial y herramientas de lectura.
 - `inc/navigation.php`, `assets/css/navigation.css` y `assets/js/navigation.js`: menús de WordPress, panel responsive y acordeones.
@@ -84,4 +98,4 @@ Las claves de opciones, metadatos, capacidades, namespaces y tablas de versiones
 - `inc/clasificados.php`: sistema de clasificados.
 - `template-parts/`: módulos de portada y publicidad.
 
-Versión **3.1.1**.
+Versión **3.2.0**.

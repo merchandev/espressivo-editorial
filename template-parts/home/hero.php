@@ -5,7 +5,7 @@
  */
 
 $hero_args = array(
-    'category_name'       => 'relevantes',
+    'category_name'       => cms_editorial_setting( 'home_featured_category' ),
     'posts_per_page'      => 3,
     'post_status'         => 'publish',
     'orderby'             => 'date',

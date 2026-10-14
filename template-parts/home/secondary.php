@@ -1,13 +1,5 @@
 <?php
-$sec_cats = array(
-    'deportes' => 'Deportes', 'cultura-y-entretenimiento' => 'Cultura',
-    'ciencia-y-tecnologia' => 'Ciencia', 'opinion' => 'Opinión',
-    'salud' => 'Salud', 'educacion' => 'Educación',
-    'servicios-publicos' => 'Servicios', 'comunidad' => 'Comunidad',
-    'sucesos' => 'Sucesos', 'nacional' => 'Nacional',
-    'mundo' => 'Mundo', 'economia' => 'Economía',
-    'politica-nacional,politica-local' => 'Política'
-);
+$sec_cats = cms_editorial_sections();
 
 ob_start();
 foreach($sec_cats as $slug => $name) :
