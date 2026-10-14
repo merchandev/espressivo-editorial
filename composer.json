@@ -1,6 +1,6 @@
 {
-  "name": "merchandev/espressivo-editorial",
-  "description": "Tema y framework editorial monolítico Espressivo",
+  "name": "cms-editorial/theme",
+  "description": "Tema editorial de WordPress configurable y de marca blanca",
   "type": "wordpress-theme",
   "license": "proprietary",
   "require": {

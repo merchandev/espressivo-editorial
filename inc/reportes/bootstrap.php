@@ -2,7 +2,7 @@
 /**
  * Módulo nativo de reportes editoriales PDF.
  *
- * Se carga desde functions.php y forma parte del tema Espressivo.
+ * Se carga desde functions.php y forma parte del tema CMS-Editorial.
  */
 
 declare(strict_types=1);

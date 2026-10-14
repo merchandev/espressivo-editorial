@@ -4,7 +4,7 @@
  *
  * URL: /clasificados/tipo/categoria/
  *
- * @package Espressivo
+ * @package CMS-Editorial
  */
 
 defined( 'ABSPATH' ) || exit;

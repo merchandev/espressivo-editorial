@@ -44,7 +44,7 @@ foreach ( get_post_stati( array(), 'objects' ) as $status_key => $status_object 
             right: 0;
             left: 0;
             height: 19mm;
-            border-bottom: 2px solid #ed1c24;
+            border-bottom: 2px solid <?php echo esc_html( cms_editorial_setting( 'color_accent' ) ); ?>;
         }
         .header-table { height: 18mm; }
         .header-logo { width: 58%; vertical-align: middle; }
@@ -55,7 +55,7 @@ foreach ( get_post_stati( array(), 'objects' ) as $status_key => $status_object 
 
         .report-heading { margin-bottom: 10px; }
         .eyebrow {
-            color: #b20f16;
+            color: <?php echo esc_html( cms_editorial_setting( 'color_accent' ) ); ?>;
             font-size: 7pt;
             font-weight: bold;
             letter-spacing: 1.1px;
@@ -157,7 +157,7 @@ foreach ( get_post_stati( array(), 'objects' ) as $status_key => $status_object 
             <tr>
                 <td class="header-logo">
                     <?php if ( $logo_data_uri ) : ?>
-                        <img src="<?php echo esc_attr( $logo_data_uri ); ?>" alt="Diario El Oriental">
+                        <img src="<?php echo esc_attr( $logo_data_uri ); ?>" alt="<?php echo esc_attr( $site_name ); ?>">
                     <?php else : ?>
                         <strong><?php echo esc_html( $site_name ); ?></strong>
                     <?php endif; ?>

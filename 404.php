@@ -1,13 +1,5 @@
 <?php
 /**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion 
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual, 
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
-/**
  * La plantilla para mostrar páginas de error 404 (No encontrado)
  *
  * @package pro
@@ -26,7 +18,7 @@ get_header();
 
             <div class="page-content" style="font-size: 1.15rem; color: var(--color-text-muted); line-height: 1.6; font-family: var(--font-ui);">
                 <p><?php esc_html_e( 'Parece que no podemos encontrar lo que estás buscando. Puede que la dirección esté mal escrita o que la noticia haya sido archivada.', 'pro' ); ?></p>
-                
+
                 <div style="margin: 50px auto; max-width: 600px;">
                     <p style="margin-top: 0; font-weight: bold; color: var(--color-text); margin-bottom: 20px; font-size: 1.2rem;">Intenta buscar otra noticia:</p>
                     <?php get_search_form(); ?>

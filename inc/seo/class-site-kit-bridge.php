@@ -2,7 +2,7 @@
 namespace SSIVO_SEO\Includes;
 
 /**
- * SSIVO-SEO · SiteKitBridge
+ * CMS-Editorial SEO · SiteKitBridge
  *
  * El panel SEO es la vista de Google Site Kit para todo el equipo y el Site Kit
  * completo queda reservado a los administradores:

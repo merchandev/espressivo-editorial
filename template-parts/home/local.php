@@ -1,13 +1,9 @@
 <?php
-/**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion 
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual, 
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
-$local_cats = array('maturin' => 'Maturín', 'monagas' => 'Monagas');
+$local_cats = array();
+foreach ( explode( ',', cms_editorial_setting( 'local_categories' ) ) as $slug ) {
+    $category = get_category_by_slug( trim( $slug ) );
+    if ( $category ) { $local_cats[ $category->slug ] = $category->name; }
+}
 
 ob_start();
 foreach($local_cats as $slug => $name) :
@@ -32,14 +28,14 @@ foreach($local_cats as $slug => $name) :
             <h3 class="entry-title" style="font-size:1.5rem; margin-bottom:10px;"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
             <div class="entry-summary" style="font-size:0.95rem; color:var(--color-text-muted);"><?php echo wp_trim_words(get_the_excerpt(), 15); ?></div>
         </div>
-    <?php endwhile; endif; wp_reset_postdata(); 
+    <?php endwhile; endif; wp_reset_postdata();
 endforeach;
 $local_content = ob_get_clean();
 
 if ( !empty(trim($local_content)) ) :
 ?>
-<section class="wapo-category-section local-zone">
-    <h2 class="wapo-section-title"><span>Noticias Locales</span></h2>
+<section class="cms-category-section local-zone">
+    <h2 class="cms-section-title"><span>Noticias Locales</span></h2>
     <div class="local-news-block">
         <?php echo $local_content; ?>
     </div>

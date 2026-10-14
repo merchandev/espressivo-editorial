@@ -39,16 +39,16 @@ add_action( 'after_switch_theme', function() {
 // 2. Orquestar las clases
 add_action( 'init', function() {
     $database = new Database();
-    
+
     // Inicia el motor de automatización al publicar
     new Automations( $database );
-    
+
     // Inicia la inyección de etiquetas en el frontend
     new FrontendMeta( $database );
-    
+
     // Inicia la página de opciones y proxy REST
     new AdminPage();
-    
+
     if ( is_admin() ) {
         new Metabox();
     }

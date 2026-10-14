@@ -1,17 +1,9 @@
 <?php
 /**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion 
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual, 
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
-/**
- * Funciones y definiciones del tema Edit-Pro
+ * Funciones y definiciones de CMS-Editorial
  * Framework editorial premium white-label/SaaS para diarios digitales e impresos.
  *
- * @package Edit-Pro
+ * @package CMS-Editorial
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -24,13 +16,8 @@ add_filter( 'deprecated_file_trigger_error', '__return_false' );
 add_filter( 'deprecated_argument_trigger_error', '__return_false' );
 add_filter( 'deprecated_hook_trigger_error', '__return_false' );
 
-// Forzar la hora local de Caracas / Venezuela de manera global en todo WordPress y el tema
-add_filter( 'pre_option_timezone_string', function() {
-    return 'America/Caracas';
-} );
-add_filter( 'pre_option_gmt_offset', function() {
-    return -4;
-} );
+// Identidad, apariencia y servicios configurables desde WordPress.
+require_once get_template_directory() . '/inc/theme-settings.php';
 
 /**
  * Configuración inicial del tema.
@@ -47,10 +34,10 @@ function pro_setup() {
 
     // Tamaños de imágenes personalizados para mejor rendimiento
     // Héroe: Noticia principal (LCP)
-    add_image_size( 'hero-thumbnail', 1200, 675, true ); 
+    add_image_size( 'hero-thumbnail', 1200, 675, true );
     // Card: Noticias secundarias
-    add_image_size( 'card-thumbnail', 600, 400, true ); 
-    
+    add_image_size( 'card-thumbnail', 600, 400, true );
+
     // Registrar menús de navegación
     register_nav_menus( array(
         'primary' => esc_html__( 'Menú Principal (PC)', 'pro' ),
@@ -118,7 +105,7 @@ function pro_scripts() {
 
     // Script para buscador Ajax
     wp_enqueue_script( 'pro-ajax-search', get_template_directory_uri() . '/assets/js/ajax-search.js', array(), '1.0.0', true );
-    
+
     // Generar Nonce seguro una sola vez por petición
     $ajax_nonce = wp_create_nonce( 'pro_ajax_nonce' );
 
@@ -259,207 +246,7 @@ add_action( 'transition_post_status', function ( string $new_status, string $old
     }
 }, 10, 3 );
 
-/**
- * pre_get_posts — Listados de index.php: entradas, etiquetas, autores, fechas y búsqueda.
- *
- * Paginan con "cargar más" por desplazamiento (pro_get_listing_query_args()),
- * que solo cuenta entradas publicadas y ordena por fecha e ID. Si la primera
- * página incluía entradas privadas (sesión de redacción) u ordenaba solo por
- * fecha, el desplazamiento no coincidía y se saltaban o repetían noticias.
- */
-add_action( 'pre_get_posts', function ( WP_Query $query ): void {
-    if ( is_admin() || ! $query->is_main_query() ) {
-        return;
-    }
-    if ( ! ( $query->is_home() || $query->is_tag() || $query->is_author() || $query->is_date() || $query->is_search() ) ) {
-        return;
-    }
-
-    $query->set( 'post_status', 'publish' );
-
-    // La búsqueda conserva el orden por relevancia de WordPress
-    if ( ! $query->is_search() && ! $query->get( 'orderby' ) ) {
-        $query->set( 'orderby', array( 'date' => 'DESC', 'ID' => 'DESC' ) );
-    }
-} );
-
-/**
- * pre_get_posts — Normalizar la consulta principal del archivo nativo de categorías.
- *
- * category.php usa have_posts() / the_post() de la consulta principal.
- * WordPress incluye hijos por defecto en is_category(), pero este hook
- * garantiza ordenado preciso, sin sticky posts y con 20 entradas.
- */
-add_action( 'pre_get_posts', function ( WP_Query $query ): void {
-    if ( is_admin() || ! $query->is_main_query() || ! $query->is_category() ) {
-        return;
-    }
-
-    $query->set( 'post_status',         'publish' );
-    $query->set( 'posts_per_page',      PRO_CATEGORY_ARCHIVE_PER_PAGE );
-    $query->set( 'orderby',             array( 'date' => 'DESC', 'ID' => 'DESC' ) );
-    $query->set( 'ignore_sticky_posts', true );
-
-    // Misma regla de subcategorías que page-categoria.php y el "cargar más"
-    $term = $query->get_queried_object();
-    if ( $term instanceof WP_Term && ! pro_category_includes_children( $term ) ) {
-        $query->set( 'tax_query', array(
-            array(
-                'taxonomy'         => 'category',
-                'field'            => 'term_id',
-                'terms'            => array( $term->term_id ),
-                'include_children' => false,
-            ),
-        ) );
-    }
-} );
-
-// =============================================================================
-// LISTADOS PAGINADOS Y "CARGAR MÁS" / SCROLL INFINITO
-// Auditoría fix: la primera página y las cargas AJAX usaban consultas distintas
-// (12 o 20 entradas frente a la opción "entradas por página", orden solo por
-// fecha y subcategorías incluidas o no). Con páginas de tamaño diferente se
-// saltaban bloques enteros de noticias, y las publicadas en el mismo minuto
-// (típico de las programadas) cambiaban de orden entre consultas. Ahora ambas
-// usan pro_get_listing_query_args() y la carga AJAX avanza por desplazamiento.
-// =============================================================================
-
-const PRO_CATEGORY_PAGE_PER_PAGE    = 12; // page-categoria.php
-const PRO_CATEGORY_ARCHIVE_PER_PAGE = 20; // category.php
-
-/**
- * Indica si el listado de una categoría incluye sus subcategorías.
- * Opinión y Bienestar no mezclan subcategorías.
- */
-function pro_category_includes_children( WP_Term $term ): bool {
-    return ! in_array( $term->slug, array( 'opinion', 'bienestar' ), true );
-}
-
-/**
- * Argumentos de WP_Query de un listado de noticias.
- *
- * @param array $context Filtros admitidos: cat, tag_id, author, s, year, monthnum, day.
- * @param array $overrides Argumentos adicionales (posts_per_page, offset, paged...).
- */
-function pro_get_listing_query_args( array $context, array $overrides = array() ): array {
-    $args = array(
-        'post_type'           => 'post',
-        'post_status'         => 'publish',
-        'orderby'             => array( 'date' => 'DESC', 'ID' => 'DESC' ),
-        'ignore_sticky_posts' => true,
-    );
-
-    if ( ! empty( $context['cat'] ) ) {
-        $term = get_term( (int) $context['cat'], 'category' );
-        if ( $term instanceof WP_Term ) {
-            $args['tax_query'] = array(
-                array(
-                    'taxonomy'         => 'category',
-                    'field'            => 'term_id',
-                    'terms'            => array( $term->term_id ),
-                    'include_children' => pro_category_includes_children( $term ),
-                ),
-            );
-        } else {
-            $args['post__in'] = array( 0 );
-        }
-    }
-
-    foreach ( array( 'tag_id', 'author', 'year', 'monthnum', 'day' ) as $key ) {
-        if ( ! empty( $context[ $key ] ) ) {
-            $args[ $key ] = (int) $context[ $key ];
-        }
-    }
-
-    // La búsqueda principal de WordPress abarca todos los tipos buscables y ordena
-    // por relevancia; las tandas AJAX deben seguir exactamente ese mismo orden.
-    if ( isset( $context['s'] ) && '' !== $context['s'] ) {
-        $args['s']         = $context['s'];
-        $args['post_type'] = 'any';
-        unset( $args['orderby'] );
-    }
-
-    return array_merge( $args, $overrides );
-}
-
-/**
- * Estado de "cargar más" para la consulta principal (category.php, index.php).
- *
- * @return array{context: array, offset: int, per_page: int, has_more: bool}
- */
-function pro_get_main_query_loadmore_state(): array {
-    global $wp_query;
-
-    $context = array();
-    if ( is_category() ) {
-        $context['cat'] = get_queried_object_id();
-    } elseif ( is_tag() ) {
-        $context['tag_id'] = get_queried_object_id();
-    } elseif ( is_author() ) {
-        $context['author'] = get_queried_object_id();
-    } elseif ( is_date() ) {
-        $context['year']     = (int) get_query_var( 'year' );
-        $context['monthnum'] = (int) get_query_var( 'monthnum' );
-        $context['day']      = (int) get_query_var( 'day' );
-    }
-    if ( is_search() ) {
-        $context['s'] = get_search_query( false );
-    }
-
-    $per_page = max( 1, (int) $wp_query->get( 'posts_per_page' ) );
-    $paged    = max( 1, (int) get_query_var( 'paged' ) );
-    // Las fijadas se añaden aparte en la portada; se cuentan solo las del orden cronológico
-    $offset   = min( $paged * $per_page, (int) $wp_query->found_posts );
-
-    return array(
-        'context'  => $context,
-        'offset'   => $offset,
-        'per_page' => $per_page,
-        'has_more' => $offset < (int) $wp_query->found_posts,
-    );
-}
-
-/**
- * Imprime los atributos data-* que main.js usa para pedir la siguiente tanda.
- */
-function pro_listing_data_attributes( array $context, int $offset, int $per_page, string $target ): void {
-    $attrs = array(
-        'data-offset'   => $offset,
-        'data-per-page' => $per_page,
-        'data-target'   => $target,
-    );
-    $map = array(
-        'cat'      => 'data-cat-id',
-        'tag_id'   => 'data-tag-id',
-        'author'   => 'data-author-id',
-        's'        => 'data-search',
-        'year'     => 'data-year',
-        'monthnum' => 'data-monthnum',
-        'day'      => 'data-day',
-    );
-    foreach ( $map as $key => $attr ) {
-        if ( isset( $context[ $key ] ) && '' !== $context[ $key ] && 0 !== $context[ $key ] ) {
-            $attrs[ $attr ] = $context[ $key ];
-        }
-    }
-    foreach ( $attrs as $name => $value ) {
-        echo ' ' . esc_attr( $name ) . '="' . esc_attr( $value ) . '"';
-    }
-}
-
-/**
- * Los endpoints públicos (cargar más, buscador, aviso de noticias nuevas) solo
- * leen contenido publicado. Con la caché de página, el nonce impreso en el HTML
- * caduca (12-24 h) y check_ajax_referer() respondía "-1": los bloques dejaban de
- * cargar "a veces" e incluso se insertaba el texto "-1" en la página. El nonce se
- * exige solo con sesión iniciada, cuyas páginas no se cachean.
- */
-function pro_check_public_ajax_nonce(): void {
-    if ( is_user_logged_in() ) {
-        check_ajax_referer( 'pro_ajax_nonce', 'nonce' );
-    }
-}
-
+require_once get_template_directory() . '/inc/listings.php';
 
 /**
  * Diferir scripts (Defer) para no bloquear el renderizado
@@ -469,14 +256,14 @@ function pro_defer_scripts( $tag, $handle ) {
     if ( is_admin() ) {
         return $tag;
     }
-    
+
     // Lista de scripts a diferir
     $defer_scripts = array( 'pro-main-js', 'pro-ajax-search' );
-    
+
     if ( in_array( $handle, $defer_scripts ) ) {
         return str_replace( ' src', ' defer="defer" src', $tag );
     }
-    
+
     return $tag;
 }
 add_filter( 'script_loader_tag', 'pro_defer_scripts', 10, 2 );
@@ -494,7 +281,7 @@ function pro_widgets_init() {
         'before_title'  => '<h2 class="widget-title">',
         'after_title'   => '</h2>',
     ) );
-    
+
     // Espacio para publicidad en Header
     register_sidebar( array(
         'name'          => esc_html__( 'Anuncio Cabecera', 'pro' ),
@@ -527,7 +314,7 @@ function pro_ajax_search() {
     pro_check_public_ajax_nonce();
 
     $search_query = isset($_POST['s']) ? sanitize_text_field( wp_unslash( $_POST['s'] ) ) : '';
-    
+
     if($search_query) {
         $args = array(
             's' => $search_query,
@@ -535,7 +322,7 @@ function pro_ajax_search() {
             'post_status' => 'publish'
         );
         $query = new WP_Query($args);
-        
+
         if($query->have_posts()) {
             echo '<ul class="ajax-search-results">';
             while($query->have_posts()) {
@@ -548,7 +335,7 @@ function pro_ajax_search() {
         }
         wp_reset_postdata();
     }
-    
+
     wp_die();
 }
 add_action('wp_ajax_nopriv_pro_ajax_search', 'pro_ajax_search');
@@ -572,7 +359,7 @@ if ( is_readable( $espressivo_clasificados_file ) ) {
 }
 
 // =============================================================================
-// ROLES PERSONALIZADOS — Espressivo Venezuela
+// ROLES EDITORIALES
 // Auditoría fix (v2): capacidades mínimas por rol.
 // IMPORTANTE: WordPress guarda roles en la BD (wp_options → wp_user_roles).
 // Los roles ya existentes NO se actualizan con add_role(). Por eso existe
@@ -705,6 +492,146 @@ function pro_migrate_roles_v3() {
 add_action( 'admin_init', 'pro_migrate_roles_v3' );
 
 /**
+ * Migración de roles v4: Añadir permisos de usuarios a Gerencia y Publicista.
+ */
+function pro_migrate_roles_v4() {
+    if ( get_option( 'pro_roles_migrated_v4' ) ) {
+        return;
+    }
+
+    $user_caps = array( 'list_users', 'edit_users', 'create_users', 'delete_users', 'promote_users', 'remove_users' );
+
+    $gerencia = get_role( 'gerencia' );
+    if ( $gerencia ) {
+        foreach ( $user_caps as $cap ) {
+            $gerencia->add_cap( $cap );
+        }
+    }
+
+    $publicista = get_role( 'publicista' );
+    if ( $publicista ) {
+        foreach ( $user_caps as $cap ) {
+            $publicista->add_cap( $cap );
+        }
+    }
+
+    update_option( 'pro_roles_migrated_v4', true );
+}
+add_action( 'admin_init', 'pro_migrate_roles_v4' );
+
+/**
+ * Migración de roles v6: Asegurar permisos de clasificados para Gerencia y Publicista.
+ */
+/**
+ * Roles con acceso completo (100%) a la seccion Clasificados del menu lateral.
+ * 'autor' (rol propio) y 'author' (rol nativo de WP) se incluyen ambos.
+ */
+function pro_get_clasificados_roles() {
+    return array(
+        'administrator',
+        'editor',
+        'gerencia',
+        'autor',
+        'author',
+        'publicista',
+        'direccion',
+    );
+}
+
+/**
+ * Capacidades completas del CPT 'clasificado' y de la taxonomia 'tipo_clasificado'.
+ */
+function pro_get_clasificados_caps() {
+    return array(
+        'edit_clasificado',
+        'read_clasificado',
+        'delete_clasificado',
+        'edit_clasificados',
+        'create_clasificados',
+        'edit_others_clasificados',
+        'publish_clasificados',
+        'read_private_clasificados',
+        'delete_clasificados',
+        'delete_private_clasificados',
+        'delete_published_clasificados',
+        'delete_others_clasificados',
+        'edit_private_clasificados',
+        'edit_published_clasificados',
+        'manage_tipos_clasificados',
+        'edit_tipos_clasificados',
+        'delete_tipos_clasificados',
+        'assign_tipos_clasificados',
+    );
+}
+
+/**
+ * Indica si el usuario (por defecto el actual) tiene un rol con acceso a Clasificados.
+ */
+function pro_user_can_access_clasificados( $user = null ) {
+    if ( ! $user ) {
+        $user = wp_get_current_user();
+    }
+    if ( ! $user || empty( $user->roles ) ) {
+        return false;
+    }
+    return (bool) array_intersect( pro_get_clasificados_roles(), (array) $user->roles );
+}
+
+function pro_migrate_roles_v6() {
+    // Eliminado el check de get_option para forzar la actualización de permisos
+    // en cada carga de admin_init, sobrepasando cualquier caché.
+
+    foreach ( pro_get_clasificados_roles() as $role_name ) {
+        $role_obj = get_role( $role_name );
+        if ( $role_obj ) {
+            foreach ( pro_get_clasificados_caps() as $cap ) {
+                if ( ! $role_obj->has_cap( $cap ) ) {
+                    $role_obj->add_cap( $cap );
+                }
+            }
+        }
+    }
+
+    update_option( 'pro_roles_migrated_v6', true );
+}
+add_action( 'admin_init', 'pro_migrate_roles_v6' );
+
+/**
+ * Filtro dinámico en tiempo real para otorgar permisos a Gerencia y Publicista.
+ * Esto evade cualquier problema de Caché de Objetos (Redis/Memcached/LiteSpeed)
+ * que impida la actualización de wp_user_roles en la base de datos.
+ */
+function pro_force_dynamic_caps( $allcaps, $caps, $args, $user ) {
+    if ( ! $user || empty( $user->roles ) ) {
+        return $allcaps;
+    }
+
+    $is_gerencia_or_publicista = in_array( 'gerencia', (array) $user->roles, true ) || in_array( 'publicista', (array) $user->roles, true );
+
+    if ( $is_gerencia_or_publicista ) {
+        // Capacidades de usuarios solo para Gerencia y Publicista
+        $allcaps['list_users']    = true;
+        $allcaps['edit_users']    = true;
+        $allcaps['create_users']  = true;
+        $allcaps['delete_users']  = true;
+        $allcaps['promote_users'] = true;
+        $allcaps['remove_users']  = true;
+    }
+
+    if ( pro_user_can_access_clasificados( $user ) ) {
+        // Acceso completo a Clasificados para los roles de pro_get_clasificados_roles()
+        foreach ( pro_get_clasificados_caps() as $cap ) {
+            $allcaps[ $cap ] = true;
+        }
+        // Necesario para subir fotos con los bloques Imagen y Galería de los clasificados
+        $allcaps['upload_files'] = true;
+    }
+
+    return $allcaps;
+}
+add_filter( 'user_has_cap', 'pro_force_dynamic_caps', 10, 4 );
+
+/**
  * Protección real de pantallas administrativas.
  * Redirige a roles sin permiso que intenten acceder directamente.
  * Complementa (pero no reemplaza) la ocultación visual de menús.
@@ -734,8 +661,6 @@ function pro_protect_admin_screens() {
         'tools.php',
         'import.php',
         'export.php',
-        'users.php',
-        'user-new.php',
         'update-core.php',
     );
 
@@ -770,17 +695,13 @@ function pro_restrict_direccion_menus() {
     remove_menu_page( 'plugins.php' );
     remove_menu_page( 'tools.php' );
     remove_menu_page( 'options-general.php' );
-    remove_menu_page( 'users.php' );
     remove_menu_page( 'update-core.php' );
 }
 add_action( 'admin_menu', 'pro_restrict_direccion_menus', 999 );
 add_action('init', 'pro_register_cpts');
 
 /**
- * Paginación AJAX (Cargar más / scroll infinito).
- *
- * Recibe el desplazamiento (noticias ya mostradas) y el tamaño de tanda del
- * propio listado, y responde JSON: { html, count, has_more }.
+ * Paginación AJAX (Cargar más)
  */
 function pro_load_more_posts() {
     pro_check_public_ajax_nonce();
@@ -978,159 +899,16 @@ function pro_post_categories( $post_id = null, $force_category_slug = null ) {
     }
 }
 
-// =============================================================================
-// IMAGEN DE LAS NOTICIAS EN LISTADOS Y WIDGETS
-// Auditoría fix: los bloques de noticias solo miraban la imagen destacada. Si el
-// autor no la asignaba (frecuente en las programadas, que dependían de la
-// asignación automática) o apuntaba a un adjunto borrado, el bloque salía sin
-// foto aunque el artículo tuviera imágenes en el contenido.
-// =============================================================================
-
-/**
- * ID de la primera imagen de la biblioteca de medios insertada en un contenido.
- */
-function pro_find_content_image_id( string $content ): int {
-    if ( '' === $content || ( false === stripos( $content, '<img' ) && false === strpos( $content, 'wp:image' ) ) ) {
-        return 0;
-    }
-
-    // Imágenes insertadas desde la biblioteca: clase wp-image-{ID} o atributo "id" del bloque
-    if ( preg_match_all( '/\bwp-image-(\d+)\b|<!--\s*wp:image\s+\{[^}]*"id":(\d+)/', $content, $matches, PREG_SET_ORDER ) ) {
-        foreach ( $matches as $match ) {
-            $id = (int) ( ! empty( $match[1] ) ? $match[1] : ( $match[2] ?? 0 ) );
-            if ( $id && wp_attachment_is_image( $id ) ) {
-                return $id;
-            }
-        }
-    }
-
-    // Último recurso: la URL del primer <img>. attachment_url_to_postid() solo
-    // reconoce el archivo original, así que se quita el sufijo de tamaño (-1024x683).
-    if ( preg_match( '/<img\s[^>]*?src=["\']([^"\']+)["\']/i', $content, $match ) ) {
-        $original = preg_replace( '/-\d+x\d+(?=\.[a-z0-9]+$)/i', '', strtok( $match[1], '?' ) );
-        $scaled   = preg_replace( '/(\.[a-z0-9]+)$/i', '-scaled$1', $original );
-        foreach ( array( $original, $scaled ) as $url ) {
-            $id = attachment_url_to_postid( $url );
-            if ( $id && wp_attachment_is_image( $id ) ) {
-                return $id;
-            }
-        }
-    }
-
-    return 0;
-}
-
-/**
- * ID de la imagen que representa a una entrada en listados y widgets:
- * la destacada si es una imagen válida; si no, la primera del contenido.
- *
- * @param int|WP_Post|null $post Entrada (por defecto la actual del loop).
- */
-function pro_get_post_image_id( $post = null ): int {
-    static $cache = array();
-
-    $post = get_post( $post );
-    if ( ! $post ) {
-        return 0;
-    }
-    if ( isset( $cache[ $post->ID ] ) ) {
-        return $cache[ $post->ID ];
-    }
-
-    $id = (int) get_post_thumbnail_id( $post );
-    if ( ! $id || ! wp_attachment_is_image( $id ) ) {
-        $id = pro_find_content_image_id( (string) $post->post_content );
-    }
-
-    return $cache[ $post->ID ] = $id;
-}
-
-/**
- * Imprime la imagen de la entrada (ver pro_get_post_image_id()).
- *
- * @return bool True si se imprimió una imagen.
- */
-function pro_the_post_image( $size = 'post-thumbnail', $attr = array(), $post = null ): bool {
-    $post = get_post( $post );
-    $id   = pro_get_post_image_id( $post );
-    if ( ! $id ) {
-        return false;
-    }
-
-    // La destacada pasa por get_the_post_thumbnail() para conservar sus filtros
-    if ( (int) get_post_thumbnail_id( $post ) === $id ) {
-        $html = get_the_post_thumbnail( $post, $size, $attr );
-    } else {
-        $html = wp_get_attachment_image( $id, $size, false, $attr );
-    }
-
-    if ( '' === $html ) {
-        return false;
-    }
-    echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML generado por WordPress
-    return true;
-}
-
-/**
- * Personalizador (Customizer)
- */
-function pro_customize_register( $wp_customize ) {
-    // Sección de Redes Sociales
-    $wp_customize->add_section( 'pro_social_settings', array(
-        'title'    => esc_html__( 'Redes Sociales', 'pro' ),
-        'priority' => 30,
-    ) );
-    
-    // Facebook
-    $wp_customize->add_setting( 'pro_social_facebook', array( 'default' => '#', 'sanitize_callback' => 'esc_url_raw' ) );
-    $wp_customize->add_control( 'pro_social_facebook', array(
-        'label'    => esc_html__( 'URL de Facebook', 'pro' ),
-        'section'  => 'pro_social_settings',
-        'type'     => 'url',
-    ) );
-    // Twitter
-    $wp_customize->add_setting( 'pro_social_twitter', array( 'default' => '#', 'sanitize_callback' => 'esc_url_raw' ) );
-    $wp_customize->add_control( 'pro_social_twitter', array(
-        'label'    => esc_html__( 'URL de Twitter / X', 'pro' ),
-        'section'  => 'pro_social_settings',
-        'type'     => 'url',
-    ) );
-    // Instagram
-    $wp_customize->add_setting( 'pro_social_instagram', array( 'default' => '#', 'sanitize_callback' => 'esc_url_raw' ) );
-    $wp_customize->add_control( 'pro_social_instagram', array(
-        'label'    => esc_html__( 'URL de Instagram', 'pro' ),
-        'section'  => 'pro_social_settings',
-        'type'     => 'url',
-    ) );
-    // Telegram
-    $wp_customize->add_setting( 'pro_social_telegram', array( 'default' => '#', 'sanitize_callback' => 'esc_url_raw' ) );
-    $wp_customize->add_control( 'pro_social_telegram', array(
-        'label'    => esc_html__( 'URL de Telegram', 'pro' ),
-        'section'  => 'pro_social_settings',
-        'type'     => 'url',
-    ) );
-
-    // Sección de Publicidad
-    $wp_customize->add_section( 'pro_ad_settings', array(
-        'title'    => esc_html__( 'Publicidad', 'pro' ),
-        'priority' => 35,
-    ) );
-    $wp_customize->add_setting( 'pro_show_ad_placeholders', array( 'default' => true, 'sanitize_callback' => 'rest_sanitize_boolean' ) );
-    $wp_customize->add_control( 'pro_show_ad_placeholders', array(
-        'label'    => esc_html__( 'Mostrar Placeholders vacíos', 'pro' ),
-        'description'=> esc_html__( 'Desactívalo en producción si no tienes anuncios insertados en los widgets.', 'pro' ),
-        'section'  => 'pro_ad_settings',
-        'type'     => 'checkbox',
-    ) );
-}
-add_action( 'customize_register', 'pro_customize_register' );
-
 // Include Ad Manager
 require_once get_template_directory() . '/inc/ad-manager.php';
 
 /**
  * Metabox para la Firma del Autor
  */
+function pro_firma_admin_exempt() {
+    return in_array( 'administrator', (array) wp_get_current_user()->roles, true );
+}
+
 function pro_add_firma_metabox() {
     add_meta_box(
         'pro_firma_autor_metabox',       // ID
@@ -1150,6 +928,9 @@ function pro_firma_autor_metabox_html( $post ) {
     <label for="pro_firma_autor_field" style="display:block; margin-bottom:5px;">Nombre del autor para la firma:</label>
     <input type="text" id="pro_firma_autor_field" name="pro_firma_autor_field" value="<?php echo esc_attr( $value ); ?>" style="width:100%;" placeholder="Ej: Juan Pérez" />
     <p style="font-size: 12px; color: #666; margin-top: 5px;">Aparecerá en cursiva debajo del título de la noticia.</p>
+    <?php if ( pro_firma_admin_exempt() ) : ?>
+        <p>Firma opcional para administradores. Si la dejas vacía al publicar o programar, se usará «Departamento de redacción», también en publicaciones por lotes.</p>
+    <?php endif; ?>
     <?php
 }
 
@@ -1164,10 +945,67 @@ function pro_save_firma_autor_meta( $post_id ) {
         return;
     }
     if ( isset( $_POST['pro_firma_autor_field'] ) ) {
-        update_post_meta( $post_id, '_pro_firma_autor', sanitize_text_field( wp_unslash( $_POST['pro_firma_autor_field'] ) ) );
+        update_post_meta( $post_id, '_pro_firma_autor', sanitize_text_field( $_POST['pro_firma_autor_field'] ) );
     }
 }
 add_action( 'save_post', 'pro_save_firma_autor_meta' );
+
+/** Autor público predeterminado para publicaciones de administradores, incluidos lotes. */
+function pro_save_admin_default_firma( $post_id, $post ) {
+    if ( $post->post_type !== 'post'
+        || ! in_array( $post->post_status, array( 'publish', 'future' ), true )
+        || ! pro_firma_admin_exempt()
+        || ! current_user_can( 'edit_post', $post_id )
+        || wp_is_post_revision( $post_id )
+        || ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) ) {
+        return;
+    }
+
+    if ( trim( (string) get_post_meta( $post_id, '_pro_firma_autor', true ) ) === '' ) {
+        update_post_meta( $post_id, '_pro_firma_autor', 'Departamento de redacción' );
+    }
+    delete_transient( 'pro_firma_error_notice_' . $post_id );
+}
+// Ejecutar después del guardado de la firma del editor clásico.
+add_action( 'save_post', 'pro_save_admin_default_firma', 20, 2 );
+
+/**
+ * Exponer la firma en la API REST para que el editor de bloques la envíe
+ * en la MISMA petición de "Publicar". Antes solo se guardaba después, con las
+ * cajas clásicas, y la validación la veía vacía: había que publicar dos veces.
+ */
+function pro_register_firma_meta() {
+    register_post_meta( 'post', '_pro_firma_autor', array(
+        'type'              => 'string',
+        'single'            => true,
+        'show_in_rest'      => true,
+        'sanitize_callback' => 'sanitize_text_field',
+        'auth_callback'     => function ( $allowed, $meta_key, $post_id ) {
+            return current_user_can( 'edit_post', $post_id );
+        },
+    ) );
+}
+add_action( 'init', 'pro_register_firma_meta' );
+
+/**
+ * Sincronizar la caja "Firma" con los datos del editor de bloques mientras se escribe.
+ */
+function pro_sync_firma_block_editor() {
+    $screen = get_current_screen();
+    if ( ! $screen || 'post' !== $screen->post_type ) {
+        return;
+    }
+    wp_add_inline_script(
+        'wp-data',
+        "document.addEventListener( 'input', function ( event ) {
+            if ( ! event.target || 'pro_firma_autor_field' !== event.target.id || ! wp.data.dispatch( 'core/editor' ) ) {
+                return;
+            }
+            wp.data.dispatch( 'core/editor' ).editPost( { meta: { _pro_firma_autor: event.target.value } } );
+        } );"
+    );
+}
+add_action( 'enqueue_block_editor_assets', 'pro_sync_firma_block_editor' );
 
 // =============================================================================
 // ETIQUETAS EDITORIALES
@@ -1182,6 +1020,89 @@ add_action( 'save_post', 'pro_save_firma_autor_meta' );
 // puedan clasificar correctamente sus artículos.
 // =============================================================================
 
+// =============================================================================
+// UTILIDADES DE LOS INSTALADORES AUTOMÁTICOS
+// Evitan que las páginas y categorías del tema se creen dos veces.
+// =============================================================================
+
+/**
+ * Bloqueo atómico compartido por los instaladores del tema.
+ *
+ * Si dos peticiones llegan a la vez (otra pestaña, heartbeat, admin-ajax, cron),
+ * ambas veían el instalador "pendiente" y creaban las mismas páginas en paralelo.
+ * INSERT IGNORE es atómico: solo una petición obtiene el bloqueo.
+ */
+function pro_install_lock_acquire( $ttl = 600 ) {
+    global $wpdb;
+    $option = 'pro_install_lock';
+    $now    = time();
+
+    $acquired = $wpdb->query( $wpdb->prepare(
+        "INSERT IGNORE INTO {$wpdb->options} ( option_name, option_value, autoload ) VALUES ( %s, %s, 'no' )",
+        $option,
+        $now
+    ) );
+    if ( $acquired ) {
+        return true;
+    }
+
+    // Bloqueo huérfano (la petición anterior murió a mitad): se reclama tras $ttl segundos.
+    $locked_at = (int) $wpdb->get_var( $wpdb->prepare(
+        "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s",
+        $option
+    ) );
+    if ( $locked_at && $locked_at < $now - $ttl ) {
+        return (bool) $wpdb->query( $wpdb->prepare(
+            "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s",
+            $now,
+            $option,
+            $locked_at
+        ) );
+    }
+
+    return false;
+}
+
+function pro_install_lock_release() {
+    global $wpdb;
+    $wpdb->delete( $wpdb->options, array( 'option_name' => 'pro_install_lock' ) );
+}
+
+/**
+ * Lee la marca de "instalador completado" directamente de la BD (sin caché),
+ * para no repetir un instalador que otra petición terminó hace un momento.
+ */
+function pro_install_already_done( $flag ) {
+    global $wpdb;
+    return (bool) $wpdb->get_var( $wpdb->prepare(
+        "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s",
+        $flag
+    ) );
+}
+
+/**
+ * Busca una página existente por slug o por título (cualquier estado salvo papelera).
+ * Sustituye a get_page_by_title() (obsoleta desde WP 6.2) en los instaladores.
+ */
+function pro_find_page( $title, $slug = '' ) {
+    global $wpdb;
+    $slug = $slug ? $slug : sanitize_title( $title );
+
+    $page_id = $wpdb->get_var( $wpdb->prepare(
+        "SELECT ID FROM {$wpdb->posts}
+         WHERE post_type = 'page'
+           AND post_status NOT IN ( 'trash', 'auto-draft', 'inherit' )
+           AND ( post_name = %s OR post_title = %s )
+         ORDER BY ( post_name = %s ) DESC, ( post_status = 'publish' ) DESC, ID ASC
+         LIMIT 1",
+        $slug,
+        $title,
+        $slug
+    ) );
+
+    return $page_id ? get_post( (int) $page_id ) : null;
+}
+
 /**
  * Instalación "Nuclear" de páginas automáticas
  * Esto creará todas las páginas físicas al cargar el dashboard si no existen.
@@ -1194,6 +1115,15 @@ function pro_nuclear_install_pages() {
 
     // Asegurarse de que el usuario es admin
     if ( ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+
+    // Una sola petición a la vez; si otra ya lo terminó, no repetir.
+    if ( ! pro_install_lock_acquire() ) {
+        return;
+    }
+    if ( pro_install_already_done( 'pro_pages_installed_nuclear_v7' ) ) {
+        pro_install_lock_release();
         return;
     }
 
@@ -1229,7 +1159,7 @@ function pro_nuclear_install_pages() {
         'Literatura' => 'page-categoria.php',
         'Local' => 'page-categoria.php',
         'Mascotas' => 'page-categoria.php',
-        'Monagas' => 'page-categoria.php',
+        'Local' => 'page-categoria.php',
         'Mundo' => 'page-categoria.php',
         'Municipios' => 'page-categoria.php',
         'Nacional' => 'page-categoria.php',
@@ -1247,23 +1177,12 @@ function pro_nuclear_install_pages() {
     );
 
     foreach ( $pages_to_create as $title => $template ) {
-        $page_query = new WP_Query( array(
-            'post_type'              => 'page',
-            'title'                  => $title,
-            'post_status'            => 'all',
-            'posts_per_page'         => 1,
-            'no_found_rows'          => true,
-            'ignore_sticky_posts'    => true,
-            'update_post_term_cache' => false,
-            'update_post_meta_cache' => false,
-            'orderby'                => 'post_date',
-            'order'                  => 'DESC',
-        ) );
-        $page_check = ! empty( $page_query->posts ) ? $page_query->posts[0] : null;
+        $page_check = pro_find_page( $title );
 
         if ( ! $page_check ) {
             $new_page_id = wp_insert_post( array(
                 'post_title'     => $title,
+                'post_name'      => sanitize_title( $title ),
                 'post_type'      => 'page',
                 'post_status'    => 'publish',
                 'post_author'    => 1,
@@ -1277,14 +1196,8 @@ function pro_nuclear_install_pages() {
     }
 
     // Configurar Inicio estático
-    $home_query = new WP_Query( array(
-        'post_type'              => 'page',
-        'title'                  => 'Inicio',
-        'post_status'            => 'all',
-        'posts_per_page'         => 1,
-    ) );
-    $home_page = ! empty( $home_query->posts ) ? $home_query->posts[0] : null;
-    
+    $home_page = pro_find_page( 'Inicio' );
+
     if ( ! $home_page ) {
         $home_page_id = wp_insert_post( array(
             'post_title'     => 'Inicio',
@@ -1432,6 +1345,7 @@ function pro_nuclear_install_pages() {
     }
 
     update_option( 'pro_pages_installed_nuclear_v7', true );
+    pro_install_lock_release();
 }
 add_action( 'admin_init', 'pro_nuclear_install_pages' );
 
@@ -1468,7 +1382,7 @@ add_filter('nav_menu_item_title', 'pro_add_dropdown_arrow', 10, 4);
 function pro_add_dropdown_arrow($title, $item, $args, $depth) {
     if (in_array('menu-item-has-children', $item->classes)) {
         $arrow = ($depth > 0) ? '&#9656;' : '&#9662;'; // Flecha a la derecha para submenús, hacia abajo para principales
-        $title .= ' <span class="dropdown-arrow" style="font-size: 0.8em; margin-left: 4px; display: inline-block;">' . $arrow . '</span>'; 
+        $title .= ' <span class="dropdown-arrow" style="font-size: 0.8em; margin-left: 4px; display: inline-block;">' . $arrow . '</span>';
     }
     return $title;
 }
@@ -1560,7 +1474,7 @@ function pro_render_cartel_pdf_metabox( $post ) {
     echo '<button type="button" class="button button-secondary" id="pro_upload_pdf_button">Seleccionar PDF en Medios</button>';
     echo '</div>';
     echo '<p class="description">Puedes pegar el enlace directo, o usar el botón para elegir/subir un PDF desde la biblioteca.</p>';
-    
+
     // Script JS para manejar el botón
     ?>
     <script>
@@ -1568,13 +1482,13 @@ function pro_render_cartel_pdf_metabox( $post ) {
         var mediaUploader;
         $('#pro_upload_pdf_button').click(function(e) {
             e.preventDefault();
-            
+
             // Si el frame ya existe, ábrelo
             if (mediaUploader) {
                 mediaUploader.open();
                 return;
             }
-            
+
             // Extiende el frame de medios
             mediaUploader = wp.media({
                 title: 'Seleccionar Archivo PDF',
@@ -1586,13 +1500,13 @@ function pro_render_cartel_pdf_metabox( $post ) {
                 },
                 multiple: false
             });
-            
+
             // Cuando se selecciona un archivo
             mediaUploader.on('select', function() {
                 var attachment = mediaUploader.state().get('selection').first().toJSON();
                 $('#pro_cartel_pdf_url').val(attachment.url);
             });
-            
+
             // Abre el frame
             mediaUploader.open();
         });
@@ -1678,13 +1592,13 @@ add_action( 'manage_mensaje_contacto_posts_custom_column' , 'pro_custom_mensaje_
 function pro_custom_mensaje_column( $column, $post_id ) {
     switch ( $column ) {
         case 'email' :
-            echo esc_html( get_post_meta( $post_id, '_contacto_email', true ) ); 
+            echo esc_html( get_post_meta( $post_id, '_contacto_email', true ) );
             break;
         case 'phone' :
-            echo esc_html( get_post_meta( $post_id, '_contacto_phone', true ) ); 
+            echo esc_html( get_post_meta( $post_id, '_contacto_phone', true ) );
             break;
         case 'depto' :
-            echo esc_html( get_post_meta( $post_id, '_contacto_depto', true ) ); 
+            echo esc_html( get_post_meta( $post_id, '_contacto_depto', true ) );
             break;
     }
 }
@@ -1717,7 +1631,7 @@ function pro_submit_contact_form() {
 
     // Seguridad Extrema: Evitar Inyecciones, Enlaces y Código
     $security_check = $name . ' ' . $address . ' ' . $message;
-    
+
     // Bloquear enlaces
     if ( preg_match( '/(http|https|ftp|ftps):\/\/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(\/\S*)?/', $security_check ) || stripos( $security_check, 'www.' ) !== false || stripos( $security_check, '.com/' ) !== false ) {
         wp_send_json_error( array( 'message' => 'Por seguridad, no se permiten enlaces ni URLs en el formulario.' ) );
@@ -1759,7 +1673,7 @@ function pro_export_mensajes_button($which) {
             'action' => 'pro_export_mensajes_csv',
             '_wpnonce' => wp_create_nonce('pro_export_mensajes_csv_nonce')
         ), admin_url('admin-post.php'));
-        
+
         echo '<div class="alignleft actions">';
         echo '<a href="' . esc_url($export_url) . '" class="button button-primary">Descargar Excel/CSV</a>';
         echo '</div>';
@@ -1787,7 +1701,7 @@ function pro_export_mensajes_csv_handler() {
     $output = fopen('php://output', 'w');
     // Bom UTF-8 para Excel
     fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-    
+
     // Cabeceras
     fputcsv($output, array('Fecha', 'Nombre', 'Correo', 'Teléfono', 'Dirección', 'Departamento', 'Mensaje'));
 
@@ -1876,15 +1790,75 @@ add_filter( 'get_user_option_admin_color', 'pro_force_admin_color_by_role', 10, 
  * Solo los administradores conservan este privilegio absoluto. Mapeado al core profundo de capacidades.
  */
 function pro_restrict_user_deletion( $caps, $cap, $user_id, $args ) {
+    // Evitar que direccion, gerencia o publicista borren o editen a los administradores
+    if ( in_array( $cap, array( 'edit_user', 'delete_user', 'remove_user', 'promote_user' ), true ) && isset( $args[0] ) ) {
+        $target_user = get_userdata( $args[0] );
+        $current_user = get_userdata( $user_id );
+
+        if ( $target_user && $current_user ) {
+            $target_is_admin = in_array( 'administrator', (array) $target_user->roles, true );
+            $current_is_admin = in_array( 'administrator', (array) $current_user->roles, true );
+
+            // Si el objetivo es un administrador y el usuario actual NO es administrador, bloquear.
+            if ( $target_is_admin && ! $current_is_admin ) {
+                $caps = array( 'do_not_allow' );
+            }
+        }
+    }
+
+    // Regla original: impedir que 'direccion' borre masivamente o a cualquier usuario
     if ( in_array( $cap, array( 'delete_user', 'delete_users' ), true ) ) {
         $current_user = get_userdata( $user_id );
-        if ( $current_user && in_array( 'direccion', $current_user->roles, true ) ) {
+        if ( $current_user && in_array( 'direccion', (array) $current_user->roles, true ) ) {
             $caps = array( 'do_not_allow' );
         }
     }
     return $caps;
 }
 add_filter( 'map_meta_cap', 'pro_restrict_user_deletion', 10, 4 );
+
+/**
+ * Filtrar los roles asignables para que no puedan crear o promover administradores.
+ */
+function pro_restrict_editable_roles( $roles ) {
+    $current_user = wp_get_current_user();
+    if ( ! in_array( 'administrator', (array) $current_user->roles, true ) ) {
+        unset( $roles['administrator'] );
+    }
+    return $roles;
+}
+add_filter( 'editable_roles', 'pro_restrict_editable_roles' );
+
+/**
+ * Ocultar completamente a los administradores de la lista de usuarios para quienes no lo son.
+ */
+function pro_hide_admins_from_non_admins( $query ) {
+    $current_user = wp_get_current_user();
+    // Si no es admin y estamos en el admin panel (o en cualquier consulta de usuarios)
+    if ( ! in_array( 'administrator', (array) $current_user->roles, true ) ) {
+        $role_not_in = $query->get( 'role__not_in' );
+        if ( ! is_array( $role_not_in ) ) {
+            $role_not_in = array();
+        }
+        $role_not_in[] = 'administrator';
+        $query->set( 'role__not_in', $role_not_in );
+    }
+}
+add_action( 'pre_get_users', 'pro_hide_admins_from_non_admins' );
+
+/**
+ * Ocultar el enlace/filtro "Administrador" de la parte superior de la tabla de usuarios.
+ */
+function pro_hide_admin_view_link( $views ) {
+    $current_user = wp_get_current_user();
+    if ( ! in_array( 'administrator', (array) $current_user->roles, true ) ) {
+        if ( isset( $views['administrator'] ) ) {
+            unset( $views['administrator'] );
+        }
+    }
+    return $views;
+}
+add_filter( 'views_users', 'pro_hide_admin_view_link' );
 
 /**
  * 2. Registrar la columna "Estado" en la tabla de usuarios de WordPress.
@@ -1916,7 +1890,7 @@ add_filter( 'manage_users_custom_column', 'pro_render_user_status_column_value',
  */
 function pro_user_suspension_row_actions( $actions, $user_object ) {
     $current_user = wp_get_current_user();
-    
+
     // Si el usuario actual no es admin ni direccion, no mostrar nada.
     $is_admin = in_array( 'administrator', $current_user->roles );
     $is_director = in_array( 'direccion', $current_user->roles ) || in_array( 'gerencia', $current_user->roles );
@@ -2053,7 +2027,7 @@ function pro_handle_user_status_actions() {
     // Procesar acción
     if ( 'pro_suspend_user' === $action ) {
         update_user_meta( $target_user_id, '_pro_user_status', 'suspended' );
-        
+
         // Destruir todas las sesiones del usuario de forma inmediata (deslogueo forzado nuclear)
         wp_destroy_user_sessions( $target_user_id );
 
@@ -2190,10 +2164,10 @@ add_action( 'admin_footer', 'pro_user_status_admin_footer_scripts' );
 function pro_track_user_login_activity( $user_login, $user ) {
     $now = current_time( 'mysql' ); // Timestamp en la hora local del sitio
     $today = current_time( 'Y-m-d' );
-    
+
     // Guardar fecha/hora de la última sesión
     update_user_meta( $user->ID, '_pro_last_login_time', $now );
-    
+
     // Guardar primer inicio de sesión de hoy (si no existe registro previo hoy)
     $first_login = get_user_meta( $user->ID, '_pro_first_login_today', true );
     if ( empty( $first_login ) || substr( $first_login, 0, 10 ) !== $today ) {
@@ -2213,12 +2187,12 @@ function pro_get_human_time_diff( $mysql_date_string ) {
     if ( ! $timestamp ) {
         return 'Sin registro';
     }
-    
+
     $diff = current_time( 'timestamp' ) - $timestamp;
     if ( $diff < 0 ) {
         $diff = 0;
     }
-    
+
     if ( $diff < MINUTE_IN_SECONDS ) {
         return 'Hace unos instantes';
     } elseif ( $diff < HOUR_IN_SECONDS ) {
@@ -2239,44 +2213,44 @@ function pro_register_dashboard_widgets() {
     $current_user = wp_get_current_user();
     $is_admin = in_array( 'administrator', $current_user->roles );
     $is_director = in_array( 'direccion', $current_user->roles ) || in_array( 'gerencia', $current_user->roles ) || in_array( 'publicista', $current_user->roles );
-    
+
     // 1. Portada del Día - Todos los roles lo ven
-    wp_add_dashboard_widget( 
-        'pro_dashboard_portada', 
-        '📰 Portada del Día', 
-        'pro_render_dashboard_portada_widget' 
+    wp_add_dashboard_widget(
+        'pro_dashboard_portada',
+        '📰 Portada del Día',
+        'pro_render_dashboard_portada_widget'
     );
-    
+
     // 2. Clientes y Fechas de Corte - Solo Admin y Dirección
     if ( $is_admin || $is_director ) {
-        wp_add_dashboard_widget( 
-            'pro_dashboard_clientes', 
-            '👥 Gestión de Clientes Activos', 
-            'pro_render_dashboard_clientes_widget' 
+        wp_add_dashboard_widget(
+            'pro_dashboard_clientes',
+            '👥 Gestión de Clientes Activos',
+            'pro_render_dashboard_clientes_widget'
         );
     }
-    
+
     // 3. Leads (CPT Mensajes) - Solo Admin y Dirección
     if ( $is_admin || $is_director ) {
-        wp_add_dashboard_widget( 
-            'pro_dashboard_leads', 
-            '📩 Leads de Contacto Recientes', 
-            'pro_render_dashboard_leads_widget' 
+        wp_add_dashboard_widget(
+            'pro_dashboard_leads',
+            '📩 Leads de Contacto Recientes',
+            'pro_render_dashboard_leads_widget'
         );
     }
-    
+
     // 4. Últimas Publicaciones - Todos lo ven (filtrado por rol en el renderizado)
-    wp_add_dashboard_widget( 
-        'pro_dashboard_publicaciones', 
-        '✏️ Últimas Publicaciones', 
-        'pro_render_dashboard_publicaciones_widget' 
+    wp_add_dashboard_widget(
+        'pro_dashboard_publicaciones',
+        '✏️ Últimas Publicaciones',
+        'pro_render_dashboard_publicaciones_widget'
     );
-    
+
     // 5. Actividad y Sesiones de Autores - Todos lo ven (filtrado por rol en el renderizado)
-    wp_add_dashboard_widget( 
-        'pro_dashboard_actividad_autores', 
-        '⏱️ Registro Diario de Actividad', 
-        'pro_render_dashboard_actividad_autores_widget' 
+    wp_add_dashboard_widget(
+        'pro_dashboard_actividad_autores',
+        '⏱️ Registro Diario de Actividad',
+        'pro_render_dashboard_actividad_autores_widget'
     );
 }
 add_action( 'wp_dashboard_setup', 'pro_register_dashboard_widgets' );
@@ -2290,7 +2264,7 @@ function pro_render_dashboard_portada_widget() {
     $portada_actual = get_option( 'pro_portada_actual', '' );
     $portada_reemplazo = get_option( 'pro_portada_reemplazo', '' );
     $portada_reemplazo_fecha = get_option( 'pro_portada_reemplazo_fecha', '' );
-    
+
     echo '<div class="pro-widget-container portada">';
     if ( ! empty( $portada_actual ) ) {
         echo '<div class="pro-portada-preview-container">';
@@ -2300,7 +2274,7 @@ function pro_render_dashboard_portada_widget() {
     } else {
         echo '<div class="pro-empty-state"><span class="dashicons dashicons-format-image"></span><p>No se ha seleccionado ninguna portada activa.</p></div>';
     }
-    
+
     if ( ! empty( $portada_reemplazo ) && ! empty( $portada_reemplazo_fecha ) ) {
         $scheduled_time = date_i18n( 'j \d\e F \a \l\a\s 05:00 AM', strtotime( $portada_reemplazo_fecha ) );
         echo '<div class="pro-portada-scheduled-banner">';
@@ -2311,7 +2285,7 @@ function pro_render_dashboard_portada_widget() {
         echo '</div>';
         echo '</div>';
     }
-    
+
     $current_user = wp_get_current_user();
     if ( in_array( 'administrator', $current_user->roles ) || in_array( 'direccion', $current_user->roles ) || in_array( 'gerencia', $current_user->roles ) || in_array( 'publicista', $current_user->roles ) ) {
         echo '<div class="pro-widget-actions">';
@@ -2324,7 +2298,7 @@ function pro_render_dashboard_portada_widget() {
 // WIDGET 2: Clientes Activos y Fechas de Corte
 function pro_render_dashboard_clientes_widget() {
     $clients = get_option( 'pro_active_clients', array() );
-    
+
     // Sembrar datos de demostración premium para la primera carga si está vacío
     if ( empty( $clients ) ) {
         $clients = array(
@@ -2347,10 +2321,10 @@ function pro_render_dashboard_clientes_widget() {
         );
         update_option( 'pro_active_clients', $clients );
     }
-    
+
     $current_user = wp_get_current_user();
     $is_admin = in_array( 'administrator', $current_user->roles );
-    
+
     echo '<div class="pro-widget-container clients">';
     echo '<table class="wp-list-table widefat fixed striped pro-clients-table">';
     echo '<thead><tr><th>Cliente</th><th>Plan</th><th>Corte</th><th>Estado</th>';
@@ -2359,20 +2333,20 @@ function pro_render_dashboard_clientes_widget() {
     }
     echo '</tr></thead>';
     echo '<tbody id="pro-clients-list-body">';
-    
+
     foreach ( $clients as $client ) {
         $status_class = ( $client['status'] === 'paid' ) ? 'paid' : 'pending';
         $status_label = ( $client['status'] === 'paid' ) ? 'PAGADO' : 'PENDIENTE';
         $cut_off_timestamp = strtotime( $client['cut_off'] );
         $cut_off_formatted = date_i18n( 'j \d\e F, Y', $cut_off_timestamp );
-        
+
         // Alerta de corte inminente
         $days_left = ceil( ( $cut_off_timestamp - current_time( 'timestamp' ) ) / DAY_IN_SECONDS );
         $alert_class = '';
         if ( $client['status'] !== 'paid' && $days_left <= 5 ) {
             $alert_class = ' pro-alert-danger';
         }
-        
+
         echo '<tr id="pro-client-row-' . esc_attr( $client['id'] ) . '" class="' . esc_attr( $alert_class ) . '">';
         echo '<td><strong>' . esc_html( $client['name'] ) . '</strong><br/><span style="color:#94a3b8; font-size:10px;">' . esc_html( $client['cost'] ) . '</span></td>';
         echo '<td>' . esc_html( $client['plan'] ) . '</td>';
@@ -2384,12 +2358,12 @@ function pro_render_dashboard_clientes_widget() {
         echo '</tr>';
     }
     echo '</tbody></table>';
-    
+
     if ( $is_admin ) {
         echo '<div class="pro-add-client-toggle-container">';
         echo '<button type="button" class="button" id="pro-toggle-add-client-form"><span class="dashicons dashicons-plus"></span> Registrar Cliente SaaS</button>';
         echo '</div>';
-        
+
         echo '<div id="pro-add-client-form-container" style="display:none; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:15px; margin-top:15px;">';
         echo '<h4 style="margin-top:0; margin-bottom:12px; font-weight:700; color:#0f172a; font-size:12px; border-bottom:1px solid #e2e8f0; padding-bottom:6px;">Registrar Nuevo Cliente SaaS</h4>';
         echo '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">';
@@ -2422,7 +2396,7 @@ function pro_render_dashboard_leads_widget() {
         'post_status'    => 'publish',
     );
     $query = new WP_Query( $args );
-    
+
     echo '<div class="pro-widget-container leads">';
     if ( $query->have_posts() ) {
         echo '<ul class="pro-leads-feed">';
@@ -2432,7 +2406,7 @@ function pro_render_dashboard_leads_widget() {
             $email = get_post_meta( $post_id, '_contacto_email', true );
             $depto = get_post_meta( $post_id, '_contacto_depto', true );
             $date = get_the_date( 'g:i a \d\e\l j/n/y' );
-            
+
             echo '<li class="pro-lead-item">';
             echo '<div class="pro-lead-header">';
             echo '<strong>' . esc_html( get_the_title() ) . '</strong>';
@@ -2447,7 +2421,7 @@ function pro_render_dashboard_leads_widget() {
         }
         echo '</ul>';
         wp_reset_postdata();
-        
+
         echo '<div class="pro-widget-actions" style="margin-top:15px;">';
         echo '<a href="' . esc_url( admin_url( 'edit.php?post_type=mensaje_contacto' ) ) . '" class="button"><span class="dashicons dashicons-email-alt"></span> Ver Todos los Leads</a>';
         echo '</div>';
@@ -2462,20 +2436,20 @@ function pro_render_dashboard_publicaciones_widget() {
     $current_user = wp_get_current_user();
     $is_admin = in_array( 'administrator', $current_user->roles );
     $is_director = in_array( 'direccion', $current_user->roles ) || in_array( 'gerencia', $current_user->roles ) || in_array( 'publicista', $current_user->roles );
-    
+
     $args = array(
         'post_type'      => 'post',
         'posts_per_page' => 5,
         'post_status'    => array( 'publish', 'draft', 'pending', 'future' ),
     );
-    
+
     // Si no es admin/director, restringir a sus publicaciones propias
     if ( ! $is_admin && ! $is_director ) {
         $args['author'] = $current_user->ID;
     }
-    
+
     $query = new WP_Query( $args );
-    
+
     echo '<div class="pro-widget-container posts">';
     if ( $query->have_posts() ) {
         echo '<ul class="pro-posts-feed">';
@@ -2485,7 +2459,7 @@ function pro_render_dashboard_publicaciones_widget() {
             $author_id = get_the_author_meta( 'ID' );
             $author_name = get_the_author();
             $status = get_post_status( $post_id );
-            
+
             $status_labels = array(
                 'publish' => 'Publicado',
                 'draft' => 'Borrador',
@@ -2493,7 +2467,7 @@ function pro_render_dashboard_publicaciones_widget() {
                 'future' => 'Programado'
             );
             $status_label = isset( $status_labels[ $status ] ) ? $status_labels[ $status ] : $status;
-            
+
             echo '<li class="pro-post-item ' . esc_attr( $status ) . '">';
             echo '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">';
             echo '<div>';
@@ -2511,7 +2485,7 @@ function pro_render_dashboard_publicaciones_widget() {
         }
         echo '</ul>';
         wp_reset_postdata();
-        
+
         echo '<div class="pro-widget-actions" style="margin-top:15px;">';
         echo '<a href="' . esc_url( admin_url( 'edit.php' ) ) . '" class="button"><span class="dashicons dashicons-admin-post"></span> Ver Todas las Entradas</a>';
         echo '</div>';
@@ -2526,9 +2500,9 @@ function pro_render_dashboard_actividad_autores_widget() {
     $current_user = wp_get_current_user();
     $is_admin = in_array( 'administrator', $current_user->roles );
     $is_director = in_array( 'direccion', $current_user->roles ) || in_array( 'gerencia', $current_user->roles ) || in_array( 'publicista', $current_user->roles );
-    
+
     echo '<div class="pro-widget-container activity">';
-    
+
     if ( $is_admin || $is_director ) {
         // Vista para Dirección y Administración: Tabla General de todos los redactores y directores
         $users_query = new WP_User_Query( array(
@@ -2537,31 +2511,31 @@ function pro_render_dashboard_actividad_autores_widget() {
             'orderby'  => 'display_name',
             'order'    => 'ASC'
         ) );
-        
+
         $authors = $users_query->get_results();
-        
+
         if ( ! empty( $authors ) ) {
             echo '<p style="color:#64748b; font-size:11px; margin-top:0; margin-bottom:15px;"><span class="dashicons dashicons-info" style="font-size:14px; width:14px; height:14px; margin-top:-2px;"></span> Actividad de los redactores y directores durante la fecha de hoy.</p>';
             echo '<table class="wp-list-table widefat fixed striped pro-activity-table">';
             echo '<thead><tr><th>Autor / Cargo</th><th>Ingreso de Hoy</th><th>Última Sesión</th><th>Último Post</th></tr></thead>';
             echo '<tbody>';
-            
+
             $today = current_time( 'Y-m-d' );
-            
+
             foreach ( $authors as $author ) {
                 $last_login = get_user_meta( $author->ID, '_pro_last_login_time', true );
                 $first_login = get_user_meta( $author->ID, '_pro_first_login_today', true );
-                
+
                 // Determinar si ingresó hoy
                 $is_active_today = false;
                 if ( ! empty( $first_login ) && substr( $first_login, 0, 10 ) === $today ) {
                     $is_active_today = true;
                 }
-                
-                $status_dot = $is_active_today 
-                    ? '<span class="pro-status-dot active" title="Conectado hoy"></span>' 
+
+                $status_dot = $is_active_today
+                    ? '<span class="pro-status-dot active" title="Conectado hoy"></span>'
                     : '<span class="pro-status-dot offline" title="Sin conexión hoy"></span>';
-                
+
                 // Obtener última publicación publicada del usuario
                 $last_post_query = new WP_Query( array(
                     'author'         => $author->ID,
@@ -2569,7 +2543,7 @@ function pro_render_dashboard_actividad_autores_widget() {
                     'post_status'    => 'publish',
                     'posts_per_page' => 1,
                 ) );
-                
+
                 $last_post_text = 'Sin publicaciones';
                 if ( $last_post_query->have_posts() ) {
                     $last_post_query->the_post();
@@ -2577,14 +2551,14 @@ function pro_render_dashboard_actividad_autores_widget() {
                     $last_post_text = '<a href="' . esc_url( get_permalink() ) . '" target="_blank" title="' . esc_attr( get_the_title() ) . '">' . esc_html( pro_get_human_time_diff( $post_time ) ) . '</a>';
                 }
                 wp_reset_postdata();
-                
+
                 $first_login_time = 'Sin ingresos';
                 if ( $is_active_today ) {
                     $first_login_time = date_i18n( 'g:i a', strtotime( $first_login ) );
                 }
-                
+
                 $last_login_formatted = ! empty( $last_login ) ? pro_get_human_time_diff( $last_login ) : 'Nunca';
-                
+
                 // Pill de Rol
                 $role_badge = '';
                 if ( in_array( 'direccion', $author->roles ) || in_array( 'publicista', $author->roles ) ) {
@@ -2592,7 +2566,7 @@ function pro_render_dashboard_actividad_autores_widget() {
                 } else {
                     $role_badge = '<span class="pro-role-pill autor">Autor</span>';
                 }
-                
+
                 echo '<tr>';
                 echo '<td><div style="display:flex; align-items:center; gap:8px;">' . $status_dot . get_avatar( $author->ID, 24 ) . '<div><strong>' . esc_html( $author->display_name ) . '</strong><br/>' . $role_badge . '</div></div></td>';
                 echo '<td>' . esc_html( $first_login_time ) . '</td>';
@@ -2600,7 +2574,7 @@ function pro_render_dashboard_actividad_autores_widget() {
                 echo '<td>' . $last_post_text . '</td>';
                 echo '</tr>';
             }
-            
+
             echo '</tbody></table>';
         } else {
             echo '<div class="pro-empty-state"><span class="dashicons dashicons-admin-users"></span><p>No se encontraron redactores registrados.</p></div>';
@@ -2609,14 +2583,14 @@ function pro_render_dashboard_actividad_autores_widget() {
         // Vista para Autores: Tarjeta personalizada interactiva de resumen
         $last_login = get_user_meta( $current_user->ID, '_pro_last_login_time', true );
         $first_login = get_user_meta( $current_user->ID, '_pro_first_login_today', true );
-        
+
         $last_post_query = new WP_Query( array(
             'author'         => $current_user->ID,
             'post_type'      => 'post',
             'post_status'    => 'publish',
             'posts_per_page' => 1,
         ) );
-        
+
         $last_post_text = 'Aún no has publicado ningún artículo.';
         if ( $last_post_query->have_posts() ) {
             $last_post_query->the_post();
@@ -2624,15 +2598,15 @@ function pro_render_dashboard_actividad_autores_widget() {
             $last_post_text = '<strong><a href="' . esc_url( get_permalink() ) . '" target="_blank">' . esc_html( get_the_title() ) . '</a></strong><br/><span style="color:#64748b; font-size:11px;">Publicado ' . esc_html( pro_get_human_time_diff( $post_time ) ) . '</span>';
         }
         wp_reset_postdata();
-        
+
         $today = current_time( 'Y-m-d' );
         $first_login_time = 'Sin registro';
         if ( ! empty( $first_login ) && substr( $first_login, 0, 10 ) === $today ) {
             $first_login_time = date_i18n( 'g:i a', strtotime( $first_login ) );
         }
-        
+
         $last_login_formatted = ! empty( $last_login ) ? date_i18n( 'g:i a', strtotime( $last_login ) ) : 'Sin registro';
-        
+
         echo '<div class="pro-author-personal-card">';
         echo '<div class="pro-author-card-header">';
         echo get_avatar( $current_user->ID, 48 );
@@ -2641,7 +2615,7 @@ function pro_render_dashboard_actividad_autores_widget() {
         echo '<span class="pro-role-pill autor" style="margin-top:4px; display:inline-block;">Autor (Redacción)</span>';
         echo '</div>';
         echo '</div>';
-        
+
         echo '<div class="pro-author-stats-grid">';
         echo '<div class="pro-author-stat-item">';
         echo '<div class="pro-stat-icon" style="background:rgba(59, 130, 246, 0.1); color:#3b82f6;"><span class="dashicons dashicons-clock"></span></div>';
@@ -2652,7 +2626,7 @@ function pro_render_dashboard_actividad_autores_widget() {
         echo '<div><span class="pro-stat-label">Última Sesión</span><span class="pro-stat-value">' . esc_html( $last_login_formatted ) . '</span></div>';
         echo '</div>';
         echo '</div>';
-        
+
         echo '<div class="pro-author-last-publication">';
         echo '<h4 style="margin-top:0; margin-bottom:8px; font-weight:700; color:#1e293b; font-size:13px; display:flex; align-items:center; gap:6px;"><span class="dashicons dashicons-admin-post" style="color:#64748b;"></span> Tu Última Publicación:</h4>';
         echo '<p style="margin:0; line-height:1.5;">' . $last_post_text . '</p>';
@@ -2667,23 +2641,23 @@ function pro_render_dashboard_actividad_autores_widget() {
  */
 function pro_ajax_add_client() {
     check_ajax_referer( 'pro_client_manager_nonce', 'nonce' );
-    
+
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_send_json_error( array( 'message' => 'Acceso denegado: No tienes privilegios administrativos.' ) );
     }
-    
+
     $name = isset( $_POST['name'] ) ? sanitize_text_field( $_POST['name'] ) : '';
     $plan = isset( $_POST['plan'] ) ? sanitize_text_field( $_POST['plan'] ) : '';
     $cost = isset( $_POST['cost'] ) ? sanitize_text_field( $_POST['cost'] ) : '';
     $cutoff = isset( $_POST['cutoff'] ) ? sanitize_text_field( $_POST['cutoff'] ) : '';
     $paid = isset( $_POST['paid'] ) && $_POST['paid'] === 'true' ? 'paid' : 'pending';
-    
+
     if ( empty( $name ) || empty( $cutoff ) ) {
         wp_send_json_error( array( 'message' => 'Por favor completa el nombre del cliente y la fecha de corte.' ) );
     }
-    
+
     $clients = get_option( 'pro_active_clients', array() );
-    
+
     // Obtener ID correlativo más alto
     $max_id = 0;
     foreach ( $clients as $c ) {
@@ -2692,7 +2666,7 @@ function pro_ajax_add_client() {
         }
     }
     $new_id = $max_id + 1;
-    
+
     $new_client = array(
         'id'      => $new_id,
         'name'    => $name,
@@ -2701,14 +2675,14 @@ function pro_ajax_add_client() {
         'status'  => $paid,
         'cut_off' => $cutoff
     );
-    
+
     $clients[] = $new_client;
     update_option( 'pro_active_clients', $clients );
-    
+
     $cutoff_formatted = date_i18n( 'j \d\e F, Y', strtotime( $cutoff ) );
     $status_class = ( $paid === 'paid' ) ? 'paid' : 'pending';
     $status_label = ( $paid === 'paid' ) ? 'PAGADO' : 'PENDIENTE';
-    
+
     wp_send_json_success( array(
         'client' => $new_client,
         'html'   => '<tr id="pro-client-row-' . esc_attr( $new_id ) . '"><td><strong>' . esc_html( $name ) . '</strong><br/><span style="color:#94a3b8; font-size:10px;">' . esc_html( $cost ) . '</span></td><td>' . esc_html( $plan ) . '</td><td>' . esc_html( $cutoff_formatted ) . '</td><td><span class="pro-client-status-badge ' . esc_attr( $status_class ) . '">' . esc_html( $status_label ) . '</span></td><td style="text-align: center;"><button type="button" class="pro-btn-delete-client" data-id="' . esc_attr( $new_id ) . '" title="Eliminar Cliente"><span class="dashicons dashicons-trash"></span></button></td></tr>'
@@ -2718,25 +2692,25 @@ add_action( 'wp_ajax_pro_add_client', 'pro_ajax_add_client' );
 
 function pro_ajax_delete_client() {
     check_ajax_referer( 'pro_client_manager_nonce', 'nonce' );
-    
+
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_send_json_error( array( 'message' => 'Acceso denegado: No tienes privilegios administrativos.' ) );
     }
-    
+
     $client_id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
     if ( ! $client_id ) {
         wp_send_json_error( array( 'message' => 'Identificador de cliente no válido.' ) );
     }
-    
+
     $clients = get_option( 'pro_active_clients', array() );
     $filtered_clients = array();
-    
+
     foreach ( $clients as $c ) {
         if ( isset( $c['id'] ) && $c['id'] !== $client_id ) {
             $filtered_clients[] = $c;
         }
     }
-    
+
     update_option( 'pro_active_clients', $filtered_clients );
     wp_send_json_success( array( 'message' => 'Cliente eliminado correctamente.' ) );
 }
@@ -2775,7 +2749,7 @@ function pro_dashboard_widgets_styles() {
             margin: 0;
             font-size: 13px;
         }
-        
+
         /* Widget Portada */
         .pro-portada-preview-container {
             position: relative;
@@ -2833,7 +2807,7 @@ function pro_dashboard_widgets_styles() {
             font-size: 10px;
             color: #475569;
         }
-        
+
         /* Widget Clientes */
         .pro-clients-table th {
             font-weight: 700 !important;
@@ -2878,7 +2852,7 @@ function pro_dashboard_widgets_styles() {
             margin-top: 12px;
             text-align: right;
         }
-        
+
         /* Widget Leads */
         .pro-leads-feed {
             margin: 0;
@@ -2930,7 +2904,7 @@ function pro_dashboard_widgets_styles() {
             color: #475569;
             line-height: 1.4;
         }
-        
+
         /* Widget Publicaciones */
         .pro-posts-feed {
             margin: 0;
@@ -2989,7 +2963,7 @@ function pro_dashboard_widgets_styles() {
             background: rgba(59, 130, 246, 0.08);
             color: #3b82f6;
         }
-        
+
         /* Widget Actividad */
         .pro-activity-table th {
             font-weight: 700 !important;
@@ -3026,7 +3000,7 @@ function pro_dashboard_widgets_styles() {
             background: rgba(6, 95, 70, 0.08);
             color: #065f46;
         }
-        
+
         /* Ficha Autor Personal */
         .pro-author-card-header {
             display: flex;
@@ -3088,7 +3062,7 @@ function pro_dashboard_widgets_styles() {
             border-radius: 6px;
             padding: 10px 12px;
         }
-        
+
         .pro-widget-actions {
             border-top: 1px solid #f1f5f9;
             padding-top: 12px;
@@ -3109,7 +3083,7 @@ function pro_dashboard_widgets_scripts() {
     if ( 'index.php' !== $pagenow ) {
         return;
     }
-    
+
     $nonce = wp_create_nonce( 'pro_client_manager_nonce' );
     ?>
     <script type="text/javascript">
@@ -3118,11 +3092,11 @@ function pro_dashboard_widgets_scripts() {
             $('#pro-toggle-add-client-form').on('click', function() {
                 $('#pro-add-client-form-container').slideToggle(200);
             });
-            
+
             $('#pro-cancel-client-btn').on('click', function() {
                 $('#pro-add-client-form-container').slideUp(200);
             });
-            
+
             // Agregar cliente AJAX
             $('#pro-submit-client-btn').on('click', function() {
                 var name = $('#pro-new-client-name').val();
@@ -3130,15 +3104,15 @@ function pro_dashboard_widgets_scripts() {
                 var cost = $('#pro-new-client-cost').val();
                 var cutoff = $('#pro-new-client-cutoff').val();
                 var paid = $('#pro-new-client-paid').is(':checked');
-                
+
                 if (!name || !cutoff) {
                     alert('Por favor, ingresa el nombre del cliente y la fecha de corte.');
                     return;
                 }
-                
+
                 var btn = $(this);
                 btn.prop('disabled', true).text('Guardando...');
-                
+
                 $.ajax({
                     url: ajaxurl,
                     type: 'POST',
@@ -3167,18 +3141,18 @@ function pro_dashboard_widgets_scripts() {
                     }
                 });
             });
-            
+
             // Eliminar cliente AJAX
             $(document).on('click', '.pro-btn-delete-client', function() {
                 var btn = $(this);
                 var clientId = btn.data('id');
-                
+
                 if (!confirm('¿Estás seguro de que deseas eliminar este cliente?')) {
                     return;
                 }
-                
+
                 btn.prop('disabled', true).html('<span class="dashicons dashicons-update" style="animation: spin 1s infinite linear; font-size:14px; width:14px; height:14px; margin-top:-1px;"></span>');
-                
+
                 $.ajax({
                     url: ajaxurl,
                     type: 'POST',
@@ -3227,6 +3201,9 @@ add_action( 'admin_footer', 'pro_dashboard_widgets_scripts' );
  * Si el campo de firma está vacío, bloquea la acción, muestra una alerta premium y enfoca el campo de firma.
  */
 function pro_firma_validation_admin_footer_scripts() {
+    if ( pro_firma_admin_exempt() ) {
+        return;
+    }
     global $pagenow;
     if ( ! in_array( $pagenow, array( 'post.php', 'post-new.php' ), true ) ) {
         return;
@@ -3260,16 +3237,16 @@ function pro_firma_validation_admin_footer_scripts() {
                 if (!signature || signature.trim() === '') {
                     e.preventDefault();
                     e.stopPropagation();
-                    
+
                     alert('⚠️ ERROR DE PUBLICACIÓN:\n\nEs obligatorio firmar la publicación para poder hacerla pública.\n\nPor favor, escribe tu nombre en la caja "Firma" antes de continuar.');
-                    
+
                     // Resaltar visualmente el campo de firma vacío
                     $('#pro_firma_autor_field').focus().css({
                         'border': '2px solid #ef4444',
                         'background-color': '#fff5f5',
                         'box-shadow': '0 0 5px rgba(239, 68, 68, 0.5)'
                     });
-                    
+
                     // Hacer scroll hacia el metabox de firma para que el usuario lo vea
                     var $metabox = $('#pro_firma_autor_metabox');
                     if ($metabox.length) {
@@ -3277,19 +3254,10 @@ function pro_firma_validation_admin_footer_scripts() {
                             scrollTop: $metabox.offset().top - 120
                         }, 300);
                     }
-                    
+
                     return false;
                 }
             });
-
-            // C. Editor de bloques: copiar la firma a la meta REST de la entrada para
-            // que viaje en la misma petición de publicación (las metaboxes se
-            // guardan después y el servidor no la veía a tiempo).
-            if ( window.wp && wp.data && wp.data.select( 'core/editor' ) ) {
-                $(document).on('input change', '#pro_firma_autor_field', function() {
-                    wp.data.dispatch( 'core/editor' ).editPost( { meta: { _pro_firma_autor: this.value } } );
-                });
-            }
         });
     </script>
     <?php
@@ -3297,105 +3265,100 @@ function pro_firma_validation_admin_footer_scripts() {
 add_action( 'admin_footer', 'pro_firma_validation_admin_footer_scripts' );
 
 /**
- * 2. FIRMA VISIBLE PARA EL EDITOR DE BLOQUES (REST):
- * Gutenberg guarda la entrada por REST y las metaboxes clásicas en una segunda
- * petición posterior, así que al publicar el servidor todavía no veía la firma
- * recién escrita. Registrar la meta en REST permite que viaje en la misma
- * petición de publicación (el script del punto 1 la sincroniza).
- */
-function pro_register_firma_meta() {
-    register_post_meta( 'post', '_pro_firma_autor', array(
-        'type'              => 'string',
-        'single'            => true,
-        'show_in_rest'      => true,
-        'sanitize_callback' => 'sanitize_text_field',
-        'auth_callback'     => static function ( $allowed, $meta_key, $post_id ) {
-            return current_user_can( 'edit_post', $post_id );
-        },
-    ) );
-}
-add_action( 'init', 'pro_register_firma_meta' );
-
-/**
- * Firma recibida por REST en la petición en curso (null si no llegó ninguna).
- *
- * @param string|null $value Valor a recordar; se omite para solo leer.
- * @return string|null
- */
-function pro_rest_firma( $value = null ) {
-    static $firma = null;
-    if ( null !== $value ) {
-        $firma = $value;
-    }
-    return $firma;
-}
-
-add_filter( 'rest_pre_insert_post', function ( $prepared_post, $request ) {
-    // Se reinicia en cada inserción para que un lote REST no herede la firma de otra entrada
-    $meta = $request->get_param( 'meta' );
-    pro_rest_firma( is_array( $meta ) && isset( $meta['_pro_firma_autor'] ) ? sanitize_text_field( (string) $meta['_pro_firma_autor'] ) : '' );
-    return $prepared_post;
-}, 10, 2 );
-
-/**
- * 3. VALIDADOR BACK-END (PHP - Red de Seguridad):
- * Si se intenta PASAR a publicado/programado un post sin firma, se mantiene
- * como borrador (o pendiente) y se crea un transitorio de error.
- *
- * Auditoría fix: antes se evaluaba en CUALQUIER guardado de un post publicado
- * (edición rápida, edición masiva, REST, Ctrl+S en el editor, plugins que
- * llaman a wp_update_post). Las entradas antiguas sin meta de firma pasaban a
- * Borrador y desaparecían del inicio y de las categorías "al azar". Una entrada
- * que ya está publicada o programada nunca se despublica desde aquí.
+ * 2. VALIDADOR BACK-END (PHP - Red de Seguridad Nuclear):
+ * Intercepta el guardado en la base de datos. Si se intenta publicar/programar un post
+ * sin firma, revierte su estado automáticamente a Borrador y crea un transitorio de error.
  */
 function pro_enforce_firma_on_publish( $data, $postarr ) {
-    if ( 'post' !== $data['post_type'] || ! in_array( $data['post_status'], array( 'publish', 'future' ), true ) ) {
+    if ( pro_firma_admin_exempt() ) {
+        return $data;
+    }
+    // En la API REST (editor de bloques) la firma se guarda DESPUÉS de este filtro;
+    // allí la valida pro_rest_enforce_firma() con el valor que llega en la petición.
+    if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+        return $data;
+    }
+    // Aplicar únicamente al post_type 'post'
+    if ( $data['post_type'] !== 'post' ) {
         return $data;
     }
 
-    $post_id        = ! empty( $postarr['ID'] ) ? (int) $postarr['ID'] : 0;
-    $current_status = $post_id ? get_post_status( $post_id ) : false;
+    // Comprobar si el estado destino es público ('publish') o programado ('future')
+    if ( in_array( $data['post_status'], array( 'publish', 'future' ), true ) ) {
+        $post_id = isset( $postarr['ID'] ) ? $postarr['ID'] : 0;
+        $firma = '';
 
-    if ( in_array( $current_status, array( 'publish', 'future' ), true ) ) {
-        return $data;
+        // 1. Buscar firma en la petición POST clásica
+        if ( isset( $_POST['pro_firma_autor_field'] ) ) {
+            $firma = sanitize_text_field( $_POST['pro_firma_autor_field'] );
+        }
+        // 2. Si no viene en $_POST (REST API / Gutenberg), consultar meta actual guardado
+        elseif ( $post_id ) {
+            $firma = get_post_meta( $post_id, '_pro_firma_autor', true );
+        }
+
+        // 3. Soporte adicional para peticiones crudas REST de metadatos
+        if ( empty( $firma ) && isset( $_POST['meta']['_pro_firma_autor'] ) ) {
+            $firma = sanitize_text_field( $_POST['meta']['_pro_firma_autor'] );
+        }
+
+        // Si la firma está completamente vacía
+        if ( empty( trim( $firma ) ) ) {
+            // Revertir el estado destino al estado previo (borrador o pendiente)
+            $original_status = isset( $postarr['original_post_status'] ) ? $postarr['original_post_status'] : 'draft';
+            $data['post_status'] = in_array( $original_status, array( 'draft', 'pending' ) ) ? $original_status : 'draft';
+
+            // Sembrar transitorio temporal para gatillar el aviso de error en la recarga del administrador
+            if ( $post_id ) {
+                set_transient( 'pro_firma_error_notice_' . $post_id, true, 45 );
+            }
+        }
     }
-
-    // 1. Metabox clásica (editor clásico o guardado de metaboxes de Gutenberg)
-    $firma = isset( $_POST['pro_firma_autor_field'] ) ? sanitize_text_field( wp_unslash( $_POST['pro_firma_autor_field'] ) ) : '';
-
-    // 2. Meta enviada por REST en esta misma petición (editor de bloques)
-    if ( '' === trim( $firma ) && null !== pro_rest_firma() ) {
-        $firma = pro_rest_firma();
-    }
-
-    // 3. Inserciones programáticas con meta_input
-    if ( '' === trim( $firma ) && ! empty( $postarr['meta_input']['_pro_firma_autor'] ) ) {
-        $firma = sanitize_text_field( (string) $postarr['meta_input']['_pro_firma_autor'] );
-    }
-
-    // 4. Firma ya guardada
-    if ( '' === trim( $firma ) && $post_id ) {
-        $firma = (string) get_post_meta( $post_id, '_pro_firma_autor', true );
-    }
-
-    if ( '' !== trim( $firma ) ) {
-        return $data;
-    }
-
-    // Sin firma: conservar el estado previo no público (borrador o pendiente)
-    $data['post_status'] = in_array( $current_status, array( 'draft', 'pending' ), true ) ? $current_status : 'draft';
-
-    // Sembrar transitorio temporal para gatillar el aviso de error en la recarga del administrador
-    if ( $post_id ) {
-        set_transient( 'pro_firma_error_notice_' . $post_id, true, 45 );
-    }
-
     return $data;
 }
 add_filter( 'wp_insert_post_data', 'pro_enforce_firma_on_publish', 10, 2 );
 
 /**
- * 4. AVISO ADMINISTRATIVO DE ERROR (PHP):
+ * Validación de la firma en el editor de bloques (REST).
+ * Usa la firma que llega en la propia petición (o la ya guardada) y, si falta,
+ * rechaza la publicación con un mensaje visible en el editor en vez de
+ * devolver la entrada a borrador en silencio.
+ */
+function pro_rest_enforce_firma( $prepared_post, WP_REST_Request $request ) {
+    if (
+        is_wp_error( $prepared_post )
+        || pro_firma_admin_exempt()
+        || false !== strpos( $request->get_route(), '/autosaves' )
+    ) {
+        return $prepared_post;
+    }
+
+    $existing = ! empty( $prepared_post->ID ) ? get_post( $prepared_post->ID ) : null;
+    $status   = $prepared_post->post_status ?? ( $existing ? $existing->post_status : 'draft' );
+
+    if ( ! in_array( $status, array( 'publish', 'future' ), true ) ) {
+        return $prepared_post;
+    }
+
+    $meta  = $request->get_param( 'meta' );
+    $firma = ( is_array( $meta ) && isset( $meta['_pro_firma_autor'] ) )
+        ? (string) $meta['_pro_firma_autor']
+        : ( $existing ? (string) get_post_meta( $existing->ID, '_pro_firma_autor', true ) : '' );
+
+    if ( '' !== trim( $firma ) ) {
+        return $prepared_post;
+    }
+
+    return new WP_Error(
+        'pro_firma_obligatoria',
+        'No se pudo publicar: es obligatorio firmar la publicación. Escribe tu nombre en la caja «Firma» y vuelve a pulsar Publicar.',
+        array( 'status' => 400 )
+    );
+}
+add_filter( 'rest_pre_insert_post', 'pro_rest_enforce_firma', 10, 2 );
+
+/**
+ * 3. AVISO ADMINISTRATIVO DE ERROR (PHP):
  * Si se activó la red de seguridad del back-end, despliega una alerta roja premium y explicativa en la pantalla de edición.
  */
 function pro_firma_error_admin_notices() {
@@ -3403,7 +3366,7 @@ function pro_firma_error_admin_notices() {
     if ( ! in_array( $pagenow, array( 'post.php', 'post-new.php' ), true ) ) {
         return;
     }
-    
+
     $post_id = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0;
     if ( ! $post_id ) {
         return;
@@ -3415,7 +3378,7 @@ function pro_firma_error_admin_notices() {
         <div class="notice notice-error is-dismissible" style="border-left-color: #ef4444; border-left-width: 4px; background-color: #fffbfa; padding: 12px 18px; margin: 20px 0 10px 0; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
             <p style="font-size: 13px; line-height: 1.6; color: #1e293b; margin: 0; padding: 0;">
                 <strong style="color: #ef4444; font-size: 15px; display: block; margin-bottom: 5px; font-weight: 700;">⚠️ Entrada no Publicada - Falta Firma Obligatoria</strong>
-                Es **estrictamente obligatorio** firmar la publicación con tu nombre de autor para poder hacerla pública en el portal. 
+                Es **estrictamente obligatorio** firmar la publicación con tu nombre de autor para poder hacerla pública en el portal.
                 El estado de esta entrada ha sido **revertido automáticamente a Borrador**.
                 <br/><br/>
                 Por favor, escribe tu nombre en el casillero **Firma** (ubicado en la barra lateral derecha o inferior) y vuelve a intentar la publicación.
@@ -3472,16 +3435,26 @@ function pro_apply_user_updates() {
         return;
     }
 
+    // Una sola petición a la vez; si otra ya lo terminó, no repetir.
+    if ( ! pro_install_lock_acquire() ) {
+        return;
+    }
+    if ( pro_install_already_done( 'pro_user_updates_applied_v2' ) ) {
+        pro_install_lock_release();
+        return;
+    }
+
     // 1. Crear o asegurar Categoría "Seguridad"
     if ( ! term_exists( 'Seguridad', 'category' ) ) {
         wp_insert_term( 'Seguridad', 'category' );
     }
 
     // 2. Crear o asegurar Página "Seguridad"
-    $seguridad_page = get_page_by_title( 'Seguridad' );
+    $seguridad_page = pro_find_page( 'Seguridad' );
     if ( ! $seguridad_page ) {
         $seguridad_page_id = wp_insert_post( array(
             'post_title'     => 'Seguridad',
+            'post_name'      => 'seguridad',
             'post_type'      => 'page',
             'post_status'    => 'publish',
             'post_author'    => 1,
@@ -3503,11 +3476,11 @@ function pro_apply_user_updates() {
     // 4. Actualizar el menú "Menú Principal Nuclear"
     $menu_name = 'Menú Principal Nuclear';
     $menu_exists = wp_get_nav_menu_object( $menu_name );
-    
+
     if ( $menu_exists && $seguridad_page ) {
         $menu_id = $menu_exists->term_id;
         $menu_items = wp_get_nav_menu_items( $menu_id );
-        
+
         $deportes_menu_item_id = 0;
         $has_seguridad = false;
         $has_zona_deportiva = false;
@@ -3555,115 +3528,53 @@ function pro_apply_user_updates() {
     }
 
     update_option( 'pro_user_updates_applied_v2', true );
+    pro_install_lock_release();
 }
 add_action( 'admin_init', 'pro_apply_user_updates' );
 
 
 
-// ==========================================
-
 // =============================================================================
-// CODIFICACIÓN: ACENTOS Y Ñ ("mojibake")
-// Texto UTF-8 que en algún momento se leyó como Windows-1252 y se volvió a
-// guardar: "Política" → "PolÃ­tica", "ESPAÑA" → "ESPAÃ‘A", "–" → "â€“".
-//
-// Auditoría fix: la reparación anterior (pro_fix_corrupted_terms) convertía a
-// ISO-8859-1, que no tiene los caracteres de Windows-1252; justo la Ñ, las
-// mayúsculas acentuadas (Ó, Ú, É) y las comillas/guiones tipográficos quedaban
-// convertidos en "?" o en UTF-8 inválido. Además solo revisaba categorías y
-// etiquetas, no títulos de páginas, menús ni contenido.
+// REPARACIÓN DE TEXTO CORRUPTO Y PÁGINAS DUPLICADAS EN LA BASE DE DATOS
+// functions.php estuvo guardado con doble codificación ("EconomÃ­a" en vez de
+// "Economía"). Los instaladores crearon páginas, categorías y menús con esos
+// nombres y, al no reconocer las páginas correctas, las duplicaron.
+// Sustituye a pro_fix_corrupted_terms(), que buscaba una secuencia equivocada.
 // =============================================================================
 
 /**
- * Repara secuencias de mojibake UTF-8/Windows-1252 dentro de un texto.
- *
- * Solo sustituye secuencias inequívocas ("Ã" o "Â" + carácter de continuación,
- * "â€" + carácter) cuyo resultado sea un carácter del español o puntuación
- * tipográfica; el resto del texto queda intacto.
+ * Corrige texto UTF-8 doblemente codificado (leído como Windows-1252).
+ * Solo convierte secuencias típicas de esa corrupción (Ã³, Ã­, Â¿, â€”, ðŸ...),
+ * así que no altera texto correcto con tildes o eñes.
  */
-function pro_repair_mojibake( $text ) {
-    if ( ! is_string( $text ) || '' === $text ) {
+function pro_fix_mojibake( $text ) {
+    if ( ! is_string( $text ) || ! preg_match( '/[\x{00C2}\x{00C3}\x{00E2}\x{00EF}\x{00F0}]/u', $text ) ) {
         return $text;
-    }
-    // Vía rápida: "Ã", "Â" y "â" (C3 83, C3 82, C3 A2) casi nunca aparecen en español
-    if ( false === strpos( $text, "\xC3\x83" ) && false === strpos( $text, "\xC3\x82" ) && false === strpos( $text, "\xC3\xA2" ) ) {
-        return $text;
-    }
-    if ( ! preg_match( '//u', $text ) ) {
-        return $text; // UTF-8 inválido: mejor no tocar
     }
 
-    // Caracteres de Windows-1252 en el rango 0x80-0x9F => byte original
+    // Caracteres de Windows-1252 en el rango 0x80-0x9F => byte original.
     static $cp1252 = array(
-        "\u{20AC}" => 0x80, "\u{201A}" => 0x82, "\u{0192}" => 0x83, "\u{201E}" => 0x84, "\u{2026}" => 0x85,
-        "\u{2020}" => 0x86, "\u{2021}" => 0x87, "\u{02C6}" => 0x88, "\u{2030}" => 0x89, "\u{0160}" => 0x8A,
-        "\u{2039}" => 0x8B, "\u{0152}" => 0x8C, "\u{017D}" => 0x8E, "\u{2018}" => 0x91, "\u{2019}" => 0x92,
-        "\u{201C}" => 0x93, "\u{201D}" => 0x94, "\u{2022}" => 0x95, "\u{2013}" => 0x96, "\u{2014}" => 0x97,
-        "\u{02DC}" => 0x98, "\u{2122}" => 0x99, "\u{0161}" => 0x9A, "\u{203A}" => 0x9B, "\u{0153}" => 0x9C,
-        "\u{017E}" => 0x9E, "\u{0178}" => 0x9F,
+        0x20AC => 0x80, 0x201A => 0x82, 0x0192 => 0x83, 0x201E => 0x84, 0x2026 => 0x85,
+        0x2020 => 0x86, 0x2021 => 0x87, 0x02C6 => 0x88, 0x2030 => 0x89, 0x0160 => 0x8A,
+        0x2039 => 0x8B, 0x0152 => 0x8C, 0x017D => 0x8E, 0x2018 => 0x91, 0x2019 => 0x92,
+        0x201C => 0x93, 0x201D => 0x94, 0x2022 => 0x95, 0x2013 => 0x96, 0x2014 => 0x97,
+        0x02DC => 0x98, 0x2122 => 0x99, 0x0161 => 0x9A, 0x203A => 0x9B, 0x0153 => 0x9C,
+        0x017E => 0x9E, 0x0178 => 0x9F,
     );
+    $cont    = '[\x{0080}-\x{00BF}\x{20AC}\x{201A}\x{0192}\x{201E}\x{2026}\x{2020}\x{2021}\x{02C6}\x{2030}\x{0160}\x{2039}\x{0152}\x{017D}\x{2018}\x{2019}\x{201C}\x{201D}\x{2022}\x{2013}\x{2014}\x{02DC}\x{2122}\x{0161}\x{203A}\x{0153}\x{017E}\x{0178}]';
+    $pattern = '/[\x{00C2}\x{00C3}]' . $cont . '|[\x{00E2}\x{00EF}]' . $cont . '{2}|\x{00F0}' . $cont . '{3}/u';
 
-    $specials     = '\x{20AC}\x{201A}\x{0192}\x{201E}\x{2026}\x{2020}\x{2021}\x{02C6}\x{2030}\x{0160}\x{2039}\x{0152}\x{017D}\x{2018}\x{2019}\x{201C}\x{201D}\x{2022}\x{2013}\x{2014}\x{02DC}\x{2122}\x{0161}\x{203A}\x{0153}\x{017E}\x{0178}';
-    $continuation = '[\x{0080}-\x{00BF}' . $specials . ']';
-    // Secuencia corrupta mínima: "Ã"/"Â" + continuación, o "â" + dos continuaciones
-    $sequence = '/[\x{00C2}\x{00C3}]' . $continuation . '|\x{00E2}' . $continuation . '{2}/u';
-    // Tramo de caracteres que Windows-1252 puede devolver a bytes
-    $run = '/[\x{0080}-\x{00FF}' . $specials . ']{2,}/u';
-
-    // Texto de Windows-1252 => bytes originales (null si algún carácter no pertenece)
-    $to_bytes = static function ( $chars ) use ( $cp1252 ) {
-        $bytes = '';
-        foreach ( mb_str_split( $chars, 1, 'UTF-8' ) as $char ) {
-            $code = mb_ord( $char, 'UTF-8' );
-            if ( $code >= 0x80 && $code <= 0xFF ) {
-                $bytes .= chr( $code );
-            } elseif ( isset( $cp1252[ $char ] ) ) {
-                $bytes .= chr( $cp1252[ $char ] );
-            } else {
-                return null;
+    // Hasta 3 pasadas por si el texto se corrompió más de una vez.
+    for ( $i = 0; $i < 3; $i++ ) {
+        $fixed = preg_replace_callback( $pattern, function ( $m ) use ( $cp1252 ) {
+            $bytes = '';
+            foreach ( mb_str_split( $m[0], 1, 'UTF-8' ) as $char ) {
+                $code   = mb_ord( $char, 'UTF-8' );
+                $bytes .= chr( $code <= 0xFF ? $code : $cp1252[ $code ] );
             }
-        }
-        return $bytes;
-    };
+            return mb_check_encoding( $bytes, 'UTF-8' ) ? $bytes : $m[0];
+        }, $text );
 
-    // Letras acentuadas, ñ, ¿, ¡, º... y puntuación tipográfica (– — ‘ ’ “ ” … €)
-    $is_spanish = static function ( $code ) {
-        return ( $code >= 0xA0 && $code <= 0xFF )
-            || ( $code >= 0x2010 && $code <= 0x2027 )
-            || in_array( $code, array( 0x2030, 0x2039, 0x203A, 0x20AC, 0x2122 ), true );
-    };
-
-    // Solo decodifica si el resultado son caracteres válidos (o, en corrupciones
-    // dobles, el paso intermedio que se resolverá en la siguiente pasada)
-    $decode = static function ( $chars ) use ( $to_bytes, $is_spanish, $cp1252 ) {
-        $bytes = $to_bytes( $chars );
-        if ( null === $bytes || ! mb_check_encoding( $bytes, 'UTF-8' ) ) {
-            return null;
-        }
-        foreach ( mb_str_split( $bytes, 1, 'UTF-8' ) as $char ) {
-            $code = mb_ord( $char, 'UTF-8' );
-            if ( ! $is_spanish( $code ) && ! isset( $cp1252[ $char ] ) && ! ( $code >= 0x80 && $code <= 0x9F ) ) {
-                return null;
-            }
-        }
-        return $bytes;
-    };
-
-    $repair_run = static function ( $match ) use ( $decode, $sequence ) {
-        // Tramo completo (resuelve corrupciones dobles: "Ã¢â‚¬Å“" → "â€œ" → "“")
-        $whole = $decode( $match[0] );
-        if ( null !== $whole ) {
-            return $whole;
-        }
-        // Tramo mixto (p. ej. corrupto junto a una letra acentuada correcta): secuencia a secuencia
-        return preg_replace_callback( $sequence, static function ( $seq ) use ( $decode ) {
-            $fixed = $decode( $seq[0] );
-            return null === $fixed ? $seq[0] : $fixed;
-        }, $match[0] );
-    };
-
-    for ( $pass = 0; $pass < 3; $pass++ ) {
-        $fixed = preg_replace_callback( $run, $repair_run, $text );
         if ( null === $fixed || $fixed === $text ) {
             break;
         }
@@ -3674,151 +3585,259 @@ function pro_repair_mojibake( $text ) {
 }
 
 /**
- * Protección al guardar: entradas y términos nuevos se guardan ya reparados
- * (p. ej. texto pegado desde una fuente con la codificación dañada).
+ * Re-apunta los elementos de menú que enlazan a $from_id ($object = 'page', 'category'...)
+ * para que enlacen a $to_id. Si ese menú ya tiene un elemento hacia $to_id, el
+ * duplicado se elimina y sus subelementos pasan a colgar del elemento existente.
  */
-add_filter( 'wp_insert_post_data', function ( $data ) {
-    foreach ( array( 'post_title', 'post_content', 'post_excerpt' ) as $field ) {
-        if ( isset( $data[ $field ] ) ) {
-            $data[ $field ] = pro_repair_mojibake( $data[ $field ] );
+function pro_repoint_menu_items( $object, $from_id, $to_id ) {
+    $item_ids = get_posts( array(
+        'post_type'   => 'nav_menu_item',
+        'post_status' => 'any',
+        'numberposts' => -1,
+        'fields'      => 'ids',
+        'meta_query'  => array(
+            array( 'key' => '_menu_item_object', 'value' => $object ),
+            array( 'key' => '_menu_item_object_id', 'value' => (string) $from_id ),
+        ),
+    ) );
+
+    foreach ( $item_ids as $item_id ) {
+        $existing = 0;
+        $menu_ids = wp_get_object_terms( $item_id, 'nav_menu', array( 'fields' => 'ids' ) );
+        if ( ! is_wp_error( $menu_ids ) && ! empty( $menu_ids ) ) {
+            foreach ( (array) get_objects_in_term( (int) $menu_ids[0], 'nav_menu' ) as $sibling_id ) {
+                if ( (int) $sibling_id !== (int) $item_id
+                    && get_post_meta( $sibling_id, '_menu_item_object', true ) === $object
+                    && (int) get_post_meta( $sibling_id, '_menu_item_object_id', true ) === (int) $to_id ) {
+                    $existing = (int) $sibling_id;
+                    break;
+                }
+            }
+        }
+
+        if ( $existing ) {
+            $children = get_posts( array(
+                'post_type'   => 'nav_menu_item',
+                'post_status' => 'any',
+                'numberposts' => -1,
+                'fields'      => 'ids',
+                'meta_key'    => '_menu_item_menu_item_parent',
+                'meta_value'  => (string) $item_id,
+            ) );
+            foreach ( $children as $child_id ) {
+                update_post_meta( $child_id, '_menu_item_menu_item_parent', (string) $existing );
+            }
+            wp_delete_post( $item_id, true );
+        } else {
+            update_post_meta( $item_id, '_menu_item_object_id', (string) $to_id );
         }
     }
-    return $data;
-}, 5 );
-
-add_filter( 'pre_insert_term', function ( $term ) {
-    return is_string( $term ) ? pro_repair_mojibake( $term ) : $term;
-}, 5 );
-
-add_filter( 'wp_update_term_data', function ( $data ) {
-    if ( isset( $data['name'] ) ) {
-        $data['name'] = pro_repair_mojibake( $data['name'] );
-    }
-    return $data;
-}, 5 );
+}
 
 /**
- * Migración: repara el texto ya guardado (categorías, etiquetas, menús, títulos
- * de páginas y entradas, contenido, extractos, firmas y datos SEO).
- *
- * Se ejecuta por lotes en el escritorio de un administrador hasta terminar.
- * Escribe directamente en la base de datos para no disparar hooks de guardado
- * (revisiones, validaciones, fechas de modificación). No cambia slugs ni URLs.
+ * Reparación única (v1) de la base de datos:
+ *  1. Términos con nombre corrupto (categorías, menús...): se corrige el nombre y,
+ *     si el slug salió del nombre corrupto, también el slug. Si ya existe el término
+ *     correcto con el mismo padre, se fusionan (entradas, subcategorías y menús).
+ *  2. Páginas duplicadas (mismo título y mismo padre): se conserva una y las copias
+ *     VACÍAS van a la papelera (recuperables 30 días); los menús se re-apuntan.
+ *  3. Títulos corruptos de páginas y elementos de menú: se corrigen.
  */
-function pro_repair_stored_mojibake() {
-    if ( get_option( 'pro_mojibake_repaired_v2' ) || ! current_user_can( 'manage_options' ) || wp_doing_ajax() ) {
+function pro_repair_encoding_and_duplicates() {
+    $flag = 'pro_encoding_repair_v1';
+    if ( get_option( $flag ) || ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+    if ( ! pro_install_lock_acquire() ) {
+        return;
+    }
+    if ( pro_install_already_done( $flag ) ) {
+        pro_install_lock_release();
         return;
     }
 
     global $wpdb;
-
-    // Filtro SQL rápido por los bytes de "Ã", "Â" y "â€" (C3 83, C3 82, C3 A2 E2 80)
-    $has_marker = static function ( $column ) {
-        return "( HEX({$column}) LIKE '%C383%' OR HEX({$column}) LIKE '%C382%' OR HEX({$column}) LIKE '%C3A2E280%' )";
-    };
-
-    // 1. Términos (nombre y descripción), opciones del sitio y tabla SEO: volumen pequeño
-    if ( ! get_option( 'pro_mojibake_terms_repaired_v2' ) ) {
-        $terms = $wpdb->get_results( "SELECT term_id, name FROM {$wpdb->terms} WHERE " . $has_marker( 'name' ) );
-        foreach ( $terms as $term ) {
-            $name = pro_repair_mojibake( $term->name );
-            if ( $name !== $term->name ) {
-                $wpdb->update( $wpdb->terms, array( 'name' => $name ), array( 'term_id' => $term->term_id ) );
-                clean_term_cache( (int) $term->term_id );
-            }
-        }
-
-        $descriptions = $wpdb->get_results( "SELECT term_taxonomy_id, term_id, description FROM {$wpdb->term_taxonomy} WHERE " . $has_marker( 'description' ) );
-        foreach ( $descriptions as $row ) {
-            $description = pro_repair_mojibake( $row->description );
-            if ( $description !== $row->description ) {
-                $wpdb->update( $wpdb->term_taxonomy, array( 'description' => $description ), array( 'term_taxonomy_id' => $row->term_taxonomy_id ) );
-                clean_term_cache( (int) $row->term_id );
-            }
-        }
-
-        foreach ( array( 'blogname', 'blogdescription', 'ssivo_seo_default_title' ) as $option ) {
-            $value = get_option( $option );
-            if ( is_string( $value ) && pro_repair_mojibake( $value ) !== $value ) {
-                update_option( $option, pro_repair_mojibake( $value ) );
-            }
-        }
-
-        $meta_rows = $wpdb->get_results(
-            "SELECT meta_id, post_id, meta_value FROM {$wpdb->postmeta}
-             WHERE meta_key IN ( '_pro_firma_autor', '_ssivo_seo_custom_title', '_ssivo_seo_custom_desc' ) AND " . $has_marker( 'meta_value' )
-        );
-        foreach ( $meta_rows as $row ) {
-            $value = pro_repair_mojibake( $row->meta_value );
-            if ( $value !== $row->meta_value ) {
-                $wpdb->update( $wpdb->postmeta, array( 'meta_value' => $value ), array( 'meta_id' => $row->meta_id ) );
-                wp_cache_delete( (int) $row->post_id, 'post_meta' );
-            }
-        }
-
-        $seo_table = $wpdb->prefix . 'ssivo_seo_indexable';
-        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $seo_table ) ) === $seo_table ) {
-            $seo_rows = $wpdb->get_results( "SELECT id, meta_title, meta_desc FROM {$seo_table} WHERE " . $has_marker( 'meta_title' ) . ' OR ' . $has_marker( 'meta_desc' ) );
-            foreach ( $seo_rows as $row ) {
-                $wpdb->update(
-                    $seo_table,
-                    array( 'meta_title' => pro_repair_mojibake( $row->meta_title ), 'meta_desc' => pro_repair_mojibake( $row->meta_desc ) ),
-                    array( 'id' => $row->id )
-                );
-            }
-        }
-
-        update_option( 'pro_mojibake_terms_repaired_v2', true, false );
+    if ( function_exists( 'set_time_limit' ) ) {
+        @set_time_limit( 300 );
     }
 
-    // 2. Entradas, páginas, clasificados, carteles, elementos de menú y adjuntos.
-    // Se revisa un tramo de IDs por carga para que, en bases con miles de
-    // noticias, ninguna petición tenga que recorrer la tabla completa.
-    $last_id = (int) get_option( 'pro_mojibake_last_post_id', 0 );
-    $max_id  = (int) $wpdb->get_var( "SELECT MAX(ID) FROM {$wpdb->posts}" );
-    $end_id  = $last_id + 2000;
-    $rows    = $wpdb->get_results( $wpdb->prepare(
-        "SELECT ID, post_title, post_excerpt, post_content FROM {$wpdb->posts}
-         WHERE ID > %d AND ID <= %d AND post_type <> 'revision'
-           AND ( " . $has_marker( 'post_title' ) . ' OR ' . $has_marker( 'post_excerpt' ) . ' OR ' . $has_marker( 'post_content' ) . ' )
-         ORDER BY ID ASC',
-        $last_id,
-        $end_id
+    // --- 1. Términos ---------------------------------------------------------
+    $terms = $wpdb->get_results(
+        "SELECT t.term_id, t.name, t.slug, tt.taxonomy, tt.parent
+         FROM {$wpdb->terms} t
+         INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_id = t.term_id"
+    );
+
+    foreach ( $terms as $row ) {
+        $fixed = pro_fix_mojibake( $row->name );
+        if ( $fixed === $row->name ) {
+            continue;
+        }
+        $term_id  = (int) $row->term_id;
+        $taxonomy = $row->taxonomy;
+
+        // ¿Existe ya el término correcto con el mismo padre? (los menús nunca se fusionan)
+        $target = null;
+        if ( 'nav_menu' !== $taxonomy ) {
+            $candidates = get_terms( array(
+                'taxonomy'   => $taxonomy,
+                'name'       => $fixed,
+                'parent'     => (int) $row->parent,
+                'hide_empty' => false,
+                'exclude'    => array( $term_id ),
+            ) );
+            if ( ! is_wp_error( $candidates ) ) {
+                foreach ( $candidates as $candidate ) {
+                    if ( mb_strtolower( $candidate->name ) === mb_strtolower( $fixed ) ) {
+                        $target = $candidate;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if ( $target ) {
+            foreach ( (array) get_objects_in_term( $term_id, $taxonomy ) as $object_id ) {
+                wp_set_object_terms( (int) $object_id, (int) $target->term_id, $taxonomy, true );
+            }
+            $children = get_terms( array( 'taxonomy' => $taxonomy, 'parent' => $term_id, 'hide_empty' => false ) );
+            if ( ! is_wp_error( $children ) ) {
+                foreach ( $children as $child ) {
+                    wp_update_term( $child->term_id, $taxonomy, array( 'parent' => (int) $target->term_id ) );
+                }
+            }
+            pro_repoint_menu_items( $taxonomy, $term_id, (int) $target->term_id );
+            wp_delete_term( $term_id, $taxonomy );
+            continue;
+        }
+
+        $args = array( 'name' => $fixed );
+        // Corregir el slug solo si se generó automáticamente a partir del nombre corrupto.
+        if ( preg_match( '/^' . preg_quote( sanitize_title( $row->name ), '/' ) . '(-.+)?$/', $row->slug ) ) {
+            $args['slug'] = wp_unique_term_slug( sanitize_title( $fixed ), (object) array(
+                'term_id'  => $term_id,
+                'taxonomy' => $taxonomy,
+                'parent'   => (int) $row->parent,
+            ) );
+        }
+        wp_update_term( $term_id, $taxonomy, $args );
+    }
+
+    // --- 2. Páginas duplicadas ----------------------------------------------
+    $protected_ids = array_filter( array(
+        (int) get_option( 'page_on_front' ),
+        (int) get_option( 'page_for_posts' ),
+        (int) get_option( 'wp_page_for_privacy_policy' ),
     ) );
 
-    foreach ( $rows as $row ) {
-        $changes = array();
-        foreach ( array( 'post_title', 'post_excerpt', 'post_content' ) as $field ) {
-            $repaired = pro_repair_mojibake( $row->$field );
-            if ( $repaired !== $row->$field ) {
-                $changes[ $field ] = $repaired;
-            }
-        }
-        if ( $changes ) {
-            $wpdb->update( $wpdb->posts, $changes, array( 'ID' => $row->ID ) );
-            clean_post_cache( (int) $row->ID );
+    $pages = $wpdb->get_results(
+        "SELECT p.ID, p.post_title, p.post_name, p.post_parent,
+                CHAR_LENGTH( TRIM( p.post_content ) ) AS content_len,
+                ( SELECT COUNT(*) FROM {$wpdb->posts} c
+                  WHERE c.post_parent = p.ID AND c.post_type = 'page'
+                    AND c.post_status NOT IN ( 'trash', 'auto-draft', 'inherit' ) ) AS child_count
+         FROM {$wpdb->posts} p
+         WHERE p.post_type = 'page' AND p.post_status NOT IN ( 'trash', 'auto-draft', 'inherit' )
+         ORDER BY p.ID ASC"
+    );
+
+    $groups = array();
+    foreach ( $pages as $page ) {
+        $clean = trim( pro_fix_mojibake( $page->post_title ) );
+        if ( '' !== $clean ) {
+            $groups[ $page->post_parent . '|' . mb_strtolower( $clean ) ][] = $page;
         }
     }
 
-    if ( $end_id >= $max_id ) {
-        update_option( 'pro_mojibake_repaired_v2', true, false );
-        delete_option( 'pro_mojibake_last_post_id' );
-    } else {
-        update_option( 'pro_mojibake_last_post_id', $end_id, false );
+    foreach ( $groups as $group ) {
+        if ( count( $group ) < 2 ) {
+            continue;
+        }
+        $clean_slug = sanitize_title( trim( pro_fix_mojibake( $group[0]->post_title ) ) );
+
+        // Conservar: la que está en uso > con contenido > título correcto > slug limpio
+        // > con plantilla asignada > la más antigua (empate).
+        $keeper     = null;
+        $best_score = -1;
+        foreach ( $group as $page ) {
+            $template = get_post_meta( $page->ID, '_wp_page_template', true );
+            $score    = 0;
+            $score   += in_array( (int) $page->ID, $protected_ids, true ) ? 100 : 0;
+            $score   += (int) $page->content_len > 0 ? 20 : 0;
+            $score   += pro_fix_mojibake( $page->post_title ) === $page->post_title ? 10 : 0;
+            $score   += $page->post_name === $clean_slug ? 5 : 0;
+            $score   += ( $template && 'default' !== $template ) ? 2 : 0;
+            if ( $score > $best_score ) {
+                $best_score = $score;
+                $keeper     = $page;
+            }
+        }
+
+        foreach ( $group as $page ) {
+            if ( (int) $page->ID === (int) $keeper->ID ) {
+                continue;
+            }
+            // Nunca se retiran páginas con contenido, con subpáginas o en uso.
+            if ( (int) $page->content_len > 0 || (int) $page->child_count > 0
+                || in_array( (int) $page->ID, $protected_ids, true ) ) {
+                continue;
+            }
+            pro_repoint_menu_items( 'page', (int) $page->ID, (int) $keeper->ID );
+            wp_trash_post( (int) $page->ID );
+        }
     }
+
+    // --- 3. Títulos corruptos de páginas y elementos de menú ----------------
+    $posts = $wpdb->get_results(
+        "SELECT ID, post_title, post_name, post_type, post_status, post_parent
+         FROM {$wpdb->posts}
+         WHERE post_type IN ( 'page', 'nav_menu_item' )
+           AND post_status NOT IN ( 'trash', 'auto-draft', 'inherit' )"
+    );
+
+    foreach ( $posts as $post ) {
+        $fixed = pro_fix_mojibake( $post->post_title );
+        if ( $fixed === $post->post_title ) {
+            continue;
+        }
+        $data = array( 'post_title' => $fixed );
+
+        // Corregir el slug de la página solo si se generó a partir del título corrupto
+        // y el slug correcto está libre (page-categoria.php enlaza página y categoría por slug).
+        if ( 'page' === $post->post_type
+            && preg_match( '/^' . preg_quote( sanitize_title( $post->post_title ), '/' ) . '(-\d+)?$/', $post->post_name ) ) {
+            $clean_slug = sanitize_title( $fixed );
+            if ( wp_unique_post_slug( $clean_slug, $post->ID, $post->post_status, 'page', $post->post_parent ) === $clean_slug ) {
+                $data['post_name'] = $clean_slug;
+            }
+        }
+
+        $wpdb->update( $wpdb->posts, $data, array( 'ID' => (int) $post->ID ) );
+        clean_post_cache( (int) $post->ID );
+    }
+
+    update_option( $flag, time(), false );
+    pro_install_lock_release();
 }
-add_action( 'admin_init', 'pro_repair_stored_mojibake' );
+add_action( 'admin_init', 'pro_repair_encoding_and_duplicates', 99 );
 
 
 function pro_setup_espressivo_categories_and_menu() {
     if ( get_option( 'pro_espressivo_structure_installed_v19' ) ) {
         return;
     }
-    update_option( 'pro_espressivo_structure_installed_v19', true ); // Lock early to prevent concurrent executions
+    // Una sola petición a la vez; si otra ya lo terminó, no repetir.
+    if ( ! pro_install_lock_acquire() ) {
+        return;
+    }
+    if ( pro_install_already_done( 'pro_espressivo_structure_installed_v19' ) ) {
+        pro_install_lock_release();
+        return;
+    }
 
 
     $estructura = array(
-        'Monagas' => array('description' => '', 'children' => array('Ciudad', 'Comunidad', 'Política Monagas', 'Sucesos Monagas', 'Educación', 'Salud', 'Municipios')),
+        'Local' => array('description' => '', 'children' => array('Ciudad', 'Comunidad', 'Política Local', 'Sucesos Locales', 'Educación', 'Salud', 'Municipios')),
         'Sucesos' => array('description' => '', 'children' => array('Seguridad', 'Crónica Policial')),
         'Nacional' => array('description' => '', 'children' => array('Regiones', 'Política Nacional', 'Asamblea Nacional', 'Economía')),
         'Mundo' => array('description' => '', 'children' => array('Análisis Internacional', 'Bitácora Mundial')),
@@ -3841,11 +3860,11 @@ function pro_setup_espressivo_categories_and_menu() {
             $cat_ids[$parent] = array( 'id' => $parent_id, 'children' => array() );
             foreach ( $data['children'] as $child ) {
                 $child_term = term_exists( $child, 'category', $parent_id );
-                if ( ! $child_term ) { 
-                    $child_term = wp_insert_term( $child, 'category', array('parent' => $parent_id) ); 
-                } 
-                if ( ! is_wp_error( $child_term ) ) { 
-                    $cat_ids[$parent]['children'][$child] = is_array( $child_term ) ? $child_term['term_id'] : $child_term; 
+                if ( ! $child_term ) {
+                    $child_term = wp_insert_term( $child, 'category', array('parent' => $parent_id) );
+                }
+                if ( ! is_wp_error( $child_term ) ) {
+                    $cat_ids[$parent]['children'][$child] = is_array( $child_term ) ? $child_term['term_id'] : $child_term;
                 }
             }
         }
@@ -3853,15 +3872,15 @@ function pro_setup_espressivo_categories_and_menu() {
 
     foreach ( $estructura as $parent => $data ) {
         if ( $parent === 'Edictos y Carteles' ) continue;
-        
-        $page = get_page_by_title($parent) ?: get_page_by_path(sanitize_title($parent));
+
+        $page = pro_find_page( $parent );
         if ( ! $page ) {
             $page_id = wp_insert_post( array('post_title'=>$parent,'post_name'=>sanitize_title($parent),'post_status'=>'publish','post_type'=>'page','post_author'=>1) );
             if ( $page_id && ! is_wp_error( $page_id ) ) { update_post_meta( $page_id, '_wp_page_template', 'page-categoria.php' ); }
         }
-        
+
         foreach ( $data['children'] as $child ) {
-            $child_page = get_page_by_title($child) ?: get_page_by_path(sanitize_title($child));
+            $child_page = pro_find_page( $child );
             if ( ! $child_page ) {
                 $child_page_id = wp_insert_post( array('post_title'=>$child,'post_name'=>sanitize_title($child),'post_status'=>'publish','post_type'=>'page','post_author'=>1) );
                 if ( $child_page_id && ! is_wp_error( $child_page_id ) ) { update_post_meta( $child_page_id, '_wp_page_template', 'page-categoria.php' ); }
@@ -3869,14 +3888,14 @@ function pro_setup_espressivo_categories_and_menu() {
         }
     }
 
-    $carteles_page = get_page_by_path('edictos-y-carteles') ?: get_page_by_title('Carteles y Edictos');
+    $carteles_page = pro_find_page( 'Carteles y Edictos', 'edictos-y-carteles' );
     if ( ! $carteles_page ) {
         $page_id = wp_insert_post( array('post_title'=>'Carteles y Edictos','post_name'=>'edictos-y-carteles','post_status'=>'publish','post_type'=>'page','post_author'=>1) );
         if ( $page_id && ! is_wp_error( $page_id ) ) { update_post_meta( $page_id, '_wp_page_template', 'page-carteles.php' ); }
     }
 
     // MENU REFACTOR: Split Desktop and Mobile into separate menus
-    $menu_name = 'Menú Espressivo';
+    $menu_name = 'Menú CMS-Editorial';
     $menu_exists = wp_get_nav_menu_object( $menu_name );
     if ( $menu_exists ) { wp_delete_nav_menu( $menu_name ); }
     $menu_id = wp_create_nav_menu( $menu_name );
@@ -3890,17 +3909,17 @@ function pro_setup_espressivo_categories_and_menu() {
         wp_update_nav_menu_item( $menu_id, 0, array('menu-item-title'=>'Inicio','menu-item-url'=>home_url( '/' ),'menu-item-status'=>'publish','menu-item-type'=>'custom') );
         wp_update_nav_menu_item( $mobile_menu_id, 0, array('menu-item-title'=>'Inicio','menu-item-url'=>home_url( '/' ),'menu-item-status'=>'publish','menu-item-type'=>'custom') );
 
-        $principales = array('Monagas', 'Sucesos', 'Nacional', 'Mundo', 'Deportes', 'Buen Ciudadano');
+        $principales = array('Local', 'Sucesos', 'Nacional', 'Mundo', 'Deportes', 'Buen Ciudadano');
         $secundarias = array('Edictos y Carteles', 'Portafolio', 'Artes y Espectáculos', 'Ciencia y Tecnología', 'Opinión', 'Bienestar');
-        
+
         foreach ( $principales as $parent ) {
-            $page = get_page_by_title($parent) ?: get_page_by_path(sanitize_title($parent));
+            $page = pro_find_page( $parent );
             if ( $page ) {
                 $parent_item_id_desktop = wp_update_nav_menu_item( $menu_id, 0, array('menu-item-title'=>$parent,'menu-item-object-id'=>$page->ID,'menu-item-object'=>'page','menu-item-type'=>'post_type','menu-item-status'=>'publish') );
                 $parent_item_id_mobile = wp_update_nav_menu_item( $mobile_menu_id, 0, array('menu-item-title'=>$parent,'menu-item-object-id'=>$page->ID,'menu-item-object'=>'page','menu-item-type'=>'post_type','menu-item-status'=>'publish') );
-                
+
                 foreach ( $estructura[$parent]['children'] as $child ) {
-                    $child_page = get_page_by_title($child) ?: get_page_by_path(sanitize_title($child));
+                    $child_page = pro_find_page( $child );
                     if ( $child_page ) {
                         wp_update_nav_menu_item( $menu_id, 0, array('menu-item-title'=>$child,'menu-item-object-id'=>$child_page->ID,'menu-item-object'=>'page','menu-item-type'=>'post_type','menu-item-status'=>'publish','menu-item-parent-id'=>$parent_item_id_desktop) );
                         wp_update_nav_menu_item( $mobile_menu_id, 0, array('menu-item-title'=>$child,'menu-item-object-id'=>$child_page->ID,'menu-item-object'=>'page','menu-item-type'=>'post_type','menu-item-status'=>'publish','menu-item-parent-id'=>$parent_item_id_mobile) );
@@ -3913,19 +3932,19 @@ function pro_setup_espressivo_categories_and_menu() {
 
         foreach ( $secundarias as $parent ) {
             if ( $parent === 'Edictos y Carteles' ) {
-                $carteles_page = get_page_by_path('edictos-y-carteles') ?: get_page_by_title('Carteles y Edictos');
+                $carteles_page = pro_find_page( 'Carteles y Edictos', 'edictos-y-carteles' );
                 if ( $carteles_page ) {
                     wp_update_nav_menu_item( $menu_id, 0, array('menu-item-title'=>'Edictos y Carteles','menu-item-object-id'=>$carteles_page->ID,'menu-item-object'=>'page','menu-item-type'=>'post_type','menu-item-status'=>'publish','menu-item-parent-id'=>$mas_item_id) );
                     wp_update_nav_menu_item( $mobile_menu_id, 0, array('menu-item-title'=>'Edictos y Carteles','menu-item-object-id'=>$carteles_page->ID,'menu-item-object'=>'page','menu-item-type'=>'post_type','menu-item-status'=>'publish') );
                 }
             } else {
-                $page = get_page_by_title($parent) ?: get_page_by_path(sanitize_title($parent));
+                $page = pro_find_page( $parent );
                 if ( $page ) {
                     $parent_item_id_mas = wp_update_nav_menu_item( $menu_id, 0, array('menu-item-title'=>$parent,'menu-item-object-id'=>$page->ID,'menu-item-object'=>'page','menu-item-type'=>'post_type','menu-item-status'=>'publish','menu-item-parent-id'=>$mas_item_id) );
                     $parent_item_id_mob = wp_update_nav_menu_item( $mobile_menu_id, 0, array('menu-item-title'=>$parent,'menu-item-object-id'=>$page->ID,'menu-item-object'=>'page','menu-item-type'=>'post_type','menu-item-status'=>'publish') );
-                    
+
                     foreach ( $estructura[$parent]['children'] as $child ) {
-                        $child_page = get_page_by_title($child) ?: get_page_by_path(sanitize_title($child));
+                        $child_page = pro_find_page( $child );
                         if ( $child_page ) {
                             wp_update_nav_menu_item( $menu_id, 0, array('menu-item-title'=>$child,'menu-item-object-id'=>$child_page->ID,'menu-item-object'=>'page','menu-item-type'=>'post_type','menu-item-status'=>'publish','menu-item-parent-id'=>$parent_item_id_mas) );
                             wp_update_nav_menu_item( $mobile_menu_id, 0, array('menu-item-title'=>$child,'menu-item-object-id'=>$child_page->ID,'menu-item-object'=>'page','menu-item-type'=>'post_type','menu-item-status'=>'publish','menu-item-parent-id'=>$parent_item_id_mob) );
@@ -3941,10 +3960,13 @@ function pro_setup_espressivo_categories_and_menu() {
         $locations['mobile'] = $mobile_menu_id;
         set_theme_mod( 'nav_menu_locations', $locations );
     }
+
+    update_option( 'pro_espressivo_structure_installed_v19', true );
+    pro_install_lock_release();
 }
 add_action( 'init', 'pro_setup_espressivo_categories_and_menu' );
 
-// Incluir módulo SSIVO-SEO
+// Incluir módulo SEO
 require_once get_template_directory() . '/inc/seo/init.php';
 
 // Deshabilitar sitemap de usuarios por seguridad
@@ -3962,3 +3984,25 @@ add_filter(
 
 // Módulo nativo: reportes editoriales PDF.
 require_once get_template_directory() . '/inc/reportes/bootstrap.php';
+
+
+// Auto-instalar pagina fisica de clasificados si no existe y asignarle la plantilla
+add_action('admin_init', function() {
+    if ( pro_find_page( 'Clasificados', 'clasificados' ) || ! pro_install_lock_acquire() ) {
+        return;
+    }
+    // Re-comprobar ya con el bloqueo: otra petición pudo crearla hace un instante.
+    if ( ! pro_find_page( 'Clasificados', 'clasificados' ) ) {
+        $page_id = wp_insert_post(array(
+            'post_title' => 'Clasificados',
+            'post_name'  => 'clasificados',
+            'post_status' => 'publish',
+            'post_type'  => 'page',
+            'post_author' => 1
+        ));
+        if ( $page_id && ! is_wp_error( $page_id ) ) {
+            update_post_meta( $page_id, '_wp_page_template', 'archive-clasificado.php' );
+        }
+    }
+    pro_install_lock_release();
+});

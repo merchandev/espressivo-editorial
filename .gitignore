@@ -1,5 +1,5 @@
 # ============================================================
-# Espressivo / Diario El Oriental — .gitignore
+# CMS-Editorial — .gitignore
 # ============================================================
 
 # --- Dependencias ---
@@ -14,7 +14,7 @@ node_modules/
 .env.production
 
 # --- Artefactos de construcción ---
-build/
+build/*.map
 dist/
 coverage/
 

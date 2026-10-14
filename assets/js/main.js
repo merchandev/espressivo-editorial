@@ -1,12 +1,4 @@
 /**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- *
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual,
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
-/**
  * Script principal de Pro
  * Maneja el modo oscuro, menú móvil, ticker, sliders, polling de noticias y scroll infinito.
  *
@@ -18,16 +10,6 @@
  * visores y los sliders dejaban de funcionar "a veces" (según cómo se llegara
  * a la página).
  */
-
-// =====================================================================
-//  Diseñado y desarrollado por Merchan.Dev & Espressivo Venezuela, C.A
-// =====================================================================
-console.log(
-    '%c Merchan.Dev %c & Espressivo Venezuela, C.A ',
-    'background:#111827; color:#f59e0b; font-weight:bold; font-size:13px; padding:4px 8px; border-radius:4px 0 0 4px;',
-    'background:#f59e0b; color:#111827; font-weight:bold; font-size:13px; padding:4px 8px; border-radius:0 4px 4px 0;'
-);
-console.log('%cDiseño y desarrollo web · https://merchan.dev', 'color:#6b7280; font-size:11px;');
 
 (function () {
     'use strict';
@@ -812,13 +794,13 @@ console.log('%cDiseño y desarrollo web · https://merchan.dev', 'color:#6b7280;
     }
 
     // ==========================================
-    // 14. RADIO VITAL 101.5 FM
+    // 14. RADIO CONFIGURABLE
     // Un único <audio> (el del reproductor flotante, fuera de Swup) para que la
     // emisión siga sonando al navegar y la página de la radio no abra un segundo
     // stream. Ambos reproductores reflejan el mismo estado.
     // ==========================================
     const Radio = (function () {
-        const STREAM = 'https://radio.diarioeloriental.com/radio.aac';
+        const STREAM = (window.cmsEditorial ? window.cmsEditorial.radioStream : '');
         let playing = false;
         let fillTimer = null;
 
@@ -869,7 +851,8 @@ console.log('%cDiseño y desarrollo web · https://merchan.dev', 'color:#6b7280;
         function start() {
             const el = audio();
             if (!el) return;
-            el.src = STREAM + '?t=' + Date.now();
+            if (!STREAM) return;
+            el.src = STREAM + (STREAM.includes('?') ? '&' : '?') + 't=' + Date.now();
             render('connecting');
             el.play().then(() => {
                 playing = true;

@@ -1,15 +1,7 @@
 <?php
 /**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion 
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual, 
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
-/**
  * In-Feed Ad Template Part
- * 
+ *
  * Used for displaying rotating ads in feed zones.
  * Requires an argument 'location' (e.g. 'in-feed-1') passed via get_template_part.
  */
@@ -27,9 +19,9 @@ if ( empty($ads) ) {
 <!-- PUBLICIDAD: <?php echo esc_html(strtoupper($location)); ?> -->
 <div class="in-feed-ad-wrapper">
     <div class="ad-label-tag">Publicidad</div>
-    
+
     <div class="in-feed-ad-slider">
-        <?php foreach ($ads as $index => $ad) : 
+        <?php foreach ($ads as $index => $ad) :
             $active_class = ($index === 0) ? ' active' : '';
             $url = !empty($ad['url']) ? esc_url($ad['url']) : '#';
         ?>

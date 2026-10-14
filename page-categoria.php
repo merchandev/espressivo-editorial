@@ -1,13 +1,5 @@
 <?php
 /**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion 
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual, 
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
-/**
  * Template Name: Página de Categoría Automática
  *
  * Plantilla para las páginas físicas que muestran las noticias de su misma categoría.
@@ -67,7 +59,7 @@ $query = new WP_Query( $args );
     /*
     if ( $category && $category->taxonomy === 'category' ) {
         $parent_id = ($category->category_parent == 0) ? $category->term_id : $category->category_parent;
-        
+
         $subcategories = get_categories( array(
             'child_of'   => $parent_id,
             'hide_empty' => false,

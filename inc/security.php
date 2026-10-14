@@ -1,13 +1,5 @@
 <?php
 /**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion 
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual, 
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
-/**
  * Ocultar wp-login.php y cambiar la URL de inicio de sesión a /turpial
  *
  * @package Pro
@@ -31,7 +23,7 @@ function pro_custom_login_redirect() {
         if ( ! defined( 'PRO_CUSTOM_LOGIN' ) ) {
             define( 'PRO_CUSTOM_LOGIN', true );
         }
-        
+
         global $pagenow, $error, $user_login, $action;
         $pagenow    = 'wp-login.php';
         $error      = '';
@@ -83,11 +75,16 @@ function pro_filter_login_redirect( $location, $status ) {
  * 3. Cambiar el logo de la pantalla de inicio de sesión (/turpial)
  */
 function pro_custom_login_logo() {
-    $logo_url = get_template_directory_uri() . '/assets/image/logo-dashboard.png';
+    $logo_url = cms_editorial_logo_url( 'admin' );
     ?>
     <style type="text/css">
         #login h1 a, .login h1 a {
-            background-image: url('<?php echo esc_url( $logo_url ); ?>');
+            background-image: <?php echo $logo_url ? 'url("' . esc_url( $logo_url ) . '")' : 'none'; ?>;
+            <?php if ( ! $logo_url ) : ?>
+            text-indent: 0;
+            width: auto;
+            font-size: 24px;
+            <?php endif; ?>
             height: 80px;
             width: 100%;
             background-size: contain;
@@ -96,13 +93,13 @@ function pro_custom_login_logo() {
         }
         /* Color del botón de login para mantener el tema */
         .login .button-primary {
-            background: #0f172a !important;
-            border-color: #0f172a !important;
+            background: <?php echo esc_html( cms_editorial_setting( 'color_admin_primary' ) ); ?> !important;
+            border-color: <?php echo esc_html( cms_editorial_setting( 'color_admin_primary' ) ); ?> !important;
             color: #fff !important;
         }
         .login .button-primary:hover {
-            background: #1e293b !important;
-            border-color: #1e293b !important;
+            background: <?php echo esc_html( cms_editorial_setting( 'color_admin_accent' ) ); ?> !important;
+            border-color: <?php echo esc_html( cms_editorial_setting( 'color_admin_accent' ) ); ?> !important;
         }
     </style>
     <?php

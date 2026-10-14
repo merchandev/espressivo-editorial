@@ -1,13 +1,5 @@
 <?php
 /**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion 
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual, 
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
-/**
  * Plantilla de Archivo para Carteles y Edictos
  *
  * @package Pro
@@ -27,13 +19,13 @@ get_header();
             <?php
             while ( have_posts() ) :
                 the_post();
-                
+
                 // Obtener el PDF adjunto
                 $pdf_url = get_post_meta( get_the_ID(), '_cartel_pdf_url', true );
                 ?>
                 <article id="post-<?php the_ID(); ?>" <?php post_class('card-cartel'); ?> data-pdf-url="<?php echo esc_url($pdf_url); ?>">
                     <div class="cartel-thumbnail">
-                        <?php 
+                        <?php
                         if ( has_post_thumbnail() ) {
                             the_post_thumbnail( 'medium', array( 'loading' => 'lazy' ) );
                         } else {

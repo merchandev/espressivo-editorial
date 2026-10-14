@@ -2,7 +2,7 @@
 /**
  * Sistema editorial de clasificados.
  *
- * @package Espressivo
+ * @package CMS-Editorial
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -52,9 +52,7 @@ function espressivo_register_clasificados(): void {
             'show_in_admin_bar'  => true,
             'show_in_nav_menus'  => true,
             'show_in_rest'       => true,
-
-            'menu_position' => 25,
-            'menu_icon'     => 'dashicons-megaphone',
+            'menu_icon'          => 'dashicons-store',
 
             /*
              * Archivo:
@@ -75,8 +73,8 @@ function espressivo_register_clasificados(): void {
             'query_var' => true,
 
             /*
-             * Texto e imágenes: "Imagen" (destacada) para la tarjeta del
-             * listado e imágenes/galerías dentro del aviso.
+             * Texto e imágenes. La imagen destacada se muestra
+             * en la tarjeta del listado /clasificados/.
              */
             'supports' => array(
                 'title',
@@ -91,6 +89,16 @@ function espressivo_register_clasificados(): void {
             ),
 
             'capability_type' => 'clasificado',
+            'capabilities' => array(
+                'edit_post'          => 'edit_clasificado',
+                'read_post'          => 'read_clasificado',
+                'delete_post'        => 'delete_clasificado',
+                'edit_posts'         => 'edit_clasificados',
+                'edit_others_posts'  => 'edit_others_clasificados',
+                'publish_posts'      => 'publish_clasificados',
+                'read_private_posts' => 'read_private_clasificados',
+                'create_posts'       => 'edit_clasificados',
+            ),
             'map_meta_cap'    => true,
 
             'can_export'         => true,
@@ -185,19 +193,19 @@ function espressivo_tipo_clasificado_term_link( $url, $term, $taxonomy ) {
 add_filter( 'term_link', 'espressivo_tipo_clasificado_term_link', 10, 3 );
 
 /**
- * Migrar slugs existentes y limpiar las reglas de reescritura 
+ * Migrar slugs existentes y limpiar las reglas de reescritura
  * (se ejecuta una sola vez).
  */
 function espressivo_migrate_clasificado_slugs() {
     if ( get_option( 'espressivo_clasificados_slugs_migrated_v2' ) ) {
         return;
     }
-    
+
     $terms = get_terms( array(
         'taxonomy'   => 'tipo_clasificado',
         'hide_empty' => false,
     ) );
-    
+
     if ( ! is_wp_error( $terms ) ) {
         foreach ( $terms as $term ) {
             // Si el slug no empieza por 'clasificados-'
@@ -209,7 +217,7 @@ function espressivo_migrate_clasificado_slugs() {
             }
         }
     }
-    
+
     // Forzar limpieza de las reglas de reescritura para arreglar errores 404
     flush_rewrite_rules( false );
     update_option( 'espressivo_clasificados_slugs_migrated_v2', true );
@@ -219,7 +227,7 @@ add_action( 'init', 'espressivo_migrate_clasificado_slugs', 99 );
 /**
  * Limitar el editor a bloques de texto e imágenes.
  *
- * Evita videos, archivos, incrustaciones y bloques de diseño.
+ * Permite imagen y galería; evita videos, audio y archivos.
  */
 function espressivo_clasificados_allowed_blocks(
     $allowed_blocks,
@@ -274,13 +282,151 @@ add_filter(
 );
 
 /**
- * Comprobar que un clasificado tenga:
+ * Errores de un clasificado que se quiere publicar. Requisitos:
  *
  * - Título.
- * - Texto.
- * - Tipo de clasificado.
+ * - Texto o al menos una imagen.
  *
- * Si falta algo, se guarda como borrador.
+ * El tipo no es obligatorio: si falta, se asigna "Otros"
+ * (ver espressivo_clasificado_default_type()).
+ */
+function espressivo_clasificado_validation_errors(
+    string $title,
+    string $content
+): array {
+    $errors = array();
+
+    if ( '' === trim( wp_strip_all_tags( $title ) ) ) {
+        $errors[] = __(
+            'Debes escribir un título.',
+            'pro'
+        );
+    }
+
+    $text      = trim( wp_strip_all_tags( strip_shortcodes( $content ) ) );
+    $has_image = false !== stripos( $content, '<img' );
+
+    if ( '' === $text && ! $has_image ) {
+        $errors[] = __(
+            'Debes escribir el texto del clasificado o añadir una imagen.',
+            'pro'
+        );
+    }
+
+    return $errors;
+}
+
+/**
+ * Si un clasificado se publica sin tipo, se le asigna "Otros" en lugar de
+ * rechazarlo (mismo criterio que espressivo_classify_legacy_classifieds()).
+ * Corre en wp_after_insert_post, cuando el editor ya guardó los tipos elegidos.
+ */
+function espressivo_clasificado_default_type(
+    int $post_id,
+    WP_Post $post
+): void {
+    if (
+        'clasificado' !== $post->post_type
+        || ! in_array( $post->post_status, array( 'publish', 'future' ), true )
+        || wp_is_post_revision( $post_id )
+        || wp_is_post_autosave( $post_id )
+    ) {
+        return;
+    }
+
+    $type_ids = wp_get_post_terms(
+        $post_id,
+        'tipo_clasificado',
+        array(
+            'fields' => 'ids',
+        )
+    );
+
+    if ( is_wp_error( $type_ids ) || ! empty( $type_ids ) ) {
+        return;
+    }
+
+    $other_term = term_exists( 'Otros', 'tipo_clasificado' );
+
+    if ( ! $other_term ) {
+        $other_term = wp_insert_term( 'Otros', 'tipo_clasificado' );
+    }
+
+    if ( is_wp_error( $other_term ) ) {
+        return;
+    }
+
+    wp_set_object_terms(
+        $post_id,
+        is_array( $other_term ) ? (int) $other_term['term_id'] : (int) $other_term,
+        'tipo_clasificado'
+    );
+}
+add_action(
+    'wp_after_insert_post',
+    'espressivo_clasificado_default_type',
+    50,
+    2
+);
+
+/**
+ * Validar antes de publicar desde el editor de bloques (REST).
+ *
+ * El editor de bloques no muestra los avisos de admin_notices: sin esto,
+ * decía "Publicado" mientras el aviso volvía en silencio a borrador.
+ * Ahora la publicación se rechaza y el editor muestra el motivo.
+ */
+function espressivo_rest_validate_clasificado(
+    $prepared_post,
+    WP_REST_Request $request
+) {
+    // Los autoguardados de un aviso publicado no deben fallar a mitad de edición.
+    if (
+        is_wp_error( $prepared_post )
+        || false !== strpos( $request->get_route(), '/autosaves' )
+    ) {
+        return $prepared_post;
+    }
+
+    $existing = ! empty( $prepared_post->ID )
+        ? get_post( $prepared_post->ID )
+        : null;
+
+    $status = $prepared_post->post_status
+        ?? ( $existing ? $existing->post_status : 'draft' );
+
+    if ( ! in_array( $status, array( 'publish', 'future' ), true ) ) {
+        return $prepared_post;
+    }
+
+    $title   = $prepared_post->post_title ?? ( $existing ? $existing->post_title : '' );
+    $content = $prepared_post->post_content ?? ( $existing ? $existing->post_content : '' );
+
+    $errors = espressivo_clasificado_validation_errors(
+        (string) $title,
+        (string) $content
+    );
+
+    if ( empty( $errors ) ) {
+        return $prepared_post;
+    }
+
+    return new WP_Error(
+        'clasificado_incompleto',
+        __( 'No se pudo publicar el clasificado.', 'pro' ) . ' ' . implode( ' ', $errors ),
+        array( 'status' => 400 )
+    );
+}
+add_filter(
+    'rest_pre_insert_clasificado',
+    'espressivo_rest_validate_clasificado',
+    10,
+    2
+);
+
+/**
+ * Respaldo para guardados fuera del editor de bloques (edición rápida, código):
+ * si al clasificado publicado le falta algo, se guarda como borrador.
  */
 function espressivo_validate_clasificado(
     int $post_id,
@@ -300,49 +446,10 @@ function espressivo_validate_clasificado(
         return;
     }
 
-    $errors = array();
-
-    $title = trim(
-        wp_strip_all_tags( $post->post_title )
+    $errors = espressivo_clasificado_validation_errors(
+        $post->post_title,
+        $post->post_content
     );
-
-    $content = trim(
-        wp_strip_all_tags(
-            strip_shortcodes( $post->post_content )
-        )
-    );
-
-    if ( '' === $title ) {
-        $errors[] = __(
-            'Debes escribir un título.',
-            'pro'
-        );
-    }
-
-    if ( '' === $content ) {
-        $errors[] = __(
-            'Debes escribir el texto del clasificado.',
-            'pro'
-        );
-    }
-
-    $type_ids = wp_get_post_terms(
-        $post_id,
-        'tipo_clasificado',
-        array(
-            'fields' => 'ids',
-        )
-    );
-
-    if (
-        is_wp_error( $type_ids )
-        || empty( $type_ids )
-    ) {
-        $errors[] = __(
-            'Debes seleccionar un tipo de clasificado.',
-            'pro'
-        );
-    }
 
     if ( empty( $errors ) ) {
         return;
@@ -568,12 +675,12 @@ function espressivo_seed_clasificado_types(): void {
 
     foreach ( $types as $type_name => $icon ) {
         $term = term_exists( $type_name, 'tipo_clasificado' );
-        
+
         if ( ! $term ) {
             $slug = 'clasificados-' . sanitize_title( $type_name );
             $term = wp_insert_term( $type_name, 'tipo_clasificado', array( 'slug' => $slug ) );
         }
-        
+
         if ( ! is_wp_error( $term ) && is_array( $term ) ) {
             $term_id = $term['term_id'];
             if ( ! metadata_exists( 'term', $term_id, 'clasificado_icon' ) ) {
@@ -631,77 +738,26 @@ add_action( 'edited_tipo_clasificado', 'espressivo_save_tipo_clasificado_meta' )
 
 /**
  * Asignar permisos (capabilities) de Clasificados a los roles requeridos.
+ * Acceso completo (100%) para Administrador, Editor, Gerencia, Autor,
+ * Publicista y Dirección. Roles y capacidades se definen en functions.php
+ * (pro_get_clasificados_roles / pro_get_clasificados_caps).
  * (Solo se ejecuta una vez por optimización).
  */
 function espressivo_grant_clasificado_capabilities() {
-    if ( get_option( 'espressivo_clasificado_caps_granted_v1' ) ) {
+    if ( get_option( 'espressivo_clasificado_caps_granted_v3' ) ) {
         return;
     }
 
-    // Roles que tendrán acceso a los clasificados
-    $roles_con_acceso = array( 
-        'administrator', 
-        'publicista', 
-        'author', 
-        'editor', 
-        'gerencia', 
-        'direccion' 
-    );
-
-    $caps_cpt = array(
-        'edit_clasificado',
-        'read_clasificado',
-        'delete_clasificado',
-        'edit_clasificados',
-        'edit_others_clasificados',
-        'publish_clasificados',
-        'read_private_clasificados',
-        'delete_clasificados',
-        'delete_private_clasificados',
-        'delete_published_clasificados',
-        'delete_others_clasificados',
-        'edit_private_clasificados',
-        'edit_published_clasificados',
-    );
-
-    $caps_tax = array(
-        'manage_tipos_clasificados',
-        'edit_tipos_clasificados',
-        'delete_tipos_clasificados',
-        'assign_tipos_clasificados',
-    );
-
-    foreach ( $roles_con_acceso as $role_name ) {
+    foreach ( pro_get_clasificados_roles() as $role_name ) {
         $role = get_role( $role_name );
         if ( ! $role ) continue;
 
-        // Añadir capacidades del post type
-        foreach ( $caps_cpt as $cap ) {
-            // El 'author' nativo de WP solo debe poder gestionar sus propios clasificados
-            if ( 'author' === $role_name && in_array( $cap, array(
-                'edit_others_clasificados',
-                'read_private_clasificados',
-                'delete_others_clasificados',
-                'delete_private_clasificados',
-                'edit_private_clasificados'
-            ), true ) ) {
-                continue;
-            }
-
+        foreach ( pro_get_clasificados_caps() as $cap ) {
             $role->add_cap( $cap );
-        }
-
-        // Añadir capacidades de la taxonomía (categorías)
-        foreach ( $caps_tax as $cap_tax ) {
-            // Un 'author' comúnmente no puede administrar/borrar categorías globales, solo asignarlas
-            if ( 'author' === $role_name && 'assign_tipos_clasificados' !== $cap_tax ) {
-                continue;
-            }
-            $role->add_cap( $cap_tax );
         }
     }
 
-    update_option( 'espressivo_clasificado_caps_granted_v1', true );
+    update_option( 'espressivo_clasificado_caps_granted_v3', true );
 }
 add_action( 'init', 'espressivo_grant_clasificado_capabilities', 99 );
 
@@ -765,94 +821,17 @@ add_action(
 );
 
 /**
- * Añadir "Clasificados" a los menús principal y móvil (una sola vez).
- *
- * En el menú de escritorio se coloca antes de "Más"; en el móvil, al final.
- * No se duplica si el enlace ya existe (p. ej. añadido a mano).
- *
- * Se ejecuta en admin_init con prioridad 100, después de la instalación
- * automática de páginas y menús (pro_nuclear_install_pages), que en una
- * instalación nueva vuelve a asignar el menú principal.
+ * Cargar estilos únicamente en clasificados.
  */
-function espressivo_add_clasificados_to_menus(): void {
-    if ( get_option( 'espressivo_clasificados_menu_added_v1' ) ) {
+function espressivo_enqueue_clasificados_assets(): void {
+    if (
+        ! is_post_type_archive( 'clasificado' )
+        && ! is_singular( 'clasificado' )
+        && ! is_tax( 'tipo_clasificado' )
+    ) {
         return;
     }
 
-    $locations = get_nav_menu_locations();
-    $menu_ids  = array();
-    foreach ( array( 'primary', 'mobile' ) as $location ) {
-        if ( ! empty( $locations[ $location ] ) ) {
-            $menu_ids[] = (int) $locations[ $location ];
-        }
-    }
-
-    if ( empty( $menu_ids ) ) {
-        return; // Aún no hay menús asignados: se reintenta en la siguiente carga
-    }
-
-    global $wpdb;
-    $archive_path = trim( (string) wp_parse_url( get_post_type_archive_link( 'clasificado' ), PHP_URL_PATH ), '/' );
-
-    foreach ( array_unique( $menu_ids ) as $menu_id ) {
-        $items = wp_get_nav_menu_items( $menu_id, array( 'post_status' => 'any' ) );
-        if ( ! is_array( $items ) ) {
-            continue;
-        }
-
-        $exists = false;
-        $more   = null;
-        foreach ( $items as $item ) {
-            $item_path = trim( (string) wp_parse_url( (string) $item->url, PHP_URL_PATH ), '/' );
-            if ( ( 'post_type_archive' === $item->type && 'clasificado' === $item->object ) || $item_path === $archive_path ) {
-                $exists = true;
-                break;
-            }
-            if ( 0 === (int) $item->menu_item_parent && 'Más' === $item->title ) {
-                $more = $item;
-            }
-        }
-        if ( $exists ) {
-            continue;
-        }
-
-        $position = 0; // 0 = al final
-        if ( $more ) {
-            // Hacer hueco antes de "Más" desplazando los elementos siguientes
-            $position = (int) $more->menu_order;
-            foreach ( $items as $item ) {
-                if ( (int) $item->menu_order >= $position ) {
-                    $wpdb->update( $wpdb->posts, array( 'menu_order' => (int) $item->menu_order + 1 ), array( 'ID' => $item->ID ) );
-                    clean_post_cache( $item->ID );
-                }
-            }
-        }
-
-        wp_update_nav_menu_item(
-            $menu_id,
-            0,
-            array(
-                'menu-item-title'    => __( 'Clasificados', 'pro' ),
-                'menu-item-type'     => 'post_type_archive',
-                'menu-item-object'   => 'clasificado',
-                'menu-item-status'   => 'publish',
-                'menu-item-position' => $position,
-            )
-        );
-    }
-
-    update_option( 'espressivo_clasificados_menu_added_v1', true, false );
-}
-add_action( 'admin_init', 'espressivo_add_clasificados_to_menus', 100 );
-
-/**
- * Estilos de clasificados.
- *
- * Se cargan en todo el sitio: con la navegación sin recarga (Swup) solo se
- * reemplaza el contenido y no el <head>, así que al entrar a Clasificados desde
- * el menú la hoja de estilos debe estar ya cargada.
- */
-function espressivo_enqueue_clasificados_assets(): void {
     $css_path =
         get_template_directory()
         . '/assets/css/clasificados.css';

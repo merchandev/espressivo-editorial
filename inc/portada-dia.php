@@ -1,17 +1,9 @@
 <?php
 /**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion 
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual, 
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
-/**
  * Gestor de la Portada del Día
  * Permite gestionar la portada actual y la portada programada de reemplazo para las 05:00 AM.
  *
- * @package Edit-Pro
+ * @package CMS-Editorial
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -51,12 +43,12 @@ add_action( 'admin_enqueue_scripts', 'pro_portada_dia_admin_assets' );
 function pro_check_scheduled_portada_swap() {
     $reemplazo = get_option( 'pro_portada_reemplazo' );
     $fecha = get_option( 'pro_portada_reemplazo_fecha' ); // YYYY-MM-DD
-    
+
     if ( $reemplazo && $fecha ) {
-        $timezone = new DateTimeZone( 'America/Caracas' );
+        $timezone = wp_timezone();
         $now = new DateTime( 'now', $timezone );
         $scheduled_time = new DateTime( $fecha . ' 05:00:00', $timezone );
-        
+
         if ( $now >= $scheduled_time ) {
             // Intercambiar la portada actual con el reemplazo
             update_option( 'pro_portada_actual', $reemplazo );
@@ -96,7 +88,7 @@ function pro_portada_dia_settings_render() {
             Portada del Día
         </h1>
         <p style="color: #64748b; font-size: 1.1rem; margin-bottom: 30px;">
-            Administra la portada de revista o periódico que se mostrará de forma destacada en la página de inicio (Home). 
+            Administra la portada de revista o periódico que se mostrará de forma destacada en la página de inicio (Home).
             Puedes programar una portada de reemplazo para que se publique automáticamente a las <strong>05:00 AM</strong> del día seleccionado.
         </p>
 
@@ -109,7 +101,7 @@ function pro_portada_dia_settings_render() {
                     <span class="dashicons dashicons-visibility" style="color: #10b981;"></span>
                     Portada Actual Publicada (Home)
                 </h2>
-                
+
                 <div style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;">
                     <div id="preview-portada-actual" style="flex-shrink: 0; width: 180px;">
                         <?php if ( $portada_actual ) : ?>
@@ -118,11 +110,11 @@ function pro_portada_dia_settings_render() {
                             <div style="background:#f1f5f9; padding:40px 20px; border-radius:8px; color:#94a3b8; text-align:center; border:2px dashed #cbd5e1;">Sin imagen seleccionada</div>
                         <?php endif; ?>
                     </div>
-                    
+
                     <div style="flex-grow: 1;">
                         <p style="font-weight: 600; color: #334155; margin-bottom: 8px;">Imagen de Portada Activa:</p>
                         <input type="text" name="pro_portada_actual" id="input-portada-actual" value="<?php echo esc_url($portada_actual); ?>" style="width: 100%; max-width: 500px; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; margin-bottom: 15px;" readonly>
-                        
+
                         <div>
                             <button type="button" class="button button-primary pro-upload-btn" data-input-id="input-portada-actual" data-preview-id="preview-portada-actual" style="background:#10b981; border-color:#10b981; font-weight:600; height:36px; padding:0 16px;">
                                 <span class="dashicons dashicons-admin-media" style="margin-top: 5px;"></span> Seleccionar de Medios
@@ -144,7 +136,7 @@ function pro_portada_dia_settings_render() {
                     <span class="dashicons dashicons-calendar-alt" style="color: #3b82f6;"></span>
                     Reemplazo Programado de Portada (05:00 AM)
                 </h2>
-                
+
                 <div style="display: flex; gap: 30px; align-items: flex-start; flex-wrap: wrap;">
                     <div id="preview-portada-reemplazo" style="flex-shrink: 0; width: 180px;">
                         <?php if ( $portada_reemplazo ) : ?>
@@ -153,11 +145,11 @@ function pro_portada_dia_settings_render() {
                             <div style="background:#f1f5f9; padding:40px 20px; border-radius:8px; color:#94a3b8; text-align:center; border:2px dashed #cbd5e1;">Sin imagen seleccionada</div>
                         <?php endif; ?>
                     </div>
-                    
+
                     <div style="flex-grow: 1;">
                         <p style="font-weight: 600; color: #334155; margin-bottom: 8px;">Imagen de Portada Nueva (Próxima Edición):</p>
                         <input type="text" name="pro_portada_reemplazo" id="input-portada-reemplazo" value="<?php echo esc_url($portada_reemplazo); ?>" style="width: 100%; max-width: 500px; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; margin-bottom: 15px;" readonly>
-                        
+
                         <div style="margin-bottom: 25px;">
                             <button type="button" class="button button-primary pro-upload-btn" data-input-id="input-portada-reemplazo" data-preview-id="preview-portada-reemplazo" style="background:#3b82f6; border-color:#3b82f6; font-weight:600; height:36px; padding:0 16px;">
                                 <span class="dashicons dashicons-admin-media" style="margin-top: 5px;"></span> Seleccionar de Medios
@@ -188,15 +180,15 @@ function pro_portada_dia_settings_render() {
             <!-- BOTONES DE ENVÍO -->
             <div style="border-top: 1px solid #cbd5e1; padding-top: 20px; display: flex; align-items: center; gap: 15px;">
                 <input type="submit" name="pro_portada_dia_save" class="button button-primary button-large" value="Guardar Ajustes de Portada" style="background:#0f172a; border-color:#0f172a; font-weight:700; height:46px; padding:0 30px; border-radius:8px; font-size:1rem; box-shadow:0 4px 10px rgba(15,23,42,0.15);">
-                
+
                 <!-- Mostrar Hora del Servidor para referencia del administrador -->
                 <?php
-                $timezone = new DateTimeZone('America/Caracas');
+                $timezone = wp_timezone();
                 $server_now = new DateTime('now', $timezone);
                 ?>
                 <span style="color:#64748b; font-size:0.9rem; font-weight:500; display:flex; align-items:center; gap:5px;">
                     <span class="dashicons dashicons-time" style="font-size:18px; width:18px; height:18px;"></span>
-                    Hora de Venezuela (Caracas): <strong><?php echo $server_now->format('d/m/Y H:i:s'); ?></strong>
+                    Hora del sitio (<?php echo esc_html( wp_timezone_string() ); ?>): <strong><?php echo $server_now->format('d/m/Y H:i:s'); ?></strong>
                 </span>
             </div>
         </form>
@@ -210,7 +202,7 @@ function pro_portada_dia_settings_render() {
             var button = $(this);
             var input_id = button.data('input-id');
             var preview_id = button.data('preview-id');
-            
+
             var uploader = wp.media({
                 title: 'Seleccionar Imagen de Portada',
                 button: {
@@ -224,7 +216,7 @@ function pro_portada_dia_settings_render() {
                 button.next('.pro-remove-btn').show();
             }).open();
         });
-        
+
         $('.pro-remove-btn').click(function(e) {
             e.preventDefault();
             var button = $(this);

@@ -1,13 +1,5 @@
 <?php
 /**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion 
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual, 
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
-/**
  * Template Name: Página de Carteles y Edictos
  *
  * Plantilla de página para mostrar los carteles y edictos (CPT cartel).
@@ -29,20 +21,20 @@ get_header();
         <?php endif; ?>
     </header><!-- .page-header -->
 
-    <?php 
+    <?php
     $paged = ( get_query_var( 'paged' ) ) ? get_query_var( 'paged' ) : 1;
     $carteles_query = new WP_Query( array(
         'post_type'      => 'cartel',
         'posts_per_page' => 12,
         'paged'          => $paged
     ) );
-    
+
     if ( $carteles_query->have_posts() ) : ?>
         <div class="carteles-grid">
             <?php
             while ( $carteles_query->have_posts() ) :
                 $carteles_query->the_post();
-                
+
                 // Obtener el PDF adjunto
                 $pdf_url = get_post_meta( get_the_ID(), '_cartel_pdf_url', true );
                 if ( $pdf_url && strpos( $pdf_url, 'http' ) !== 0 ) {
@@ -58,7 +50,7 @@ get_header();
                 ?>
                 <article id="post-<?php the_ID(); ?>" <?php post_class('card-cartel'); ?> data-pdf-url="<?php echo esc_url($pdf_url); ?>">
                     <div class="cartel-thumbnail">
-                        <?php 
+                        <?php
                         if ( has_post_thumbnail() ) {
                             the_post_thumbnail( 'medium', array( 'loading' => 'lazy' ) );
                         } else if ( ! empty( $pdf_url ) ) {
@@ -102,7 +94,7 @@ get_header();
             ));
             echo '</div></nav>';
         }
-        
+
         wp_reset_postdata();
         ?>
 

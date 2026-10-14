@@ -1,13 +1,4 @@
 <?php
-/**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * Plantilla para carteles individuales (CPT cartel).
- * Muestra el PDF del cartel en un visor grande integrado.
- *
- * @package Pro
- */
-
 get_header();
 ?>
 
@@ -16,7 +7,7 @@ get_header();
     <?php
     while ( have_posts() ) :
         the_post();
-        
+
         $pdf_url = get_post_meta( get_the_ID(), '_cartel_pdf_url', true );
         if ( $pdf_url && strpos( $pdf_url, 'http' ) !== 0 ) {
             global $wpdb;
@@ -31,7 +22,7 @@ get_header();
         ?>
 
         <article id="post-<?php the_ID(); ?>" <?php post_class('single-post-article cartel-article'); ?>>
-            
+
             <!-- Breadcrumbs / Migas de Pan -->
             <nav class="breadcrumbs" aria-label="Breadcrumb" style="margin-bottom: 20px;">
                 <ol>
@@ -43,7 +34,7 @@ get_header();
 
             <header class="entry-header">
                 <h1 class="entry-title" style="margin-bottom: 10px;"><?php the_title(); ?></h1>
-                
+
                 <div class="entry-meta" style="margin-bottom: 20px;">
                     <span class="posted-on" style="color: var(--color-text-muted); font-size: 0.9rem;">
                         Publicado el <time datetime="<?php echo get_the_date('c'); ?>"><?php echo get_the_date('j \d\e F \d\e Y'); ?></time>
@@ -67,7 +58,7 @@ get_header();
                         <p style="font-size: 1.1rem; color: var(--color-text-muted);">No se ha adjuntado ningún documento PDF válido para este cartel.</p>
                     </div>
                 <?php endif; ?>
-                
+
                 <div style="margin-top: 30px;">
                     <?php
                     // Mostrar cualquier contenido extra de texto que el usuario haya añadido

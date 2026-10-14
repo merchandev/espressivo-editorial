@@ -1,13 +1,5 @@
 <?php
 /**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion 
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual, 
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
-/**
  * La plantilla principal del tema Pro.
  *
  * @package Pro
@@ -21,7 +13,7 @@ get_header();
     <?php if ( have_posts() ) : ?>
 
         <div class="home-layout-grid">
-            
+
             <?php
             // Primera noticia (Héroe - Destacada)
             the_post();
@@ -39,7 +31,7 @@ get_header();
                         <?php the_excerpt(); ?>
                     </div>
                     <div class="post-meta-footer">
-                        Por <span class="author"><?php the_author(); ?></span> &bull; 
+                        Por <span class="author"><?php the_author(); ?></span> &bull;
                         <time datetime="<?php echo get_the_date('c'); ?>"><?php echo get_the_date(); ?></time>
                     </div>
                 </div>

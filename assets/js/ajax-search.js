@@ -1,11 +1,3 @@
-﻿/**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion 
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual, 
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
 /**
  * Buscador Predictivo (Ajax Search) para Pro
  */
@@ -13,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchForm = document.querySelector('.ajax-search-form');
     const searchInput = document.querySelector('.ajax-search-input');
     const resultsContainer = document.querySelector('.ajax-search-results-container');
-    
+
     if (!searchInput || !resultsContainer || typeof pro_ajax === 'undefined') {
         return;
     }

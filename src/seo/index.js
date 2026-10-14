@@ -7,7 +7,7 @@ import SnippetPreview from './components/SnippetPreview';
 // Registrar Barra Lateral
 registerPlugin('ssivo-seo-sidebar', {
     render: () => (
-        <PluginSidebar name="ssivo-seo-panel" title="SSIVO SEO" icon="chart-bar">
+        <PluginSidebar name="ssivo-seo-panel" title="CMS-Editorial SEO" icon="chart-bar">
             <Sidebar />
         </PluginSidebar>
     ),

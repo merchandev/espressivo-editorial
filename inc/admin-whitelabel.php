@@ -1,13 +1,5 @@
 <?php
 /**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion 
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual, 
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
-/**
  * Personalización y White-label del Dashboard de WordPress
  * para los roles Direccion y Autor.
  *
@@ -30,20 +22,18 @@ function pro_is_target_role() {
  * 1. Reemplazar el logo de WordPress en la barra de administración
  */
 function pro_replace_wp_logo_admin_bar( $wp_admin_bar ) {
-    if ( pro_is_target_role() ) {
         // Remover el logo original de WP
         $wp_admin_bar->remove_node( 'wp-logo' );
-        
+
         // Añadir el logo personalizado
-        $logo_url = get_template_directory_uri() . '/assets/image/logo-dashboard.png';
+        $logo_url = cms_editorial_logo_url( 'admin' );
         $args = array(
             'id'    => 'custom-brand-logo',
-            'title' => '<span style="display: flex; align-items: center; height: 100%;"><img src="' . esc_url( $logo_url ) . '" style="height: 20px; object-fit: contain; margin-top: -2px;" alt="Panel de Control"></span>',
-            'href'  => 'https://merchan.dev',
+            'title' => $logo_url ? '<img src="' . esc_url( $logo_url ) . '" style="height:20px;object-fit:contain" alt="' . esc_attr( get_bloginfo( 'name' ) ) . '">' : esc_html( get_bloginfo( 'name' ) ),
+            'href'  => admin_url(),
             'meta'  => array( 'class' => 'custom-brand-node', 'target' => '_blank' )
         );
         $wp_admin_bar->add_node( $args );
-    }
 }
 // 999 para asegurarnos de que se ejecute al final y podamos remover el nodo original
 add_action( 'admin_bar_menu', 'pro_replace_wp_logo_admin_bar', 999 );
@@ -72,10 +62,7 @@ add_action( 'admin_init', 'pro_remove_color_picker' );
  * 3. Eliminar rastros de WordPress en el footer del Dashboard
  */
 function pro_custom_admin_footer_text( $text ) {
-    if ( pro_is_target_role() ) {
-        return 'Panel de Administración Profesional | Desarrollado a medida';
-    }
-    return $text;
+    return esc_html( get_bloginfo( 'name' ) ) . ' · CMS-Editorial';
 }
 add_filter( 'admin_footer_text', 'pro_custom_admin_footer_text' );
 
@@ -117,12 +104,13 @@ add_action( 'admin_head', 'pro_custom_admin_css' );
 add_action( 'wp_head', 'pro_custom_admin_css' ); // También en el frontend por si está la barra
 
 /**
- * 6. Ocultar y restringir el acceso a la sección "Clasificados" para los roles Dirección y Autor.
- * Solo los administradores pueden verlo y acceder.
+ * 6. Ocultar y restringir el acceso a la sección "Clasificados".
+ * Solo los roles de pro_get_clasificados_roles() (Administrador, Editor, Gerencia,
+ * Autor, Publicista y Dirección) pueden verla y acceder al 100%.
  */
 function pro_restrict_clasificados_menu() {
-    $user = wp_get_current_user();
-    if ( ! in_array( 'administrator', (array) $user->roles ) ) {
+    // Bloquear solo si el usuario NO pertenece a un rol con acceso a Clasificados
+    if ( ! pro_user_can_access_clasificados() ) {
         // Eliminar el menú principal de Clasificados
         remove_menu_page( 'edit.php?post_type=clasificado' );
         // Eliminar submenús de las taxonomías asociadas por si acaso
@@ -131,10 +119,9 @@ function pro_restrict_clasificados_menu() {
 }
 add_action( 'admin_menu', 'pro_restrict_clasificados_menu', 9999 );
 
-// Bloquear acceso directo por URL a Clasificados o taxonomías para todos excepto Administrador
+// Bloquear acceso directo por URL a Clasificados o taxonomías para todos excepto los autorizados
 function pro_block_clasificados_direct_access() {
-    $user = wp_get_current_user();
-    if ( ! in_array( 'administrator', (array) $user->roles ) ) {
+    if ( ! pro_user_can_access_clasificados() ) {
         $screen = get_current_screen();
         if ( $screen && ( 'clasificado' === $screen->post_type || 'edit-tipo_clasificado' === $screen->taxonomy ) ) {
             wp_die( esc_html__( 'No tienes permisos suficientes para acceder a la sección de Clasificados.', 'pro' ) );
@@ -150,10 +137,10 @@ add_action( 'current_screen', 'pro_block_clasificados_direct_access' );
 // 7a. Limitar la lista de usuarios en wp-admin/users.php solo a perfiles permitidos para Dirección
 function pro_exclude_admins_from_users_list( $args ) {
     $current_user = wp_get_current_user();
-    if ( in_array( 'direccion', (array) $current_user->roles ) || in_array( 'publicista', (array) $current_user->roles ) ) {
+    if ( in_array( 'direccion', (array) $current_user->roles ) ) {
         // Forzar a mostrar SOLAMENTE direccion, autor y author
         $args['role__in'] = array( 'direccion', 'autor', 'author' );
-    } elseif ( in_array( 'gerencia', (array) $current_user->roles ) ) {
+    } elseif ( in_array( 'gerencia', (array) $current_user->roles ) || in_array( 'publicista', (array) $current_user->roles ) ) {
         if ( ! isset( $args['role__not_in'] ) ) {
             $args['role__not_in'] = array();
         }
@@ -166,7 +153,7 @@ add_filter( 'users_list_table_query_args', 'pro_exclude_admins_from_users_list' 
 // 7b. Ocultar pestañas de otros roles y ajustar contador de "Todos" en la lista de usuarios
 function pro_hide_admin_view_tab( $views ) {
     $current_user = wp_get_current_user();
-    if ( in_array( 'direccion', (array) $current_user->roles ) || in_array( 'publicista', (array) $current_user->roles ) ) {
+    if ( in_array( 'direccion', (array) $current_user->roles ) ) {
         // Remover otras pestañas que no sean all, direccion, autor o author
         $allowed_views = array( 'all', 'direccion', 'autor', 'author' );
         foreach ( $views as $key => $view ) {
@@ -174,7 +161,7 @@ function pro_hide_admin_view_tab( $views ) {
                 unset( $views[$key] );
             }
         }
-        
+
         // Arreglar el contador de "Todos" sumando los usuarios permitidos
         if ( isset( $views['all'] ) ) {
             $users_count = count_users();
@@ -185,18 +172,17 @@ function pro_hide_admin_view_tab( $views ) {
                     $visible_users += $users_count['avail_roles'][$role];
                 }
             }
-            
             // Reemplazar el número en el texto de la vista "Todos"
             $views['all'] = preg_replace( '/<span class="count">\([^)]+\)<\/span>/', '<span class="count">(' . number_format_i18n( $visible_users ) . ')</span>', $views['all'] );
         }
-    } elseif ( in_array( 'gerencia', (array) $current_user->roles ) ) {
+    } elseif ( in_array( 'gerencia', (array) $current_user->roles ) || in_array( 'publicista', (array) $current_user->roles ) ) {
         unset( $views['administrator'] );
-        
+
         if ( isset( $views['all'] ) ) {
             $users_count = count_users();
             $admin_count = isset( $users_count['avail_roles']['administrator'] ) ? $users_count['avail_roles']['administrator'] : 0;
             $visible_users = $users_count['total_users'] - $admin_count;
-            
+
             $views['all'] = preg_replace( '/<span class="count">\([^)]+\)<\/span>/', '<span class="count">(' . number_format_i18n( $visible_users ) . ')</span>', $views['all'] );
         }
     }
@@ -222,7 +208,7 @@ function pro_prevent_actions_on_admins() {
     $current_user = wp_get_current_user();
     if ( in_array( 'direccion', (array) $current_user->roles ) || in_array( 'gerencia', (array) $current_user->roles ) ) {
         $user_ids = array();
-        
+
         // Obtener IDs de usuarios implicados en la petición (GET o POST)
         if ( isset( $_GET['user'] ) ) {
             $user_ids[] = intval( $_GET['user'] );
@@ -233,7 +219,7 @@ function pro_prevent_actions_on_admins() {
         if ( isset( $_POST['users'] ) ) {
             $user_ids = array_merge( $user_ids, array_map( 'intval', (array) $_POST['users'] ) );
         }
-        
+
         foreach ( $user_ids as $id ) {
             if ( $id ) {
                 $target_user = get_userdata( $id );
@@ -246,8 +232,15 @@ function pro_prevent_actions_on_admins() {
 }
 add_action( 'admin_init', 'pro_prevent_actions_on_admins' );
 
-// 7e. Site Kit completo solo para Administradores: el resto del equipo ve sus
-// datos en el panel SEO. Ver inc/seo/class-site-kit-bridge.php.
+// 7e. Ocultar menú Site Kit para todos los roles excepto Administrador y Editor
+function pro_hide_site_kit_menus() {
+    $current_user = wp_get_current_user();
+    if ( ! in_array( 'administrator', (array) $current_user->roles ) && ! in_array( 'editor', (array) $current_user->roles ) ) {
+        remove_menu_page( 'googlesitekit-dashboard' );
+        remove_menu_page( 'googlesitekit-splash' );
+    }
+}
+add_action( 'admin_menu', 'pro_hide_site_kit_menus', 999 );
 
 // 7f. Ocultar el menú de administración si se solicita a través de hide_wp_menu (para iframes)
 function pro_hide_admin_menu_for_iframe() {
@@ -302,5 +295,12 @@ function pro_hide_menus_for_gerencia() {
     }
 }
 add_action( 'admin_menu', 'pro_hide_menus_for_gerencia', 999 );
+
+// 7i. Ocultar la sección SEO del menú lateral para todos los usuarios.
+// El módulo sigue activo: meta etiquetas en la web, caja SEO del editor y actualización automática.
+function pro_hide_seo_menu() {
+    remove_menu_page( 'ssivo-seo' );
+}
+add_action( 'admin_menu', 'pro_hide_seo_menu', 999 );
 
 ?>

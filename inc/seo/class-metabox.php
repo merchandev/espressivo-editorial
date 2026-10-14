@@ -10,7 +10,7 @@ class Metabox {
     public function register_meta_box() {
         add_meta_box(
             'ssivo_seo_snippet_preview',
-            'SSIVO-SEO: Vista Previa y Configuración',
+            'CMS-Editorial SEO: Vista Previa y Configuración',
             [ $this, 'render_meta_box' ],
             ['post', 'page'],
             'normal',
@@ -28,8 +28,8 @@ class Metabox {
 
         // Pasamos estos valores iniciales al DOM para que React los lea
         ?>
-        <div 
-            id="ssivo-seo-metabox-root" 
+        <div
+            id="ssivo-seo-metabox-root"
             data-custom-title="<?php echo esc_attr( $custom_title ); ?>"
             data-custom-desc="<?php echo esc_attr( $custom_desc ); ?>"
         >
@@ -67,7 +67,7 @@ class Metabox {
         if ( isset( $_POST['ssivo_seo_custom_title'] ) ) {
             update_post_meta( $post_id, '_ssivo_seo_custom_title', sanitize_text_field( wp_unslash( $_POST['ssivo_seo_custom_title'] ) ) );
         }
-        
+
         if ( isset( $_POST['ssivo_seo_custom_desc'] ) ) {
             // Permitimos áreas de texto sin etiquetas HTML
             update_post_meta( $post_id, '_ssivo_seo_custom_desc', sanitize_textarea_field( wp_unslash( $_POST['ssivo_seo_custom_desc'] ) ) );

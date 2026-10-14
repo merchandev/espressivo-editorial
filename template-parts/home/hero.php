@@ -1,13 +1,5 @@
 <?php
 /**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion 
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual, 
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
-/**
  * Hero Section Template
  * Displays the 3 latest posts in a hierarchical grid.
  */
@@ -28,13 +20,13 @@ if ( $hero_query->have_posts() ) : ?>
         $count = 0;
         while ( $hero_query->have_posts() ) : $hero_query->the_post();
             $count++;
-            
+
             if ( $count === 1 ) :
                 // Noticia Principal (Izquierda)
                 ?>
                 <article id="post-<?php the_ID(); ?>" <?php post_class('hero-main-post'); ?>>
                     <a href="<?php the_permalink(); ?>" class="post-thumbnail" aria-hidden="true" tabindex="-1">
-                        <?php 
+                        <?php
                         if ( ! pro_the_post_image( 'hero-thumbnail', array( 'loading' => 'eager' ) ) ) {
                             echo '<div class="placeholder-image"><span>Foto</span></div>';
                         }
@@ -57,7 +49,7 @@ if ( $hero_query->have_posts() ) : ?>
                 ?>
                 <article id="post-<?php the_ID(); ?>" <?php post_class('hero-sub-post'); ?>>
                     <a href="<?php the_permalink(); ?>" class="post-thumbnail" aria-hidden="true" tabindex="-1">
-                        <?php 
+                        <?php
                         if ( ! pro_the_post_image( 'medium', array( 'loading' => 'lazy' ) ) ) {
                             echo '<div class="placeholder-image"><span>Foto</span></div>';
                         }
@@ -73,12 +65,12 @@ if ( $hero_query->have_posts() ) : ?>
                 </article>
                 <?php
             endif;
-            
+
         endwhile;
-        
+
         if ( $count > 0 ) {
             // Cierra el contenedor secundario si al menos hubo 1 post
-            echo '</div>'; 
+            echo '</div>';
         }
         ?>
     </div>

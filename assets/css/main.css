@@ -1,12 +1,4 @@
-/**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion 
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual, 
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
-/* 
+/*
  * MAIN.CSS - Pro
  * Mobile-first CSS usando variables CSS y Layouts modernos (Grid/Flexbox)
  */
@@ -181,9 +173,8 @@ img {
     position: relative;
     overflow: hidden;
     flex: 1;
-    /* 15 % más grande que el formato 728 × 90, con la misma proporción */
-    max-width: 837px;
-    height: 104px;
+    max-width: 728px;
+    height: 90px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -677,11 +668,11 @@ img {
     line-height: 1.8;
     color: var(--color-text);
 }
-.entry-content p { 
-    margin-bottom: 1.8em; 
+.entry-content p {
+    margin-bottom: 1.8em;
 }
-.entry-content h2, .entry-content h3 { 
-    margin-top: 2.5em; 
+.entry-content h2, .entry-content h3 {
+    margin-top: 2.5em;
     margin-bottom: 1em;
     font-size: 2.2rem;
     font-family: var(--font-heading);
@@ -928,22 +919,22 @@ img {
 }
 
 /* ==========================================================================
-   Portada Editorial (Washington Post Style)
+   Portada Editorial (Diseño editorial)
    ========================================================================== */
-.wapo-sections-container {
+.cms-sections-container {
     margin-top: 50px;
     display: flex;
     flex-direction: column;
     gap: 40px;
 }
-.wapo-category-section {
+.cms-category-section {
     border-bottom: 2px solid var(--color-border);
     padding-bottom: 30px;
 }
-.wapo-category-section:last-child {
+.cms-category-section:last-child {
     border-bottom: none;
 }
-.wapo-section-title {
+.cms-section-title {
     font-family: var(--font-heading);
     font-size: 2rem;
     text-transform: uppercase;
@@ -951,57 +942,57 @@ img {
     padding-top: 10px;
     margin-bottom: 25px;
 }
-.wapo-grid {
+.cms-grid {
     display: grid;
     grid-template-columns: 1fr;
     gap: 30px;
 }
-.wapo-main-article .post-thumbnail {
+.cms-main-article .post-thumbnail {
     display: block;
     overflow: hidden;
     border-radius: var(--border-radius);
     margin-bottom: 20px;
 }
-.wapo-main-article .post-thumbnail img {
+.cms-main-article .post-thumbnail img {
     width: 100%;
     aspect-ratio: 16/9;
     object-fit: cover;
     transition: transform 0.5s ease;
 }
-.wapo-main-article:hover .post-thumbnail img {
+.cms-main-article:hover .post-thumbnail img {
     transform: scale(1.02);
 }
-.wapo-main-article .entry-title {
+.cms-main-article .entry-title {
     font-size: 2.2rem;
     line-height: 1.2;
     margin-bottom: 15px;
     transition: color var(--transition-speed);
 }
-.wapo-main-article:hover .entry-title a {
+.cms-main-article:hover .entry-title a {
     color: var(--color-accent);
 }
-.wapo-main-article .entry-summary {
+.cms-main-article .entry-summary {
     color: var(--color-text-muted);
     font-family: var(--font-body);
     font-size: 1.1rem;
     margin-bottom: 15px;
 }
-.wapo-side-articles {
+.cms-side-articles {
     display: flex;
     flex-direction: column;
 }
-.wapo-list-item {
+.cms-list-item {
     padding: 15px 0;
     border-bottom: 1px solid var(--color-border);
 }
-.wapo-list-item:first-child {
+.cms-list-item:first-child {
     padding-top: 0;
 }
-.wapo-list-item:last-child {
+.cms-list-item:last-child {
     border-bottom: none;
     padding-bottom: 0;
 }
-.wapo-list-item .entry-title {
+.cms-list-item .entry-title {
     font-size: 1.15rem;
     line-height: 1.3;
     margin-bottom: 8px;
@@ -1030,11 +1021,11 @@ img {
     .footer-legal {
         margin-top: 0;
     }
-    .wapo-grid {
+    .cms-grid {
         grid-template-columns: 2fr 1fr;
         gap: 40px;
     }
-    .wapo-main-article {
+    .cms-main-article {
         border-right: 1px solid var(--color-border);
         padding-right: 40px;
     }
@@ -1147,7 +1138,7 @@ img {
     grid-template-columns: 1fr;
     gap: 30px;
 }
-.news-grid-3col .wapo-list-item {
+.news-grid-3col .cms-list-item {
     padding: 0;
     border-bottom: none;
     margin-bottom: 20px;
@@ -1255,7 +1246,7 @@ img {
     .main-navigation.toggled > ul > li:nth-child(7) { transition-delay: 0.4s; }
     .main-navigation.toggled > ul > li:nth-child(8) { transition-delay: 0.45s; }
     .main-navigation.toggled > ul > li:nth-child(n+9) { transition-delay: 0.5s; }
-    
+
     .main-navigation ul a {
         display: flex;
         justify-content: space-between;
@@ -1468,7 +1459,7 @@ img {
     box-shadow: var(--shadow-md);
     border: 1px solid var(--color-border);
     transition: transform var(--transition-speed);
-    
+
     /* Layout by default (mobile): stack */
     display: flex;
     flex-direction: column;
@@ -2109,8 +2100,8 @@ img {
     animation: spin 1s linear infinite;
 }
 
-@keyframes spin { 
-    100% { transform: rotate(360deg); } 
+@keyframes spin {
+    100% { transform: rotate(360deg); }
 }
 
 /* Animaci├│n de ├ëxito (Checkmark) */
@@ -2285,7 +2276,7 @@ img {
         flex-direction: column;
         text-align: center;
     }
-    
+
     .home-carteles-banner {
         padding: 30px 20px;
     }
@@ -3847,7 +3838,7 @@ body.dark-mode .main-navigation .sub-menu {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: url('https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') center/cover no-repeat;
+    background: var(--cms-primary, #334155);
 }
 .radio-hero-section::before {
     content: '';

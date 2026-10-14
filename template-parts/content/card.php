@@ -1,13 +1,5 @@
 <?php
 /**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- *
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual,
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
-/**
  * Tarjeta de noticia de los listados (categorías, archivo y "cargar más").
  *
  * La usan tanto el render inicial como el endpoint AJAX, para que las noticias

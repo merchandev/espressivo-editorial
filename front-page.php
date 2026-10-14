@@ -1,14 +1,6 @@
 <?php
 /**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion 
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual, 
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
-/**
- * Portada personalizada estilo editorial (WaPo Style).
+ * Portada personalizada estilo editorial (CMS-Editorial).
  *
  * @package Pro
  */
@@ -21,9 +13,7 @@ get_header();
     <!-- SECCIÓN UNIFICADA: NOTICIA PRINCIPAL ARRIBA Y REJA (60% NOTICIAS / 40% PORTADA) ABAJO -->
     <?php
     $portada_img = get_option( 'pro_portada_actual' );
-    if ( ! $portada_img ) {
-        $portada_img = get_template_directory_uri() . '/screenshot.png';
-    }
+
 
     // Primero intentamos la categoría "relevantes"; si no hay, usamos los últimos posts
     $relevant_query = new WP_Query( array(
@@ -49,16 +39,18 @@ get_header();
     ?>
 
     <?php if ( $relevant_query->have_posts() ) : ?>
-        
-        <?php 
+
+        <?php
         // 1. Extraemos el primer post para la noticia principal que va sola arriba
         $relevant_query->the_post();
         ?>
         <div class="home-main-news-wrapper" style="margin-top: 30px; margin-bottom: 40px; width: 100%;">
             <article id="post-<?php the_ID(); ?>" <?php post_class('hero-main-post'); ?>>
                 <a href="<?php the_permalink(); ?>" class="post-thumbnail" aria-hidden="true" tabindex="-1">
-                    <?php 
-                    if ( ! pro_the_post_image( 'hero-thumbnail', array( 'loading' => 'eager' ) ) ) {
+                    <?php
+                    if ( has_post_thumbnail() ) {
+                        the_post_thumbnail( 'hero-thumbnail', array( 'loading' => 'eager' ) );
+                    } else {
                         echo '<div class="placeholder-image"><span>Foto</span></div>';
                     }
                     ?>
@@ -84,7 +76,7 @@ get_header();
         <div class="home-hero-portada-grid">
             <!-- Columna de Noticias (60%) -->
             <div class="hero-news-column">
-                <?php 
+                <?php
                 while ( $relevant_query->have_posts() ) : $relevant_query->the_post();
                     ?>
                     <article id="post-<?php the_ID(); ?>" <?php post_class('hero-sub-post'); ?>>
@@ -110,10 +102,10 @@ get_header();
                 <div class="portada-header-badge">
                     <h4 class="portada-main-title">Portada del día</h4>
                 </div>
-                
+
                 <div class="home-portada-card card-portada" data-full-url="<?php echo esc_url($portada_img); ?>">
                     <div class="home-portada-thumbnail">
-                        <img src="<?php echo esc_url($portada_img); ?>" alt="Portada del Día" loading="eager">
+                        <?php if ( $portada_img ) : ?><img src="<?php echo esc_url($portada_img); ?>" alt="Portada del día" loading="eager"><?php else : ?><div class="ad-placeholder">La portada estará disponible próximamente.</div><?php endif; ?>
                         <div class="portada-overlay">
                             <div class="portada-overlay-button">
                                 <span class="material-symbols-outlined overlay-lupa-icon" aria-hidden="true">zoom_in</span>
@@ -125,9 +117,9 @@ get_header();
             </div>
         </div>
 
-        <?php 
+        <?php
         wp_reset_postdata();
-    endif; 
+    endif;
     ?>
 
 
@@ -135,18 +127,18 @@ get_header();
     <?php get_template_part('template-parts/ads/in-feed', null, array('location' => 'below-hero')); ?>
 
     <!-- WAPO CATEGORY SECTIONS -->
-    <div class="wapo-sections-container">
-        
+    <div class="cms-sections-container">
+
         <?php
         // Función Helper interna para evitar repetir el código de placeholders
         if ( ! function_exists( 'pro_render_placeholder_main' ) ) {
             function pro_render_placeholder_main( $title = "Título de Noticia Principal" ) {
                 ?>
-                <article class="wapo-main-article placeholder-mode">
+                <article class="cms-main-article placeholder-mode">
                     <div class="post-thumbnail placeholder-image">
                         <span>Espacio Foto</span>
                     </div>
-                    <div class="wapo-main-content">
+                    <div class="cms-main-content">
                         <h3 class="entry-title placeholder-text"><?php echo esc_html($title); ?></h3>
                         <div class="entry-summary placeholder-text-small">
                             Este es un texto de relleno que muestra cómo se verá el extracto de la noticia.
@@ -158,9 +150,9 @@ get_header();
         }
         if ( ! function_exists( 'pro_render_placeholder_side' ) ) {
             function pro_render_placeholder_side($count = 3) {
-                echo '<div class="wapo-side-articles placeholder-mode">';
+                echo '<div class="cms-side-articles placeholder-mode">';
                 for($i=1; $i<=$count; $i++) {
-                    echo '<article class="wapo-list-item">';
+                    echo '<article class="cms-list-item">';
                     echo '<h4 class="entry-title placeholder-text">Titular secundario de noticia ' . $i . '</h4>';
                     echo '</article>';
                 }

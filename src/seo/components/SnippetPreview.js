@@ -20,13 +20,13 @@ const SnippetPreview = () => {
     const { postTitle, excerpt, siteName, mediaUrl, content } = useSelect((select) => {
         const coreEditor = select('core/editor');
         const coreSite = select('core');
-        
+
         let siteData = coreSite.getSite();
-        let fallbackSiteName = siteData ? siteData.title : 'Espressivo Editorial';
+        let fallbackSiteName = window.cmsEditorialSEO?.suffix || (siteData ? siteData.title : 'CMS-Editorial');
 
         const mediaId = coreEditor.getEditedPostAttribute('featured_media');
         const media = mediaId ? select('core').getEntityRecord('root', 'media', mediaId) : null;
-        const mediaUrl = media ? media.source_url : '';
+        const mediaUrl = media ? media.source_url : (window.cmsEditorialSEO?.image || '');
 
         return {
             postTitle: coreEditor.getEditedPostAttribute('title'),
@@ -46,20 +46,20 @@ const SnippetPreview = () => {
 
     return (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', padding: '10px 0' }}>
-            
+
             {/* Columna Izquierda: Formulario de Edición */}
             <div>
                 <h4 style={{ marginTop: 0, marginBottom: '15px', color: '#1e293b', fontSize: '15px' }}>Personalizar SEO</h4>
-                
+
                 <div style={{ marginBottom: '20px' }}>
                     <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#475569' }}>
                         Título SEO Personalizado
                     </label>
-                    <input 
-                        type="text" 
-                        name="ssivo_seo_custom_title" 
-                        value={customTitle} 
-                        onChange={(e) => setCustomTitle(e.target.value)} 
+                    <input
+                        type="text"
+                        name="ssivo_seo_custom_title"
+                        value={customTitle}
+                        onChange={(e) => setCustomTitle(e.target.value)}
                         style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
                         placeholder={postTitle || "Escribe un título atractivo (Opcional)"}
                     />
@@ -72,10 +72,10 @@ const SnippetPreview = () => {
                     <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px', color: '#475569' }}>
                         Descripción SEO Personalizada (Meta Description)
                     </label>
-                    <textarea 
-                        name="ssivo_seo_custom_desc" 
-                        value={customDesc} 
-                        onChange={(e) => setCustomDesc(e.target.value)} 
+                    <textarea
+                        name="ssivo_seo_custom_desc"
+                        value={customDesc}
+                        onChange={(e) => setCustomDesc(e.target.value)}
                         style={{ width: '100%', height: '100px', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
                         placeholder={autoDesc || "Escribe una descripción cautivadora (Opcional)"}
                     />
@@ -87,7 +87,7 @@ const SnippetPreview = () => {
 
             {/* Columna Derecha: Vista Previa y Legibilidad */}
             <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                
+
                 {/* Legibilidad */}
                 <div style={{ marginBottom: '25px' }}>
                     <h4 style={{ marginTop: 0, marginBottom: '10px', color: '#1e293b', fontSize: '15px' }}>Análisis de Legibilidad</h4>
@@ -116,7 +116,7 @@ const SnippetPreview = () => {
                     <span className="dashicons dashicons-search" style={{ color: '#3b82f6' }}></span>
                     Vista Previa en Google
                 </h4>
-                
+
                 {/* Simulador de Google */}
                 <div style={{ fontFamily: 'arial, sans-serif', maxWidth: '600px' }}>
                     <div style={{ fontSize: '14px', color: '#202124', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '5px' }}>
@@ -126,7 +126,7 @@ const SnippetPreview = () => {
                             <span style={{ color: '#4d5156', fontSize: '12px' }}>https://tusitio.com › categoria › articulo</span>
                         </div>
                     </div>
-                    
+
                     <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-start' }}>
                         <div style={{ flexGrow: 1 }}>
                             <h3 style={{ margin: '0 0 5px 0', fontSize: '20px', color: '#1a0dab', fontWeight: 'normal', lineHeight: '1.3' }}>

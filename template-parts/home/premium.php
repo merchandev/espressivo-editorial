@@ -1,12 +1,4 @@
 <?php
-/**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion 
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual, 
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
 $premium_cats = array('nacional' => 'Nacional', 'mundo' => 'Mundo', 'economia' => 'Economía', 'sucesos' => 'Sucesos');
 foreach ( $premium_cats as $cat_slug => $cat_name ) :
     $cat_obj = get_category_by_slug( $cat_slug );
@@ -27,44 +19,44 @@ foreach ( $premium_cats as $cat_slug => $cat_name ) :
     $cat_query = new WP_Query( $cat_args );
     if ( $cat_query->have_posts() ) :
     ?>
-    <section class="wapo-category-section">
-        <h2 class="wapo-section-title"><span><?php echo esc_html( $cat_name ); ?></span></h2>
-        <div class="wapo-grid">
+    <section class="cms-category-section">
+        <h2 class="cms-section-title"><span><?php echo esc_html( $cat_name ); ?></span></h2>
+        <div class="cms-grid">
             <?php
                 $count = 0;
                 while ( $cat_query->have_posts() ) : $cat_query->the_post();
                     if ( $count === 0 ) :
                         ?>
-                        <article class="wapo-main-article">
+                        <article class="cms-main-article">
                             <a href="<?php the_permalink(); ?>" class="post-thumbnail">
-                                <?php 
+                                <?php
                                 if ( ! pro_the_post_image( 'card-thumbnail', array( 'loading' => 'lazy' ) ) ) {
                                     echo '<div class="placeholder-image"><span>Foto</span></div>';
                                 }
                                 ?>
                             </a>
-                            <div class="wapo-main-content">
+                            <div class="cms-main-content">
                                 <h3 class="entry-title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
                                 <div class="entry-summary"><?php the_excerpt(); ?></div>
                             </div>
                         </article>
-                        <div class="wapo-side-articles">
+                        <div class="cms-side-articles">
                         <?php
                     else :
                         ?>
-                        <article class="wapo-list-item">
+                        <article class="cms-list-item">
                             <h4 class="entry-title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h4>
                         </article>
                         <?php
                     endif;
                     $count++;
                 endwhile;
-                if ( $count > 1 ) { echo '</div>'; } elseif ( $count === 1 ) { echo '<div class="wapo-side-articles empty-side"></div>'; }
+                if ( $count > 1 ) { echo '</div>'; } elseif ( $count === 1 ) { echo '<div class="cms-side-articles empty-side"></div>'; }
             ?>
         </div>
     </section>
     <?php endif; wp_reset_postdata(); ?>
-    
+
     <?php if ( $cat_slug === 'mundo' ) : ?>
         <!-- Publicidad Extra Entre Secciones -->
         <div class="premium-ads-single" style="margin: 40px 0;">

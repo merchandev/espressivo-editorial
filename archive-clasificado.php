@@ -1,10 +1,10 @@
 <?php
 /**
- * Archivo público de clasificados.
+ * Template Name: Clasificados
  *
  * URL: /clasificados/
  *
- * @package Espressivo
+ * @package CMS-Editorial
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -47,7 +47,7 @@ $types = get_terms(
     <header class="classified-hero">
         <div class="classified-container">
             <p class="classified-kicker">
-                <?php esc_html_e( 'Diario El Oriental', 'pro' ); ?>
+                <?php echo esc_html( get_bloginfo( 'name' ) ); ?>
             </p>
 
             <h1 class="classified-page-title">
@@ -138,7 +138,7 @@ $types = get_terms(
                     // En lugar de usar ?tipo=, enviamos directamente a la URL de la categoría
                     $type_link = get_term_link( $type );
                     $type_url  = is_wp_error( $type_link ) ? '#' : $type_link;
-                    
+
                     $icon_meta = get_term_meta( $type->term_id, 'clasificado_icon', true );
                     $icon_html = '';
                     if ( $icon_meta ) {
@@ -216,32 +216,40 @@ $types = get_terms(
                         'tipo_clasificado'
                     );
 
+                    $raw_content = get_the_content();
+
                     $summary = wp_trim_words(
                         wp_strip_all_tags(
                             strip_shortcodes(
-                                get_the_content()
+                                $raw_content
                             )
                         ),
-                        70,
+                        25,
                         '…'
                     );
+
+                    // Imagen de la tarjeta: la destacada; si no hay, la primera imagen del aviso.
+                    $card_image = '';
+                    if ( has_post_thumbnail() ) {
+                        $card_image = get_the_post_thumbnail(
+                            null,
+                            'card-thumbnail',
+                            array( 'loading' => 'lazy' )
+                        );
+                    } elseif ( preg_match( '/wp-image-(\d+)/', $raw_content, $image_match ) ) {
+                        $card_image = wp_get_attachment_image(
+                            (int) $image_match[1],
+                            'card-thumbnail',
+                            false,
+                            array( 'loading' => 'lazy' )
+                        );
+                    }
                     ?>
 
                     <article
                         id="post-<?php the_ID(); ?>"
                         <?php post_class( 'classified-card' ); ?>
                     >
-                        <?php if ( pro_get_post_image_id() ) : ?>
-                            <a
-                                class="classified-card__image"
-                                href="<?php the_permalink(); ?>"
-                                tabindex="-1"
-                                aria-hidden="true"
-                            >
-                                <?php pro_the_post_image( 'medium_large', array( 'loading' => 'lazy' ) ); ?>
-                            </a>
-                        <?php endif; ?>
-
                         <?php
                         if (
                             ! empty( $post_types )
@@ -267,11 +275,24 @@ $types = get_terms(
                             </a>
                         </h2>
 
-                        <div class="classified-card__content">
-                            <p>
-                                <?php echo esc_html( $summary ); ?>
-                            </p>
-                        </div>
+                        <?php if ( $card_image ) : ?>
+                            <a
+                                class="classified-card__image"
+                                href="<?php the_permalink(); ?>"
+                                aria-hidden="true"
+                                tabindex="-1"
+                            >
+                                <?php echo $card_image; // HTML generado por WordPress ?>
+                            </a>
+                        <?php endif; ?>
+
+                        <?php if ( '' !== $summary ) : ?>
+                            <div class="classified-card__content">
+                                <p>
+                                    <?php echo esc_html( $summary ); ?>
+                                </p>
+                            </div>
+                        <?php endif; ?>
 
                         <footer class="classified-card__footer">
                             <time

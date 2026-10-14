@@ -1,6 +1,6 @@
 <?php
 /**
- * Template Name: Radio Vital 101.5 FM
+ * Template Name: Radio en vivo
  */
 
 get_header(); ?>
@@ -9,15 +9,16 @@ get_header(); ?>
     <div class="radio-hero-section">
         <div class="radio-hero-overlay"></div>
         <div class="radio-hero-content archive-container">
-            <h1 class="radio-title">VITAL 101.5 FM</h1>
-            <p class="radio-subtitle">Tu música, tu estación</p>
-            
+            <h1 class="radio-title"><?php echo esc_html( cms_editorial_setting( 'radio_name' ) ); ?></h1>
+            <p class="radio-subtitle"><?php echo esc_html( cms_editorial_setting( 'radio_description' ) ); ?></p>
+
+            <?php if ( cms_editorial_radio_available() ) : ?>
             <div class="es-resp-wrapper">
                 <div class="es-resp-bar" id="esRespBar">
                     <!-- PLAY SECTION -->
                     <div class="es-resp-play-zone">
                         <div class="es-resp-halo"></div>
-                        <button class="es-resp-btn" id="esRespPlay" onclick="toggleRespRadio()" aria-label="Reproducir Radio Vital 101.5 FM">
+                        <button class="es-resp-btn" id="esRespPlay" onclick="toggleRespRadio()" aria-label="<?php echo esc_attr( 'Reproducir ' . cms_editorial_setting( 'radio_name' ) ); ?>">
                             <span class="material-symbols-rounded" aria-hidden="true" id="esRespIcon">play_arrow</span>
                         </button>
                     </div>
@@ -54,8 +55,9 @@ get_header(); ?>
                     </div>
                 </div>
             </div>
-            
+
             <audio id="esRespAudio" preload="none"></audio>
+            <?php endif; ?>
         </div>
     </div>
 </main>

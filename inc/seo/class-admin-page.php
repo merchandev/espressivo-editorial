@@ -2,7 +2,7 @@
 namespace SSIVO_SEO\Includes;
 
 /**
- * SSIVO-SEO · AdminPage
+ * CMS-Editorial SEO · AdminPage
  *
  * Correcciones aplicadas (auditoría 2026-07):
  *  1. Capacidad propia view_ssivo_seo (no edit_posts, no manage_options).
@@ -58,7 +58,6 @@ class AdminPage {
 
     public function __construct() {
         add_action( 'admin_menu',    [ $this, 'register_menu' ] );
-        add_action( 'admin_init',    [ $this, 'register_settings' ] );
         add_action( 'admin_init',    [ $this, 'run_capability_migration' ] );
         add_action( 'admin_init',    [ $this, 'run_data_migration' ] );
         add_action( 'rest_api_init', [ $this, 'register_rest_routes' ] );
@@ -138,7 +137,7 @@ class AdminPage {
 
     public function register_menu(): void {
         add_menu_page(
-            'Panel Principal de SSIVO-SEO',
+            'Panel Principal de CMS-Editorial SEO',
             'SEO',
             'view_ssivo_seo',          // Capacidad propia — no manage_options, no edit_posts
             'ssivo-seo',
@@ -148,14 +147,6 @@ class AdminPage {
         );
     }
 
-    public function register_settings(): void {
-        register_setting( 'ssivo_seo_group', 'ssivo_seo_default_title', [
-            'sanitize_callback' => 'sanitize_text_field',
-        ] );
-        register_setting( 'ssivo_seo_group', 'ssivo_seo_default_image', [
-            'sanitize_callback' => 'esc_url_raw',
-        ] );
-    }
 
     // =========================================================================
     // REST PROXY — ssivo-seo/v1/analytics
@@ -226,7 +217,7 @@ class AdminPage {
      */
     public function proxy_analytics_data( \WP_REST_Request $request ): \WP_REST_Response {
         ob_start();
-        
+
         $days = (int) $request->get_param( 'days' );
         if ( ! in_array( $days, self::RANGES, true ) ) {
             $days = 28;
@@ -390,7 +381,7 @@ class AdminPage {
         }
 
         if ( 0 === $fresh && empty( $stale ) ) {
-            error_log( 'SSIVO-SEO Analytics: Todos los endpoints de Site Kit fallaron. Verificar token OAuth y permisos.' );
+            error_log( 'CMS-Editorial SEO Analytics: Todos los endpoints de Site Kit fallaron. Verificar token OAuth y permisos.' );
             ob_end_clean();
             $unavailable           = $this->unavailable_response( 'all_endpoints_failed' );
             $unavailable['errors'] = $errors;
@@ -466,7 +457,7 @@ class AdminPage {
 
             // Registrar el error real — nunca silenciarlo con ?? 0
             error_log( sprintf(
-                'SSIVO-SEO Analytics [%s]: HTTP %d — %s',
+                'CMS-Editorial SEO Analytics [%s]: HTTP %d — %s',
                 $key,
                 $status,
                 wp_json_encode( $data )
@@ -517,8 +508,6 @@ class AdminPage {
 
         global $wpdb;
 
-        $default_title = get_option( 'ssivo_seo_default_title', get_bloginfo( 'name' ) );
-        $default_image = get_option( 'ssivo_seo_default_image', '' );
 
         // Estadísticas locales (BD propia — siempre disponibles)
         $total_posts = (int) $wpdb->get_var(
@@ -539,7 +528,7 @@ class AdminPage {
         <div class="wrap" style="max-width:900px;">
             <h1 style="font-weight:700;margin-bottom:20px;">
                 <span class="dashicons dashicons-chart-line" style="font-size:28px;width:28px;height:28px;color:#3b82f6;margin-right:8px;margin-top:2px;"></span>
-                Panel Principal de SSIVO-SEO
+                Panel Principal de CMS-Editorial SEO
             </h1>
             <p style="font-size:14px;color:#475569;margin-bottom:30px;">
                 Resumen de salud y opciones globales de posicionamiento en buscadores para tu plataforma.
@@ -785,10 +774,10 @@ class AdminPage {
                             usuarios = parseInt(ga4[0].metricValues[1] ? ga4[0].metricValues[1].value : 0);
                         } else {
                             // GA4 respondió 200 pero estructura desconocida — log en consola
-                            console.warn('[SSIVO-SEO] ga4: estructura de respuesta no reconocida', ga4);
+                            console.warn('[CMS-Editorial SEO] ga4: estructura de respuesta no reconocida', ga4);
                         }
                     } else if (ga4 && ga4.__error) {
-                        console.error('[SSIVO-SEO] ga4 error HTTP', ga4.__status, ga4.__data);
+                        console.error('[CMS-Editorial SEO] ga4 error HTTP', ga4.__status, ga4.__data);
                     }
 
                     var skV = document.getElementById('sk-visitas');
@@ -809,7 +798,7 @@ class AdminPage {
                             totalClicks += parseInt(row.clicks || 0);
                         });
                     } else if (sc && sc.__error) {
-                        console.error('[SSIVO-SEO] search-console error HTTP', sc.__status, sc.__data);
+                        console.error('[CMS-Editorial SEO] search-console error HTTP', sc.__status, sc.__data);
                     }
                     var skI = document.getElementById('sk-impresiones');
                     if (skI) skI.textContent = totalImp !== null ? totalImp.toLocaleString() : '—';
@@ -830,7 +819,7 @@ class AdminPage {
                                 ulC.appendChild(makeLi(t, v));
                             });
                         } else {
-                            if (tp && tp.__error) console.error('[SSIVO-SEO] top_pages error', tp.__status);
+                            if (tp && tp.__error) console.error('[CMS-Editorial SEO] top_pages error', tp.__status);
                             setUnavailable('sk-top-content', 'top_pages');
                         }
                         appendStaleNote(ulC, 'top_pages');
@@ -849,7 +838,7 @@ class AdminPage {
                                 ulK.appendChild(makeLi(q, c));
                             });
                         } else {
-                            if (kw && kw.__error) console.error('[SSIVO-SEO] keywords error', kw.__status);
+                            if (kw && kw.__error) console.error('[CMS-Editorial SEO] keywords error', kw.__status);
                             setUnavailable('sk-top-keywords', 'keywords');
                         }
                         appendStaleNote(ulK, 'keywords');
@@ -878,7 +867,7 @@ class AdminPage {
                     ul.innerHTML = '';
                     var rows = report && !report.__error && report.rows ? report.rows : [];
                     if (!rows.length) {
-                        if (report && report.__error) console.error('[SSIVO-SEO] ' + key + ' error', report.__status);
+                        if (report && report.__error) console.error('[CMS-Editorial SEO] ' + key + ' error', report.__status);
                         setUnavailable(id, key);
                         appendStaleNote(ul, key);
                         return;
@@ -925,7 +914,7 @@ class AdminPage {
                         if (!res.ok) {
                             // Respuesta HTTP no-2xx: log real, nunca cero
                             return res.text().then(function(body) {
-                                console.error('[SSIVO-SEO] HTTP ' + res.status + ':', body);
+                                console.error('[CMS-Editorial SEO] HTTP ' + res.status + ':', body);
                                 throw new Error('HTTP ' + res.status + ': ' + body.substring(0, 100));
                             });
                         }
@@ -933,22 +922,22 @@ class AdminPage {
                             try {
                                 return JSON.parse(text);
                             } catch (e) {
-                                console.error('[SSIVO-SEO] Parse Error. Raw response:', text);
+                                console.error('[CMS-Editorial SEO] Parse Error. Raw response:', text);
                                 throw new Error('Parse error: ' + text.substring(0, 60));
                             }
                         });
                     })
                     .then(function(all) {
                         // Estructura completa de depuración siempre en consola
-                        console.log('[SSIVO-SEO] Respuesta del proxy:', JSON.stringify(all));
+                        console.log('[CMS-Editorial SEO] Respuesta del proxy:', JSON.stringify(all));
                         renderDashboard(all, all.from_cache);
                     })
                     .catch(function(err) {
-                        console.error('[SSIVO-SEO] Error de red o parseo:', err);
+                        console.error('[CMS-Editorial SEO] Error de red o parseo:', err);
                         var statusEl = document.getElementById('ssivo-cache-status');
-                        if (statusEl) { 
-                            statusEl.textContent = '✗ ' + (err.message || 'Error de conexión'); 
-                            statusEl.style.color = '#ef4444'; 
+                        if (statusEl) {
+                            statusEl.textContent = '✗ ' + (err.message || 'Error de conexión');
+                            statusEl.style.color = '#ef4444';
                         }
                         ['sk-visitas','sk-usuarios','sk-impresiones','sk-clics'].forEach(function(id) {
                             var el = document.getElementById(id);
@@ -997,30 +986,15 @@ class AdminPage {
             <?php if ( current_user_can( 'manage_options' ) ) : ?>
             <!-- FORMULARIO DE AJUSTES (solo admins) -->
             <h2 style="font-size:18px;font-weight:600;color:#1e293b;margin-bottom:15px;">Ajustes Globales</h2>
-            <form method="post" action="options.php" style="background:#fff;padding:25px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1);border:1px solid #e2e8f0;">
+            <div style="background:#fff;padding:25px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1);border:1px solid #e2e8f0;">
                 <?php
-                settings_fields( 'ssivo_seo_group' );
-                do_settings_sections( 'ssivo_seo_group' );
                 $sk_services = [
                     'analytics-4'    => 'Google Analytics',
                     'search-console' => 'Search Console',
                 ];
                 ?>
                 <table class="form-table" role="presentation"><tbody>
-                    <tr>
-                        <th scope="row"><label for="ssivo_seo_default_title" style="font-weight:600;">Sufijo del Título Global</label></th>
-                        <td>
-                            <input name="ssivo_seo_default_title" type="text" id="ssivo_seo_default_title" value="<?php echo esc_attr( $default_title ); ?>" class="regular-text" />
-                            <p class="description">Este texto se añadirá automáticamente al final de tus títulos. (Ej. " | Diario El Oriental")</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row"><label for="ssivo_seo_default_image" style="font-weight:600;">URL Imagen Destacada por Defecto</label></th>
-                        <td>
-                            <input name="ssivo_seo_default_image" type="url" id="ssivo_seo_default_image" value="<?php echo esc_url( $default_image ); ?>" class="regular-text large-text" />
-                            <p class="description">Imagen que se usará al compartir si el artículo no tiene imagen destacada propia.</p>
-                        </td>
-                    </tr>
+                    <tr><th scope="row">Identidad SEO</th><td><a class="button" href="<?php echo esc_url( admin_url( 'themes.php?page=cms-editorial' ) ); ?>">Configurar título, descripción e imagen en CMS-Editorial</a></td></tr>
                     <tr>
                         <th scope="row" style="font-weight:600;">Conexión con Google Site Kit</th>
                         <td>
@@ -1042,8 +1016,7 @@ class AdminPage {
                     </tr>
                 </tbody></table>
                 <hr style="border:0;border-top:1px solid #e2e8f0;margin:20px 0;" />
-                <?php submit_button( 'Guardar Cambios SEO', 'primary', 'submit', false ); ?>
-            </form>
+            </div>
             <?php endif; ?>
         </div>
         <?php

@@ -49,7 +49,7 @@ final class Espressivo_PDF_Generator {
             $canvas->page_text(
                 38,
                 $footer_y,
-                'Diario El Oriental - Reporte editorial interno',
+                get_bloginfo( 'name' ) . ' - Reporte editorial interno',
                 $font,
                 7.5,
                 array( 0.34, 0.36, 0.39 )
@@ -94,18 +94,12 @@ final class Espressivo_PDF_Generator {
      * @param array<string, mixed> $report
      */
     private function render_template( array $report ): string {
-        $logo_path     = get_template_directory() . '/assets/image/LOGO NEGRO.png';
-        $logo_data_uri = '';
-
-        if ( is_readable( $logo_path ) ) {
-            $logo_data_uri = 'data:image/png;base64,' . base64_encode(
-                (string) file_get_contents( $logo_path )
-            );
-        }
+        $logo_data_uri = cms_editorial_report_logo_data();
 
         $generated_at = wp_date( 'd/m/Y H:i', null, wp_timezone() );
         $site_name    = get_bloginfo( 'name' );
         $site_url     = home_url( '/' );
+        $report_code  = 'CMS-' . strtoupper( substr( str_replace( '-', '', wp_generate_uuid4() ), 0, 12 ) );
 
         ob_start();
         require ESPRESSIVO_REPORTES_DIR . 'templates/pdf-report.php';

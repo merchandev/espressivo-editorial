@@ -202,6 +202,26 @@
     text-decoration: underline;
 }
 
+.classified-card__image {
+    display: block;
+    margin: 0 0 10px;
+    overflow: hidden;
+    border-radius: 6px;
+}
+
+.classified-card__image img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 3 / 2;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.classified-card__image:hover img {
+    transform: scale(1.03);
+}
+
 .classified-card__content {
     color: inherit;
     font-size: 0.93rem;
@@ -327,6 +347,22 @@
     line-height: 1.68;
 }
 
+.classified-detail__content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+.classified-detail__content figure {
+    margin: 24px 0;
+}
+
+.classified-detail__content figcaption {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    color: #666;
+}
+
 .classified-detail__footer {
     margin-top: 35px;
     padding-top: 20px;
@@ -337,45 +373,6 @@
     color: #a10e14;
     font-weight: 800;
     text-decoration: none;
-}
-
-/* Imágenes de los avisos */
-
-.classified-card__image {
-    display: block;
-    margin: 0 0 12px;
-    overflow: hidden;
-    border-radius: 4px;
-    background: #f0f0f0;
-}
-
-.classified-card__image img {
-    display: block;
-    width: 100%;
-    height: auto;
-    max-height: 320px;
-    object-fit: cover;
-}
-
-.classified-detail__image {
-    margin: 28px 0 0;
-}
-
-.classified-detail__image img {
-    display: block;
-    width: 100%;
-    height: auto;
-    border-radius: 4px;
-}
-
-.classified-detail__content img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 4px;
-}
-
-.classified-detail__content figure {
-    margin: 1.4em 0;
 }
 
 @media (max-width: 960px) {

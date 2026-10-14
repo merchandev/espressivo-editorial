@@ -1,13 +1,5 @@
 <?php
 /**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- *
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual,
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
-/**
  * Gestor de Publicidad (Ad Manager)
  *
  * Registra los CPTs para los anuncios, meta boxes y funciones auxiliares.
@@ -81,7 +73,7 @@ function pro_ad_admin_styles() {
         .pro-field input[type="text"], .pro-field input[type="url"], .pro-field input[type="datetime-local"], .pro-field select { width: 100%; }
         .pro-slide-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
         .pro-slide-row input { flex: 1; }
-        
+
         #pro-cat-checklist {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 6px 14px; max-height: 220px;
             overflow-y: auto; padding: 10px 12px; background: #fff; border: 1px solid #bcd4f5; border-radius: 5px; margin-top: 8px;
@@ -90,7 +82,7 @@ function pro_ad_admin_styles() {
         #pro-cat-checklist input[type="checkbox"] { margin: 0; flex-shrink: 0; }
         .pro-cat-select-btns { display: flex; gap: 8px; margin-top: 8px; }
         .pro-cat-select-btns button { font-size: 0.75rem; padding: 3px 10px; }
-        
+
         .pro-slide-box { background: #fff; border: 1px solid #dde1e7; border-radius: 5px; padding: 12px 14px; margin-bottom: 10px; }
         .pro-slide-box strong { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: #374151; }
     </style>
@@ -103,7 +95,7 @@ function pro_ad_admin_styles() {
             uploader.on('select', function() { targetInput.val(uploader.state().get('selection').first().toJSON().url); });
             uploader.open();
         });
-        
+
         $('input[name="pro_cat_scope"]').on('change', function() {
             if ($(this).val() === 'specific') { $('#pro-cat-specific-wrap').slideDown(200); } else { $('#pro-cat-specific-wrap').slideUp(200); }
         });
@@ -121,7 +113,7 @@ add_action( 'admin_head', 'pro_ad_admin_styles' );
 function pro_add_ad_meta_boxes() {
     add_meta_box( 'pro_ad_settings', '⚙️ Configuración General', 'pro_ad_meta_box_html', 'pro_ad_banner', 'normal', 'high' );
     add_meta_box( 'pro_ad_slides', '🖼️ Slides Adicionales (Opcional)', 'pro_ad_slides_meta_box_html', 'pro_ad_banner', 'normal', 'high' );
-    
+
     add_meta_box( 'pro_cat_settings', '⚙️ Configuración del Banner de Categoría', 'pro_cat_meta_box_html', 'pro_cat_banner', 'normal', 'high' );
 }
 add_action( 'add_meta_boxes', 'pro_add_ad_meta_boxes' );
@@ -156,7 +148,7 @@ function pro_ad_meta_box_html( $post ) {
             <input type="url" name="pro_ad_url" id="pro_ad_url" value="<?php echo esc_url( $url ); ?>">
         </div>
     </div>
-    
+
     <div class="pro-ad-meta-box">
         <p class="title">Duración de la Campaña</p>
         <div class="pro-field" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
@@ -172,7 +164,7 @@ function pro_ad_meta_box_html( $post ) {
             </div>
         </div>
     </div>
-    
+
     <script>
     jQuery(document).ready(function($) {
         var isSubmitting = false;
@@ -254,11 +246,11 @@ function pro_cat_meta_box_html( $post ) {
     $end          = get_post_meta( $post->ID, '_pro_cat_end', true );
     $sponsor_name = get_post_meta( $post->ID, '_pro_cat_sponsor_name', true );
     $sponsor_logo = get_post_meta( $post->ID, '_pro_cat_sponsor_logo', true );
-    
+
     $cat_scope    = get_post_meta( $post->ID, '_pro_cat_scope', true ) ?: 'all';
     $cat_ids      = get_post_meta( $post->ID, '_pro_cat_ids', true );
     if ( ! is_array( $cat_ids ) ) $cat_ids = array();
-    
+
     $page_ids     = get_post_meta( $post->ID, '_pro_cat_page_ids', true );
     if ( ! is_array( $page_ids ) ) $page_ids = array();
 
@@ -269,14 +261,14 @@ function pro_cat_meta_box_html( $post ) {
         'orderby'    => 'name',
         'order'      => 'ASC',
     ) );
-    
+
     $all_pages = get_pages( array(
         'sort_column'  => 'post_title',
         'sort_order'   => 'ASC',
         'post_status'  => 'publish'
     ) );
     ?>
-    
+
     <div class="pro-ad-meta-box">
         <p class="title">Destino del Banner</p>
         <div class="pro-field">
@@ -297,7 +289,7 @@ function pro_cat_meta_box_html( $post ) {
     <div class="pro-ad-meta-box" style="background:#fdfcf0; border-color:#fef08a;">
         <p class="title" style="color:#a16207; border-color:#fef08a;">🖼️ Imágenes del Patrocinador (Hasta 10 Slides)</p>
         <p style="font-size: 0.8rem; color: #666; margin-top: 0;">Sube las imágenes del banner. Si subes más de una, se mostrarán como un carrusel que rota automáticamente.</p>
-        <?php for ( $i = 1; $i <= 10; $i++ ) : 
+        <?php for ( $i = 1; $i <= 10; $i++ ) :
             $slide_img = get_post_meta( $post->ID, '_pro_cat_slide_' . $i, true );
         ?>
             <div class="pro-field" style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #e5e7eb;">
@@ -324,7 +316,7 @@ function pro_cat_meta_box_html( $post ) {
                 🎯 Elegir Específicas
             </label>
         </div>
-        
+
         <div id="pro-cat-specific-wrap" style="<?php echo ( $cat_scope === 'specific' ) ? '' : 'display:none;'; ?>">
             <p style="font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: #4b5563;">📄 Páginas</p>
             <div id="pro-cat-checklist" style="border-color: #e5e7eb;">
@@ -342,7 +334,7 @@ function pro_cat_meta_box_html( $post ) {
             <small style="margin-top:6px; display:block;">ℹ️ Si una página no tiene un banner específico asignado, usará el banner marcado como "Global".</small>
         </div>
     </div>
-    
+
     <div class="pro-ad-meta-box">
         <p class="title">Duración de la Campaña</p>
         <div class="pro-field" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
@@ -417,7 +409,7 @@ function pro_save_cat_meta( $post_id ) {
         } else {
             update_post_meta( $post_id, '_pro_cat_ids', array() );
         }
-        
+
         if ( isset( $_POST['pro_cat_page_ids'] ) && is_array( $_POST['pro_cat_page_ids'] ) ) {
             update_post_meta( $post_id, '_pro_cat_page_ids', array_map( 'intval', $_POST['pro_cat_page_ids'] ) );
         } else {
@@ -492,7 +484,7 @@ function pro_get_category_banner( $obj_id, $obj_type = 'category' ) {
             $end   = get_post_meta( $pid, '_pro_cat_end', true );
 
             if ( (!empty($start) && str_replace('T', ' ', $start) > $now) || (!empty($end) && str_replace('T', ' ', $end) <= $now) ) continue;
-            
+
             // Check if it has at least one slide image or a thumbnail
             $has_image = has_post_thumbnail();
             for ( $i = 1; $i <= 10; $i++ ) {
@@ -504,7 +496,7 @@ function pro_get_category_banner( $obj_id, $obj_type = 'category' ) {
             if ( ! $has_image ) continue;
 
             $scope = get_post_meta( $pid, '_pro_cat_scope', true ) ?: 'all';
-            
+
             if ( $scope === 'specific' ) {
                 if ( $obj_type === 'category' ) {
                     $cat_ids = get_post_meta( $pid, '_pro_cat_ids', true );
@@ -593,7 +585,7 @@ function pro_cat_banner_custom_column( $column, $post_id ) {
         $now = current_time( 'mysql' );
         $start = get_post_meta( $post_id, '_pro_cat_start', true );
         $end   = get_post_meta( $post_id, '_pro_cat_end', true );
-        
+
         $is_active = true;
         $status_text = '<span style="color: green; font-weight: bold;">Activo</span>';
         if ( get_post_status( $post_id ) !== 'publish' ) {
@@ -620,7 +612,7 @@ function pro_cat_banner_custom_column( $column, $post_id ) {
             $cat_ids = get_post_meta( $post_id, '_pro_cat_ids', true );
             $page_ids = get_post_meta( $post_id, '_pro_cat_page_ids', true );
             $locs = array();
-            
+
             if ( !empty($cat_ids) && is_array($cat_ids) ) {
                 $locs[] = count($cat_ids) . ' Categorías';
             }

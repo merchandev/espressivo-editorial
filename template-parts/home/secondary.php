@@ -1,20 +1,12 @@
 <?php
-/**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion 
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual, 
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
 $sec_cats = array(
-    'deportes' => 'Deportes', 'cultura-y-entretenimiento' => 'Cultura', 
-    'ciencia-y-tecnologia' => 'Ciencia', 'opinion' => 'Opinión', 
-    'salud' => 'Salud', 'educacion' => 'Educación', 
+    'deportes' => 'Deportes', 'cultura-y-entretenimiento' => 'Cultura',
+    'ciencia-y-tecnologia' => 'Ciencia', 'opinion' => 'Opinión',
+    'salud' => 'Salud', 'educacion' => 'Educación',
     'servicios-publicos' => 'Servicios', 'comunidad' => 'Comunidad',
-    'sucesos' => 'Sucesos', 'nacional' => 'Nacional', 
-    'mundo' => 'Mundo', 'economia' => 'Economía', 
-    'politica-nacional,politica-monagas' => 'Política'
+    'sucesos' => 'Sucesos', 'nacional' => 'Nacional',
+    'mundo' => 'Mundo', 'economia' => 'Economía',
+    'politica-nacional,politica-local' => 'Política'
 );
 
 ob_start();
@@ -41,7 +33,7 @@ foreach($sec_cats as $slug => $name) :
     $sec_q = new WP_Query( array(
         // Auditoría fix: category__in NO incluye hijos. tax_query con
         // include_children => true sí lo hace, mostrando artículos de
-        // subcategorías (ej. Política Monagas dentro de Política).
+        // subcategorías (ej. Política Local dentro de Política).
         'tax_query'              => array(
             array(
                 'taxonomy'         => 'category',
@@ -62,7 +54,7 @@ foreach($sec_cats as $slug => $name) :
     ) );
     if( $sec_q->have_posts() ) : ?>
         <div class="sec-card" style="background:var(--color-bg-secondary); border:1px solid var(--color-border); border-top:4px solid var(--color-primary); border-radius:var(--border-radius); overflow:hidden; display:flex; flex-direction:column; box-shadow:var(--shadow-sm); transition:transform 0.3s ease, box-shadow 0.3s ease;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='var(--shadow-lg)';" onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
-            
+
             <div style="padding: 15px 20px 10px; display:flex; align-items:center; justify-content:space-between;">
                 <a href="<?php echo $cat_link; ?>" style="color:var(--color-primary); text-decoration:none; font-family:var(--font-ui); font-size:0.85rem; font-weight:800; text-transform:uppercase; letter-spacing:1px;"><?php echo esc_html($name); ?></a>
                 <span class="material-symbols-outlined" aria-hidden="true" style="font-size:1.1rem; color:var(--color-text-muted);">arrow_forward</span>
@@ -71,7 +63,7 @@ foreach($sec_cats as $slug => $name) :
             <div style="padding: 0 20px 20px; flex-grow:1; display:flex; flex-direction:column;">
                 <?php while($sec_q->have_posts()): $sec_q->the_post(); ?>
                     <a href="<?php the_permalink(); ?>" style="display:block; width:100%; aspect-ratio:16/9; overflow:hidden; border-radius:4px; margin-bottom:15px;">
-                        <?php 
+                        <?php
                         if ( ! pro_the_post_image('medium', array('style' => 'width:100%; height:100%; object-fit:cover; transition:transform 0.5s ease;', 'onmouseover' => "this.style.transform='scale(1.05)'", 'onmouseout' => "this.style.transform='scale(1)'")) ) {
                             echo '<div style="width:100%; height:100%; background:#f1f5f9; display:flex; align-items:center; justify-content:center; font-size:0.8rem; color:#94a3b8; font-family:var(--font-ui);">Sin Foto</div>';
                         }
@@ -82,14 +74,14 @@ foreach($sec_cats as $slug => $name) :
                 <?php endwhile; wp_reset_postdata(); ?>
             </div>
         </div>
-    <?php endif; 
+    <?php endif;
 endforeach;
 $sec_content = ob_get_clean();
 
 if ( !empty(trim($sec_content)) ) :
 ?>
-<section class="wapo-category-section secondary-zone">
-    <h2 class="wapo-section-title"><span>Más Secciones</span></h2>
+<section class="cms-category-section secondary-zone">
+    <h2 class="cms-section-title"><span>Más Secciones</span></h2>
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 30px;">
         <?php echo $sec_content; ?>
     </div>

@@ -1,11 +1,3 @@
-﻿/**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion 
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual, 
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
 /* ==========================================================================
    ADMIN-AUTOR.CSS - Custom Admin Theme for Autor
    ========================================================================== */
@@ -40,16 +32,16 @@
 #adminmenu a {
     color: #cbd5e1 !important;
 }
-#adminmenu a:hover, 
-#adminmenu li.menu-top:hover, 
-#adminmenu li.opensub > a.menu-top, 
+#adminmenu a:hover,
+#adminmenu li.menu-top:hover,
+#adminmenu li.opensub > a.menu-top,
 #adminmenu li.menu-top:focus {
     background-color: #1e293b !important;
     color: #ffffff !important;
 }
-#adminmenu li.wp-has-current-submenu a.wp-has-current-submenu, 
-#adminmenu li.current a.menu-top, 
-.folded #adminmenu li.wp-has-current-submenu, 
+#adminmenu li.wp-has-current-submenu a.wp-has-current-submenu,
+#adminmenu li.current a.menu-top,
+.folded #adminmenu li.wp-has-current-submenu,
 #adminmenu .wp-submenu .wp-submenu-head {
     background: #065f46 !important; /* Forest Green */
     color: #ffffff !important;
@@ -57,7 +49,7 @@
 #adminmenu .wp-submenu a {
     color: #94a3b8 !important;
 }
-#adminmenu .wp-submenu a:hover, 
+#adminmenu .wp-submenu a:hover,
 #adminmenu .wp-submenu a:focus {
     color: #10b981 !important; /* Accent Green */
     background: none !important;
@@ -86,7 +78,7 @@
     font-weight: 600 !important;
     transition: all 0.2s ease !important;
 }
-.wp-core-ui .button-primary:hover, 
+.wp-core-ui .button-primary:hover,
 .wp-core-ui .button-primary:focus {
     background: #047857 !important;
     border-color: #047857 !important;

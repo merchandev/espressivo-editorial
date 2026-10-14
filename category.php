@@ -1,13 +1,5 @@
 <?php
 /**
- * @author Arturo Merchan | Merchan.Dev | Espressivo Venezuela,C.A
- * 
- * ADVERTENCIA LEGAL:
- * Queda totalmente prohibida su reproduccion, edicion, venta, propaganda, alteracion 
- * o cualquier otra accion que de una u otra forma violente la propiedad intelectual, 
- * material y digital de este proyecto. Esta infraccion esta prohibida y penada por la ley.
- */
-/**
  * Plantilla para mostrar los archivos de Categoría.
  *
  * @package Pro
@@ -39,7 +31,7 @@ get_header();
     $current_category = get_queried_object();
     if ( $current_category && $current_category->taxonomy === 'category' ) {
         $parent_id = ($current_category->category_parent == 0) ? $current_category->term_id : $current_category->category_parent;
-        
+
         $subcats = get_categories( array(
             'child_of'   => $parent_id,
             'hide_empty' => false,
@@ -47,12 +39,12 @@ get_header();
 
         if ( ! empty( $subcats ) ) {
             echo '<div class="category-subnav"><ul class="subnav-list">';
-            
+
             // Link to parent (Todas)
             $parent_cat = get_category($parent_id);
             $active_class = ($current_category->term_id == $parent_id) ? 'active' : '';
             echo '<li><a href="' . esc_url( get_category_link( $parent_id ) ) . '" class="' . $active_class . '">' . esc_html__( 'Todas', 'pro' ) . '</a></li>';
-            
+
             foreach ( $subcats as $sc ) {
                 $active = ($current_category->term_id == $sc->term_id) ? 'active' : '';
                 echo '<li><a href="' . esc_url( get_category_link( $sc->term_id ) ) . '" class="' . $active . '">' . esc_html( $sc->name ) . '</a></li>';

@@ -2,7 +2,7 @@
 /**
  * Clasificado individual.
  *
- * @package Espressivo
+ * @package CMS-Editorial
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -66,20 +66,6 @@ get_header();
                         ?>
                     </p>
                 </header>
-
-                <?php
-                // Imagen del aviso, salvo que ya esté insertada en el texto
-                $image_id = (int) get_post_thumbnail_id();
-                if (
-                    $image_id
-                    && wp_attachment_is_image( $image_id )
-                    && ! preg_match( '/\bwp-image-' . $image_id . '\b/', get_post_field( 'post_content' ) )
-                ) :
-                    ?>
-                    <figure class="classified-detail__image">
-                        <?php the_post_thumbnail( 'large', array( 'loading' => 'eager' ) ); ?>
-                    </figure>
-                <?php endif; ?>
 
                 <div class="classified-detail__content">
                     <?php the_content(); ?>
