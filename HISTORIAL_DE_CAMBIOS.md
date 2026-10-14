@@ -1,5 +1,18 @@
 # Historial de cambios — CMS-Editorial
 
+## 3.1.0 — 14 de octubre de 2026
+
+- Rediseño de portada, cabecera, artículos, archivos y resultados de búsqueda.
+- Secciones de portada ordenables, categoría de destacados y módulos opcionales.
+- Tarjetas compartidas entre render inicial y cargas AJAX.
+- Tiempo de lectura, tamaño de texto, compartir y copiar enlaces.
+- Menú móvil y visor de edición con mejoras de navegación por teclado.
+- Pausa de titulares y respeto al movimiento reducido.
+- Panel de tema por pestañas con ajustes compartidos y guardado completo.
+- Conservación de marca blanca, publicidad, reportes y reglas de firma.
+- Barra de lectura compatible con la nueva plantilla y navegación sin recarga.
+- Ocho ubicaciones publicitarias conservadas, sin huecos cuando no hay anuncios.
+
 ## 3.0.0 — 14 de octubre de 2026
 
 - Pantalla Apariencia → CMS-Editorial y panel de personalización con opciones compartidas.

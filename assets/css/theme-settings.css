@@ -1,0 +1,40 @@
+.cms-settings-app{max-width:1340px;margin-right:24px;color:#172033}
+.cms-settings-header{display:flex;justify-content:space-between;align-items:center;gap:24px;margin:25px 0 24px;padding:28px 30px;background:#fff;border:1px solid #e2e8f0;border-radius:12px}
+.cms-settings-header h1{font-size:27px;font-weight:700;letter-spacing:-.7px;margin:0 0 8px;padding:0}
+.cms-settings-header p{font-size:13px;color:#64748b;line-height:1.7;margin:0}
+.cms-settings-kicker{display:block;color:#64748b;font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;margin-bottom:8px}
+.cms-settings-actions{display:flex;gap:10px;align-items:center;flex:none}
+.cms-settings-actions .button{border-radius:6px;min-height:38px;padding:4px 14px}
+.cms-settings-layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:24px;align-items:start}
+.cms-settings-nav{position:sticky;top:52px;padding:12px;background:#fff;border:1px solid #e2e8f0;border-radius:12px}
+.cms-settings-nav [role=tablist]{display:grid;gap:4px}
+.cms-settings-tab{display:flex;align-items:center;justify-content:space-between;width:100%;border:0;padding:13px 14px;color:#475569;background:transparent;font:500 13px/1.4 system-ui;text-align:left;border-radius:7px;cursor:pointer}
+.cms-settings-tab:hover{background:#f8fafc}
+.cms-settings-tab[aria-selected=true]{background:color-mix(in srgb,var(--cms-admin-accent,#2563eb) 8%,white);color:var(--cms-admin-accent,#2563eb);font-weight:650}
+.cms-settings-tab:focus-visible{outline:2px solid var(--cms-admin-accent,#2563eb);outline-offset:2px}
+.cms-settings-help{margin:17px 8px 4px;padding:17px 4px 4px;border-top:1px solid #e2e8f0;font-size:12px;line-height:1.75;color:#64748b}
+.cms-settings-help a{display:block;margin-top:10px;text-decoration:none;font-weight:600}
+.cms-settings-section{padding:28px 30px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:22px}
+.cms-settings-section[hidden]{display:none}
+.cms-settings-section>h2{font-size:21px;letter-spacing:-.4px;margin:0 0 8px;font-weight:650}
+.cms-settings-section>p{margin:0 0 18px;font-size:12px;color:#64748b;line-height:1.7}
+.cms-settings-section .form-table{margin-top:0;table-layout:fixed}
+.cms-settings-section .form-table th{font-size:12px;font-weight:600;width:210px;padding:23px 18px 23px 0;color:#334155}
+.cms-settings-section .form-table td{padding:17px 0}
+.cms-settings-section .form-table tr+tr{border-top:1px solid #f1f5f9}
+.cms-settings-section .regular-text,.cms-settings-section .large-text{max-width:100%;width:100%;border-color:#cbd5e1;border-radius:6px;padding:8px 11px;box-sizing:border-box;font-size:13px;min-height:39px}
+.cms-settings-section textarea{resize:vertical}
+.cms-media-field{padding:14px;border:1px dashed #cbd5e1;border-radius:8px;background:#fafbfc}
+.cms-media-field img{margin-bottom:14px;background:#fff;border-radius:5px;max-width:100%!important}
+.cms-media-field .button{border-radius:5px;font-size:12px}
+.cms-settings-section[data-section=colores] .form-table tbody{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 24px}
+.cms-settings-section[data-section=colores] .form-table tr{display:block;border-top:0;padding:12px 0}
+.cms-settings-section[data-section=colores] .form-table th,.cms-settings-section[data-section=colores] .form-table td{display:block;width:auto;padding:0;margin:0}
+.cms-settings-section[data-section=colores] .form-table th{margin-bottom:10px}
+.cms-settings-section .wp-picker-container{position:relative}
+.cms-settings-section .wp-picker-holder{position:absolute;z-index:20}
+.cms-settings-app .submit{margin:0;padding:12px 0 25px;text-align:right}
+.cms-settings-app .notice{border-radius:7px;margin-bottom:22px}
+@media(max-width:1050px){.cms-settings-layout{grid-template-columns:180px minmax(0,1fr)}.cms-settings-header{padding:24px}.cms-settings-section{padding:24px}.cms-settings-section .form-table th{width:170px}.cms-settings-header p{max-width:400px}.cms-settings-section[data-section=colores] .form-table tbody{grid-template-columns:1fr}}
+@media(max-width:782px){.cms-settings-app{margin-right:12px}.cms-settings-header{display:block;margin-top:16px;padding:22px}.cms-settings-actions{margin-top:18px}.cms-settings-layout{display:block}.cms-settings-nav{position:static;margin-bottom:18px;padding:8px}.cms-settings-nav [role=tablist]{display:flex;flex-wrap:wrap;gap:4px}.cms-settings-tab{width:auto;padding:11px 12px;font-size:12px}.cms-settings-tab>span{display:none}.cms-settings-help{display:none}.cms-settings-section .form-table th{padding:18px 0 8px;width:auto}.cms-settings-section .form-table td{padding:0 0 18px}.cms-settings-section[data-section=colores] .form-table tbody{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cms-settings-section .wp-picker-container .wp-color-result.button{min-height:32px}}
+@media(max-width:500px){.cms-settings-section[data-section=colores] .form-table tbody{grid-template-columns:1fr}.cms-settings-header h1{font-size:23px}.cms-settings-section{padding:20px}.cms-settings-actions{flex-wrap:wrap}}

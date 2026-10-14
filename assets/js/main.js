@@ -41,16 +41,14 @@
     // 1. MODO OSCURO (Dark Mode)
     // ==========================================
     function initDarkMode() {
-        if (localStorage.getItem('theme') === 'dark') {
-            document.body.classList.add('dark-mode');
-        }
+        try { if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode'); } catch (e) {}
 
         const darkModeToggle = document.getElementById('dark-mode-toggle');
         if (darkModeToggle) {
             darkModeToggle.addEventListener('click', function (e) {
                 e.preventDefault();
                 document.body.classList.toggle('dark-mode');
-                localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+                try { localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light'); } catch (e) {}
             });
         }
     }
@@ -58,8 +56,8 @@
     // ==========================================
     // 2. MENÚ MÓVIL A PANTALLA COMPLETA
     // ==========================================
-    const MENU_ICON = '<span class="material-symbols-outlined" aria-hidden="true" style="vertical-align: middle;">menu</span>';
-    const CLOSE_ICON = '<span class="material-symbols-outlined" aria-hidden="true" style="vertical-align: middle;">close</span>';
+    const MENU_ICON = '<span class="material-symbols-outlined" aria-hidden="true" style="vertical-align: middle;">menu</span><span class="ed-menu-caption">Secciones</span>';
+    const CLOSE_ICON = '<span class="material-symbols-outlined" aria-hidden="true" style="vertical-align: middle;">close</span><span class="ed-menu-caption">Cerrar</span>';
 
     function initMobileMenu() {
         const menuToggle = document.querySelector('.menu-toggle');
@@ -70,6 +68,7 @@
             e.preventDefault();
             const open = navMenu.classList.toggle('toggled');
             menuToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            menuToggle.setAttribute('aria-label', open ? 'Cerrar menú de secciones' : 'Abrir menú de secciones');
             // Bloquear scroll de fondo si está abierto
             menuToggle.innerHTML = open ? CLOSE_ICON : MENU_ICON;
             document.body.style.overflow = open ? 'hidden' : '';
@@ -85,6 +84,7 @@
         navMenu.classList.remove('toggled');
         if (menuToggle) {
             menuToggle.setAttribute('aria-expanded', 'false');
+            menuToggle.setAttribute('aria-label', 'Abrir menú de secciones');
             menuToggle.innerHTML = MENU_ICON;
         }
         document.body.style.overflow = '';
@@ -94,43 +94,32 @@
     // 3. TICKER DE ÚLTIMO MINUTO (cabecera)
     // ==========================================
     function initTicker() {
-        const tickerSlider = document.getElementById('newsTickerSlider');
-        if (!tickerSlider) return;
-
-        const slides = Array.from(tickerSlider.querySelectorAll('.ticker-slide'));
-        if (slides.length === 0) return;
-
-        // Asegurarse de que solo el primero tiene la clase active al arrancar
-        slides.forEach((s, i) => {
-            s.classList.remove('active', 'prev');
-            if (i === 0) s.classList.add('active');
-        });
-
-        if (slides.length < 2) return;
-
+        const slider = document.getElementById('newsTickerSlider');
+        if (!slider) return;
+        const slides = [...slider.querySelectorAll('.ticker-slide')];
+        const button = document.getElementById('cms-ticker-toggle');
+        let paused = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         let current = 0;
-        let isAnimating = false;
-
+        slides.forEach((slide, index) => slide.classList.toggle('active', index === 0));
+        function updateButton() {
+            if (!button) return;
+            button.hidden = slides.length < 2;
+            button.setAttribute('aria-pressed', String(paused));
+            button.setAttribute('aria-label', paused ? 'Reanudar titulares' : 'Pausar titulares');
+            button.querySelector('span').textContent = paused ? 'play_arrow' : 'pause';
+        }
+        button?.addEventListener('click', () => { paused = !paused; updateButton(); });
+        updateButton();
+        if (slides.length < 2) return;
         setInterval(() => {
-            if (isAnimating) return;
-            isAnimating = true;
-
-            const prevIndex = current;
+            if (paused || document.hidden) return;
+            const previous = slides[current];
+            previous.classList.remove('active');
+            previous.classList.add('prev');
             current = (current + 1) % slides.length;
-
-            // Salida: el slide actual pasa a .prev
-            slides[prevIndex].classList.remove('active');
-            slides[prevIndex].classList.add('prev');
-
-            // Entrada: el siguiente aparece con .active
             slides[current].classList.add('active');
-
-            // Limpiar .prev cuando termina la transición CSS (450ms)
-            setTimeout(() => {
-                slides[prevIndex].classList.remove('prev');
-                isAnimating = false;
-            }, 500);
-        }, 5000);
+            setTimeout(() => previous.classList.remove('prev'), 500);
+        }, 6000);
     }
 
     // ==========================================
@@ -274,7 +263,7 @@
 
     // La barra se imprime en la cabecera (fuera de Swup) solo si la primera carga es un artículo
     function syncReadingProgress() {
-        const isArticle = Boolean(swupContainer().querySelector('.single-post-article'));
+        const isArticle = Boolean(swupContainer().querySelector('.ed-article, .single-post-article'));
         let container = document.getElementById('reading-progress-container');
 
         if (!container && isArticle) {
@@ -774,7 +763,7 @@
         if (!topSearchForm || !topSearchSubmit || !topSearchInput) return;
 
         topSearchSubmit.addEventListener('click', function (e) {
-            if (window.innerWidth > 1024) return;
+            if (window.innerWidth > 760) return;
 
             if (!topSearchForm.classList.contains('is-expanded')) {
                 e.preventDefault();
@@ -787,7 +776,7 @@
         });
 
         document.addEventListener('click', function (e) {
-            if (window.innerWidth <= 1024 && topSearchForm.classList.contains('is-expanded') && !topSearchForm.contains(e.target)) {
+            if (window.innerWidth <= 760 && topSearchForm.classList.contains('is-expanded') && !topSearchForm.contains(e.target)) {
                 topSearchForm.classList.remove('is-expanded');
             }
         });

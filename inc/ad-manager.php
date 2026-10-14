@@ -134,8 +134,8 @@ function pro_ad_meta_box_html( $post ) {
             <select name="pro_ad_location" id="pro_ad_location">
                 <option value="header"          <?php selected( $location, 'header' ); ?>>Header (Arriba de todo)</option>
                 <option value="below-hero"      <?php selected( $location, 'below-hero' ); ?>>Debajo del Hero (Noticias Principales)</option>
-                <option value="in-feed-1"       <?php selected( $location, 'in-feed-1' ); ?>>Después de Sucesos (In-Feed 1)</option>
-                <option value="in-feed-2"       <?php selected( $location, 'in-feed-2' ); ?>>Después de Locales (In-Feed 2)</option>
+                <option value="in-feed-1"       <?php selected( $location, 'in-feed-1' ); ?>>Después de la tercera sección (In-Feed 1)</option>
+                <option value="in-feed-2"       <?php selected( $location, 'in-feed-2' ); ?>>Después de la sexta sección (In-Feed 2)</option>
                 <option value="nacional-ad"     <?php selected( $location, 'nacional-ad' ); ?>>Después de Nacional</option>
                 <option value="internacional-ad"<?php selected( $location, 'internacional-ad' ); ?>>Después de Internacional</option>
                 <option value="economia-ad"     <?php selected( $location, 'economia-ad' ); ?>>Después de Economía</option>

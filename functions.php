@@ -18,6 +18,7 @@ add_filter( 'deprecated_hook_trigger_error', '__return_false' );
 
 // Identidad, apariencia y servicios configurables desde WordPress.
 require_once get_template_directory() . '/inc/theme-settings.php';
+require_once get_template_directory() . '/inc/editorial-ui.php';
 
 /**
  * Configuración inicial del tema.

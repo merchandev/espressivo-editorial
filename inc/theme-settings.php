@@ -25,6 +25,11 @@ function cms_editorial_fields() {
         'radio_description' => array( 'Descripción de la radio', 'text', '', 'Radio' ),
         'radio_stream' => array( 'URL de transmisión (HTTPS)', 'url', '', 'Radio' ),
         'local_categories' => array( 'Secciones locales de portada (slugs separados por comas)', 'slugs', 'local,comunidad', 'Portada' ),
+        'home_title' => array( 'Título de la portada', 'text', 'Las historias que importan', 'Portada' ),
+        'home_featured_category' => array( 'Categoría de noticias destacadas (slug)', 'slugs', 'relevantes', 'Portada' ),
+        'home_sections' => array( 'Secciones de portada, en orden (slugs separados por comas)', 'slugs', 'nacional,mundo,economia,local,deportes,cultura-y-entretenimiento,ciencia-y-tecnologia', 'Portada' ),
+        'home_show_cover' => array( 'Mostrar la edición impresa en portada', 'checkbox', true, 'Portada' ),
+        'home_show_services' => array( 'Mostrar accesos a servicios del medio', 'checkbox', true, 'Portada' ),
         'ad_placeholders' => array( 'Mostrar espacios publicitarios vacíos', 'checkbox', true, 'Publicidad' ),
     );
     $colors = array(
@@ -138,15 +143,22 @@ add_action( 'admin_enqueue_scripts', function( $hook ) {
     if ( $hook !== 'appearance_page_cms-editorial' ) { return; }
     wp_enqueue_media();
     wp_enqueue_style( 'wp-color-picker' );
-    wp_enqueue_script( 'cms-editorial-settings', get_template_directory_uri() . '/assets/js/theme-settings.js', array( 'jquery', 'wp-color-picker' ), '3.0.0', true );
+    wp_enqueue_script( 'cms-editorial-settings', get_template_directory_uri() . '/assets/js/theme-settings.js', array( 'jquery', 'wp-color-picker' ), '3.1.0', true );
 } );
 
 function cms_editorial_settings_page() {
     if ( ! current_user_can( 'manage_options' ) ) { return; }
-    echo '<div class="wrap"><h1>CMS-Editorial</h1><p>Configura la identidad y apariencia de tu publicación. Los colores afectan al diseño de los banners; las imágenes publicitarias se gestionan en Publicidad.</p>';
+    echo '<div class="wrap cms-settings-app"><header class="cms-settings-header"><div><span class="cms-settings-kicker">Tu medio, a tu manera</span><h1>CMS-Editorial</h1><p>Identidad, diseño y servicios de tu publicación, en un solo lugar.</p></div><div class="cms-settings-actions"><a class="button" href="' . esc_url( home_url( '/' ) ) . '" target="_blank" rel="noopener noreferrer">Ver sitio ↗</a><button type="submit" form="cms-theme-settings" class="button button-primary">Guardar cambios</button></div></header>';
     if ( isset( $_GET['updated'] ) ) { echo '<div class="notice notice-success"><p>Ajustes guardados.</p></div>'; }
-    echo '<p><a href="' . esc_url( admin_url( 'customize.php' ) ) . '">Abrir personalizador con vista previa</a> · <a href="' . esc_url( admin_url( 'options-general.php' ) ) . '">Idioma y zona horaria</a></p>';
-    echo '<form action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" method="post"><input type="hidden" name="action" value="cms_editorial_save_settings">';
+    $groups = array( 'Identidad' );
+    foreach ( cms_editorial_fields() as $field ) { if ( ! in_array( $field[3], $groups, true ) ) { $groups[] = $field[3]; } }
+    echo '<div class="cms-settings-layout"><aside class="cms-settings-nav"><nav role="tablist" aria-label="Configuración del tema" aria-orientation="vertical">';
+    foreach ( $groups as $index => $name ) {
+        $slug = sanitize_title( $name );
+        echo '<button type="button" id="cms-tab-' . esc_attr( $slug ) . '" class="cms-settings-tab" role="tab" aria-controls="cms-panel-' . esc_attr( $slug ) . '" aria-selected="' . ( $index === 0 ? 'true' : 'false' ) . '">' . esc_html( $name ) . '<span aria-hidden="true">›</span></button>';
+    }
+    echo '</nav><div class="cms-settings-help">Los cambios se comparten con el personalizador.<a href="' . esc_url( admin_url( 'customize.php' ) ) . '">Personalizar con vista previa ↗</a><a href="' . esc_url( admin_url( 'options-general.php' ) ) . '">Idioma y zona horaria ↗</a></div></aside><div class="cms-settings-panels">';
+    echo '<form id="cms-theme-settings" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" method="post"><input type="hidden" name="action" value="cms_editorial_save_settings">';
     wp_nonce_field( 'cms_editorial_save_settings' );
     $native = array(
         'blogname' => array( 'Título del sitio', 'text', get_option( 'blogname' ), 'Identidad' ),
@@ -157,9 +169,14 @@ function cms_editorial_settings_page() {
     $group = '';
     foreach ( array_merge( $native, cms_editorial_fields() ) as $key => $field ) {
         if ( $field[3] !== $group ) {
-            if ( $group ) { echo '</tbody></table>'; }
+            if ( $group ) { echo '</tbody></table></section>'; }
             $group = $field[3];
-            echo '<h2>' . esc_html( $group ) . '</h2><table class="form-table"><tbody>';
+            $slug = sanitize_title( $group );
+            echo '<section id="cms-panel-' . esc_attr( $slug ) . '" class="cms-settings-section" data-section="' . esc_attr( $slug ) . '" role="tabpanel" aria-labelledby="cms-tab-' . esc_attr( $slug ) . '"><h2>' . esc_html( $group ) . '</h2>';
+            if ( $group === 'Colores' ) { echo '<p>Define la paleta del sitio, del administrador y del modo oscuro.</p>'; }
+            if ( $group === 'Portada' ) { echo '<p>Elige el encabezado, las secciones y los módulos de la página de inicio.</p>'; }
+            if ( $group === 'Publicidad' ) { echo '<p>Los banners y sus imágenes se administran desde el gestor Publicidad.</p>'; }
+            echo '<table class="form-table"><tbody>';
         }
         $value = isset( $native[ $key ] ) ? $field[2] : cms_editorial_setting( $key );
         $name = isset( $native[ $key ] ) ? 'identity[' . $key . ']' : 'settings[' . $key . ']';
@@ -177,9 +194,9 @@ function cms_editorial_settings_page() {
         }
         echo '</td></tr>';
     }
-    echo '</tbody></table>';
-    submit_button( 'Guardar ajustes' );
-    echo '</form></div>';
+    echo '</tbody></table></section>';
+    submit_button( 'Guardar cambios' );
+    echo '</form></div></div></div>';
 }
 
 function cms_editorial_save_settings() {
@@ -283,7 +300,7 @@ add_action( 'enqueue_block_editor_assets', function() {
 function cms_editorial_admin_brand_colors() {
     $primary = sanitize_hex_color( cms_editorial_setting( 'color_admin_primary' ) ) ?: '#0f172a';
     $accent = sanitize_hex_color( cms_editorial_setting( 'color_admin_accent' ) ) ?: '#2563eb';
-    echo '<style>#wpadminbar,#adminmenu,#adminmenuback,#adminmenuwrap{background:' . esc_html( $primary ) . '!important}#adminmenu .wp-has-current-submenu a.wp-has-current-submenu,#adminmenu .current a.menu-top,.wp-core-ui .button-primary{background:' . esc_html( $accent ) . '!important;border-color:' . esc_html( $accent ) . '!important}</style>';
+    echo '<style>:root{--cms-admin-primary:' . esc_html( $primary ) . ';--cms-admin-accent:' . esc_html( $accent ) . '}#wpadminbar,#adminmenu,#adminmenuback,#adminmenuwrap{background:' . esc_html( $primary ) . '!important}#adminmenu .wp-has-current-submenu a.wp-has-current-submenu,#adminmenu .current a.menu-top,.wp-core-ui .button-primary{background:' . esc_html( $accent ) . '!important;border-color:' . esc_html( $accent ) . '!important}</style>';
 }
 add_action( 'admin_head', 'cms_editorial_admin_brand_colors', 100 );
 

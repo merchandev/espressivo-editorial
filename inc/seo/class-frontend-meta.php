@@ -21,7 +21,9 @@ class FrontendMeta {
         $type = 'website';
         $image = wp_get_attachment_image_url( absint( cms_editorial_setting( 'social_image' ) ), 'full' ) ?: cms_editorial_logo_url();
 
-        if ( is_singular() ) {
+        if ( is_front_page() ) {
+            $title = $site;
+        } elseif ( is_singular() ) {
             $id = get_queried_object_id();
             $data = $this->database->get_seo_data( $id );
             $title = get_post_meta( $id, '_ssivo_seo_custom_title', true ) ?: ( $data['meta_title'] ?? get_the_title( $id ) );

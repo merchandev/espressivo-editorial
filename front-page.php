@@ -1,189 +1,98 @@
 <?php
-/**
- * Portada personalizada estilo editorial (CMS-Editorial).
- *
- * @package Pro
- */
-
+/** Portada modular de CMS-Editorial. */
 get_header();
+$featured = cms_editorial_home_posts( array( 'category_name' => cms_editorial_setting( 'home_featured_category' ) ) );
+if ( count( $featured ) < 3 ) {
+    $featured = array_merge( $featured, cms_editorial_home_posts( array( 'numberposts' => 3 - count( $featured ), 'post__not_in' => wp_list_pluck( $featured, 'ID' ) ) ) );
+}
+$featured_ids = wp_list_pluck( $featured, 'ID' );
+$latest = cms_editorial_home_posts( array( 'numberposts' => 5, 'post__not_in' => $featured_ids ) );
+$cover = get_option( 'pro_portada_actual', '' );
 ?>
-
-<main id="primary" class="site-main container">
-
-    <!-- SECCIÓN UNIFICADA: NOTICIA PRINCIPAL ARRIBA Y REJA (60% NOTICIAS / 40% PORTADA) ABAJO -->
-    <?php
-    $portada_img = get_option( 'pro_portada_actual' );
-
-
-    // Primero intentamos la categoría "relevantes"; si no hay, usamos los últimos posts
-    $relevant_query = new WP_Query( array(
-        'category_name'       => 'relevantes',
-        'posts_per_page'      => 3,
-        'post_status'         => 'publish',
-        'orderby'             => 'date',
-        'order'               => 'DESC',
-        'ignore_sticky_posts' => 1,
-    ) );
-
-    // Fallback: si no hay posts en "relevantes", tomar los 3 más recientes
-    if ( ! $relevant_query->have_posts() ) {
-        wp_reset_postdata();
-        $relevant_query = new WP_Query( array(
-            'posts_per_page'      => 3,
-            'post_status'         => 'publish',
-            'orderby'             => 'date',
-            'order'               => 'DESC',
-            'ignore_sticky_posts' => 1,
-        ) );
-    }
-    ?>
-
-    <?php if ( $relevant_query->have_posts() ) : ?>
-
-        <?php
-        // 1. Extraemos el primer post para la noticia principal que va sola arriba
-        $relevant_query->the_post();
-        ?>
-        <div class="home-main-news-wrapper" style="margin-top: 30px; margin-bottom: 40px; width: 100%;">
-            <article id="post-<?php the_ID(); ?>" <?php post_class('hero-main-post'); ?>>
-                <a href="<?php the_permalink(); ?>" class="post-thumbnail" aria-hidden="true" tabindex="-1">
-                    <?php
-                    if ( has_post_thumbnail() ) {
-                        the_post_thumbnail( 'hero-thumbnail', array( 'loading' => 'eager' ) );
-                    } else {
-                        echo '<div class="placeholder-image"><span>Foto</span></div>';
-                    }
-                    ?>
-                </a>
-                <div class="hero-content">
-                    <?php if ( function_exists('pro_post_categories') ) : ?>
-                        <?php pro_post_categories(); ?>
-                    <?php endif; ?>
-                    <h2 class="entry-title">
-                        <a href="<?php the_permalink(); ?>" rel="bookmark"><?php the_title(); ?></a>
-                    </h2>
-                    <div class="entry-summary">
-                        <?php the_excerpt(); ?>
-                    </div>
-                    <div class="post-meta-footer">
-                        <time datetime="<?php echo get_the_date('c'); ?>"><?php echo get_the_date(); ?></time>
-                    </div>
-                </div>
-            </article>
-        </div>
-
-        <!-- 2. Reja de abajo: 60% las otras 2 noticias, 40% la Portada -->
-        <div class="home-hero-portada-grid">
-            <!-- Columna de Noticias (60%) -->
-            <div class="hero-news-column">
-                <?php
-                while ( $relevant_query->have_posts() ) : $relevant_query->the_post();
-                    ?>
-                    <article id="post-<?php the_ID(); ?>" <?php post_class('hero-sub-post'); ?>>
-                        <div class="hero-content">
-                            <?php if ( function_exists('pro_post_categories') ) : ?>
-                                <?php pro_post_categories(); ?>
-                            <?php endif; ?>
-                            <h3 class="entry-title">
-                                <a href="<?php the_permalink(); ?>" rel="bookmark"><?php the_title(); ?></a>
-                            </h3>
-                            <div class="post-meta-footer">
-                                <time datetime="<?php echo get_the_date('c'); ?>"><?php echo get_the_date(); ?></time>
-                            </div>
-                        </div>
-                    </article>
-                    <?php
-                endwhile;
-                ?>
-            </div>
-
-            <!-- Columna de Portada (40%) -->
-            <div class="hero-portada-column">
-                <div class="portada-header-badge">
-                    <h4 class="portada-main-title">Portada del día</h4>
-                </div>
-
-                <div class="home-portada-card card-portada" data-full-url="<?php echo esc_url($portada_img); ?>">
-                    <div class="home-portada-thumbnail">
-                        <?php if ( $portada_img ) : ?><img src="<?php echo esc_url($portada_img); ?>" alt="Portada del día" loading="eager"><?php else : ?><div class="ad-placeholder">La portada estará disponible próximamente.</div><?php endif; ?>
-                        <div class="portada-overlay">
-                            <div class="portada-overlay-button">
-                                <span class="material-symbols-outlined overlay-lupa-icon" aria-hidden="true">zoom_in</span>
-                                <span>Clic para ver</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <?php
-        wp_reset_postdata();
-    endif;
-    ?>
-
-
-    <!-- PUBLICIDAD BELOW HERO -->
-    <?php get_template_part('template-parts/ads/in-feed', null, array('location' => 'below-hero')); ?>
-
-    <!-- WAPO CATEGORY SECTIONS -->
-    <div class="cms-sections-container">
-
-        <?php
-        // Función Helper interna para evitar repetir el código de placeholders
-        if ( ! function_exists( 'pro_render_placeholder_main' ) ) {
-            function pro_render_placeholder_main( $title = "Título de Noticia Principal" ) {
-                ?>
-                <article class="cms-main-article placeholder-mode">
-                    <div class="post-thumbnail placeholder-image">
-                        <span>Espacio Foto</span>
-                    </div>
-                    <div class="cms-main-content">
-                        <h3 class="entry-title placeholder-text"><?php echo esc_html($title); ?></h3>
-                        <div class="entry-summary placeholder-text-small">
-                            Este es un texto de relleno que muestra cómo se verá el extracto de la noticia.
-                        </div>
-                    </div>
-                </article>
-                <?php
-            }
-        }
-        if ( ! function_exists( 'pro_render_placeholder_side' ) ) {
-            function pro_render_placeholder_side($count = 3) {
-                echo '<div class="cms-side-articles placeholder-mode">';
-                for($i=1; $i<=$count; $i++) {
-                    echo '<article class="cms-list-item">';
-                    echo '<h4 class="entry-title placeholder-text">Titular secundario de noticia ' . $i . '</h4>';
-                    echo '</article>';
-                }
-                echo '</div>';
-            }
-        }
-        ?>
-
-        <!-- ZONA PREMIUM (Diseño Principal) -->
-        <div class="zone-premium">
-            <?php get_template_part('template-parts/home/premium'); ?>
-        </div>
-
-        <!-- PUBLICIDAD IN-FEED 1 -->
-        <?php get_template_part('template-parts/ads/in-feed', null, array('location' => 'in-feed-1')); ?>
-
-        <!-- ZONA LOCAL (Maturín y Monagas) -->
-        <?php get_template_part('template-parts/home/local'); ?>
-
-        <!-- PUBLICIDAD IN-FEED 2 -->
-        <?php get_template_part('template-parts/ads/in-feed', null, array('location' => 'in-feed-2')); ?>
-
-        <!-- ZONA COLUMNAS (Secciones Secundarias) -->
-        <?php get_template_part('template-parts/home/secondary'); ?>
-
-        <!-- BANNER CARTELES Y EDICTOS -->
-        <?php get_template_part('template-parts/home/carteles'); ?>
-
+<main id="primary" class="site-main ed-home">
+    <div class="container ed-page-intro">
+        <div><span class="ed-eyebrow">Edición digital · <?php echo esc_html( wp_date( 'j F Y' ) ); ?></span><h1><?php echo esc_html( cms_editorial_setting( 'home_title' ) ?: 'Actualidad' ); ?></h1></div>
+        <a class="ed-text-link ed-intro-link" href="#ed-sections">Explorar secciones <span aria-hidden="true">↓</span></a>
     </div>
 
-</main><!-- #primary -->
+    <div class="container">
+        <?php if ( $featured ) : ?>
+        <section class="ed-hero-grid" aria-label="Noticias destacadas">
+            <div class="ed-lead-column">
+                <?php cms_editorial_story( $featured[0], 'lead' ); ?>
+                <?php if ( count( $featured ) > 1 ) : ?>
+                    <div class="ed-featured-secondary"><?php foreach ( array_slice( $featured, 1 ) as $story ) { cms_editorial_story( $story, 'compact' ); } ?></div>
+                <?php endif; ?>
+            </div>
+            <aside class="ed-latest-panel" aria-labelledby="ed-latest-title">
+                <div class="ed-panel-heading"><span class="ed-live-dot" aria-hidden="true"></span><h2 id="ed-latest-title">Últimas actualizaciones</h2><span class="ed-panel-caption">Al día</span></div>
+                <?php if ( $latest ) : ?>
+                    <ol class="ed-latest-list"><?php foreach ( $latest as $index => $story ) : ?><li><span class="ed-list-number" aria-hidden="true"><?php echo esc_html( sprintf( '%02d', $index + 1 ) ); ?></span><?php cms_editorial_story( $story, 'compact' ); ?></li><?php endforeach; ?></ol>
+                <?php else : ?><p class="ed-muted">Aquí encontrarás las próximas actualizaciones.</p><?php endif; ?>
+                <a class="ed-panel-action" href="<?php echo esc_url( get_option( 'page_for_posts' ) ? get_permalink( get_option( 'page_for_posts' ) ) : home_url( '/?post_type=post' ) ); ?>">Ver todas las noticias <span aria-hidden="true">↗</span></a>
+            </aside>
+        </section>
+        <?php else : ?><section class="ed-empty"><h2>Un nuevo espacio para la información</h2><p>Las próximas historias de nuestra publicación estarán aquí.</p></section><?php endif; ?>
 
-<?php
-get_footer();
+        <?php cms_editorial_ad_slot( 'below-hero' ); ?>
+
+        <div class="ed-content-layout" id="ed-sections">
+            <div class="ed-sections-feed">
+                <?php
+                $shown = $featured_ids;
+                $section_index = 0;
+                $section_ads = array( 'nacional' => 'nacional-ad', 'mundo' => 'internacional-ad', 'internacional' => 'internacional-ad', 'economia' => 'economia-ad', 'seguridad' => 'seguridad-ad', 'sucesos' => 'seguridad-ad', 'deportes' => 'zona-deportiva-ad', 'zona-deportiva' => 'zona-deportiva-ad' );
+                $rendered_ads = array();
+                $slugs = array_unique( array_filter( array_map( 'trim', explode( ',', cms_editorial_setting( 'home_sections' ) . ',' . cms_editorial_setting( 'local_categories' ) ) ) ) );
+                foreach ( $slugs as $slug ) :
+                    $category = get_category_by_slug( $slug );
+                    if ( ! $category ) { continue; }
+                    $stories = cms_editorial_home_posts( array( 'category' => $category->term_id, 'post__not_in' => $shown ) );
+                    if ( ! $stories ) { continue; }
+                    $shown = array_merge( $shown, wp_list_pluck( $stories, 'ID' ) );
+                    ?>
+                    <section class="ed-news-section" aria-label="<?php echo esc_attr( $category->name ); ?>">
+                        <?php cms_editorial_section_heading( $category->name, get_category_link( $category ), $section_index === 0 ? 'El contexto, en cada sección' : '' ); ?>
+                        <div class="ed-section-grid<?php echo count( $stories ) === 1 ? ' ed-section-grid--single' : ''; ?>"><?php foreach ( $stories as $story ) { cms_editorial_story( $story ); } ?></div>
+                    </section>
+                    <?php
+                    if ( isset( $section_ads[ $slug ] ) && ! in_array( $section_ads[ $slug ], $rendered_ads, true ) ) {
+                        cms_editorial_ad_slot( $section_ads[ $slug ] );
+                        $rendered_ads[] = $section_ads[ $slug ];
+                    }
+                    ++$section_index;
+                    if ( $section_index === 3 ) { cms_editorial_ad_slot( 'in-feed-1' ); }
+                    if ( $section_index === 6 ) { cms_editorial_ad_slot( 'in-feed-2' ); }
+                    ?>
+                <?php endforeach; ?>
+                <?php
+                if ( $section_index < 3 ) { cms_editorial_ad_slot( 'in-feed-1' ); }
+                if ( $section_index < 6 ) { cms_editorial_ad_slot( 'in-feed-2' ); }
+                ?>
+            </div>
+
+            <aside class="ed-home-sidebar">
+                <div class="ed-sidebar-stack">
+                    <?php if ( $cover && cms_editorial_setting( 'home_show_cover' ) ) : ?>
+                    <section class="ed-edition-panel" id="ed-edition" aria-labelledby="ed-edition-title">
+                        <span class="ed-eyebrow">La edición impresa</span><h2 id="ed-edition-title">Nuestra portada</h2><p>Una mirada a las historias del día.</p>
+                        <button type="button" class="ed-cover-trigger card-portada" data-full-url="<?php echo esc_url( $cover ); ?>" aria-label="Abrir la portada de la edición impresa"><img src="<?php echo esc_url( $cover ); ?>" alt="Portada de <?php echo esc_attr( get_bloginfo( 'name' ) ); ?>" loading="lazy"><span class="ed-cover-caption"><span class="material-symbols-outlined" aria-hidden="true">zoom_in</span> Ampliar portada</span></button>
+                    </section>
+                    <?php endif; ?>
+
+                    <?php if ( cms_editorial_setting( 'home_show_services' ) ) : ?>
+                    <section class="ed-services-panel" aria-labelledby="ed-services-title">
+                        <span class="ed-eyebrow">Más cerca de ti</span><h2 id="ed-services-title">Servicios del medio</h2>
+                        <?php foreach ( array( 'clasificados' => array( 'Clasificados', 'Anuncios y oportunidades', 'format_list_bulleted' ), 'carteles' => array( 'Carteles y edictos', 'Avisos y documentos públicos', 'description' ), 'contacto' => array( 'Contacta con la redacción', 'Tu historia también cuenta', 'chat_bubble_outline' ) ) as $path => $service ) : ?>
+                        <a class="ed-service-link" href="<?php echo esc_url( home_url( '/' . $path . '/' ) ); ?>"><span class="material-symbols-outlined ed-service-icon" aria-hidden="true"><?php echo esc_html( $service[2] ); ?></span><span><strong><?php echo esc_html( $service[0] ); ?></strong><small><?php echo esc_html( $service[1] ); ?></small></span><span aria-hidden="true">↗</span></a>
+                        <?php endforeach; ?>
+                    </section>
+                    <?php endif; ?>
+
+                    <section class="ed-community-panel"><span class="ed-eyebrow">Una conversación abierta</span><h2>¿Tienes una historia?</h2><p>Comparte una propuesta, una pregunta o algo que tu comunidad necesita contar.</p><a class="ed-button" href="<?php echo esc_url( home_url( '/contacto/' ) ); ?>">Escribir a la redacción <span aria-hidden="true">↗</span></a></section>
+                </div>
+            </aside>
+        </div>
+    </div>
+</main>
+<?php get_footer(); ?>

@@ -1,86 +1,16 @@
 <?php
-/**
- * La plantilla principal del tema Pro.
- *
- * @package Pro
- */
-
+/** Listados generales y búsqueda de CMS-Editorial. */
 get_header();
+global $wp_query;
+$title = is_search() ? ( get_search_query() ? 'Resultados para «' . get_search_query() . '»' : 'Buscar noticias' ) : ( is_archive() ? wp_strip_all_tags( get_the_archive_title() ) : 'Todas las noticias' );
 ?>
-
-<main id="primary" class="site-main container">
-
+<main id="primary" class="site-main container ed-archive-page">
+    <header class="page-header"><span class="ed-eyebrow"><?php echo is_search() ? 'Encuentra una historia' : 'El archivo de la publicación'; ?></span><h1 class="page-title"><?php echo esc_html( $title ); ?></h1><p class="archive-description"><?php echo esc_html( sprintf( _n( '%s historia encontrada', '%s historias encontradas', $wp_query->found_posts, 'pro' ), number_format_i18n( $wp_query->found_posts ) ) ); ?></p></header>
     <?php if ( have_posts() ) : ?>
-
-        <div class="home-layout-grid">
-
-            <?php
-            // Primera noticia (Héroe - Destacada)
-            the_post();
-            ?>
-            <article id="post-<?php the_ID(); ?>" <?php post_class('hero-post'); ?>>
-                <?php if ( pro_get_post_image_id() ) : ?>
-                    <a href="<?php the_permalink(); ?>" class="post-thumbnail" aria-hidden="true" tabindex="-1">
-                        <?php pro_the_post_image( 'hero-thumbnail', array( 'loading' => 'eager' ) ); // Eager load for LCP ?>
-                    </a>
-                <?php endif; ?>
-                <div class="hero-content">
-                        <?php pro_post_categories(); ?>
-                    <h2 class="entry-title"><a href="<?php the_permalink(); ?>" rel="bookmark"><?php the_title(); ?></a></h2>
-                    <div class="entry-summary">
-                        <?php the_excerpt(); ?>
-                    </div>
-                    <div class="post-meta-footer">
-                        Por <span class="author"><?php the_author(); ?></span> &bull;
-                        <time datetime="<?php echo get_the_date('c'); ?>"><?php echo get_the_date(); ?></time>
-                    </div>
-                </div>
-            </article>
-
-            <?php if ( is_active_sidebar( 'ad-in-feed' ) ) : ?>
-                <div class="home-ad-break">
-                    <?php dynamic_sidebar( 'ad-in-feed' ); ?>
-                </div>
-            <?php endif; ?>
-
-            <div class="secondary-posts-grid">
-                <?php
-                // Resto de las noticias en formato Card
-                while ( have_posts() ) :
-                    the_post();
-                    ?>
-                    <article id="post-<?php the_ID(); ?>" <?php post_class('card-post'); ?>>
-                        <?php if ( pro_get_post_image_id() ) : ?>
-                            <a href="<?php the_permalink(); ?>" class="post-thumbnail" aria-hidden="true" tabindex="-1">
-                                <?php pro_the_post_image( 'card-thumbnail', array( 'loading' => 'lazy' ) ); ?>
-                            </a>
-                        <?php endif; ?>
-                        <div class="card-content">
-                            <div class="post-meta">
-                                <?php pro_post_categories(); ?>
-                            </div>
-                            <h3 class="entry-title"><a href="<?php the_permalink(); ?>" rel="bookmark"><?php the_title(); ?></a></h3>
-                        </div>
-                    </article>
-                    <?php
-                endwhile;
-                ?>
-            </div><!-- .secondary-posts-grid -->
-
-        </div><!-- .home-layout-grid -->
-
-        <?php $loadmore = pro_get_main_query_loadmore_state(); ?>
-        <?php if ( $loadmore['has_more'] ) : ?>
-            <div class="load-more-container text-center">
-                <button id="load-more-btn" class="btn-primary"<?php pro_listing_data_attributes( $loadmore['context'], $loadmore['offset'], $loadmore['per_page'], '.secondary-posts-grid' ); ?>>Cargar más noticias</button>
-            </div>
+        <div class="ed-archive-grid posts-grid"><?php while ( have_posts() ) : the_post(); get_template_part( 'template-parts/content/card' ); endwhile; ?></div>
+        <?php $state = pro_get_main_query_loadmore_state(); if ( $state['has_more'] ) : ?>
+        <div class="load-more-container text-center"><button type="button" id="load-more-btn" class="btn-primary"<?php pro_listing_data_attributes( $state['context'], $state['offset'], $state['per_page'], '.ed-archive-grid' ); ?>>Cargar más noticias</button></div>
         <?php endif; ?>
-
-    <?php else : ?>
-        <p><?php esc_html_e( 'No hay noticias publicadas por el momento.', 'pro' ); ?></p>
-    <?php endif; ?>
-
-</main><!-- #primary -->
-
-<?php
-get_footer();
+    <?php else : ?><section class="ed-empty"><h2>No encontramos historias con esos términos</h2><p>Prueba una búsqueda más breve o explora las secciones del medio.</p><?php get_search_form(); ?></section><?php endif; ?>
+</main>
+<?php get_footer(); ?>
