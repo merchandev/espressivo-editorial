@@ -28,6 +28,8 @@ El idioma y la zona horaria se configuran en **Ajustes → Generales**. Las pág
 - Archivos y resultados de búsqueda con tarjetas compartidas y carga de más noticias.
 - Colores y modos de apariencia vinculados a la configuración de marca blanca.
 
+Los enlaces y la jerarquía se editan en **Apariencia → Menús**. Asigna **Menú Principal (PC)** y, si lo necesitas, **Menú Móvil (Teléfonos)**. Si no hay un menú móvil asignado, el panel usa el principal. El menú de escritorio pasa automáticamente a panel cuando sus enlaces no caben. En móvil y tablet las subsecciones se abren con su botón de flecha; pulsar el nombre de una sección lleva a su página. Los desplegables largos del escritorio se distribuyen en columnas.
+
 ## Funciones editoriales
 
 - Portada por secciones, búsqueda AJAX, navegación móvil, modo oscuro y carga de noticias.
@@ -52,11 +54,18 @@ En una actualización, conserva la carpeta activa del tema para que WordPress ma
 - PHP 8.1 o superior; WordPress con el personalizador clásico.
 - `composer install` para las dependencias de reportes PDF (incluidas en `vendor/` para distribuir el tema).
 - `npm ci && npm run build` para volver a compilar la barra lateral SEO del editor. Sus archivos compilados se incluyen en `build/`.
-- Las pruebas de integración están en `tests/integration/white-label.php` y `tests/integration/editorial-ui.php`. Se ejecutan con WP-CLI **únicamente en una instalación local desechable**, con `WP_ENVIRONMENT_TYPE=local`.
+- Las pruebas de integración están en `tests/integration/`. Se ejecutan con WP-CLI **únicamente en una instalación local desechable**, con `WP_ENVIRONMENT_TYPE=local`.
 
 ```sh
 wp eval-file wp-content/themes/cms-editorial/tests/integration/white-label.php --user=administrador-local
 wp eval-file wp-content/themes/cms-editorial/tests/integration/editorial-ui.php --user=administrador-local
+wp eval-file wp-content/themes/cms-editorial/tests/integration/navigation.php --user=administrador-local
+```
+
+`tests/browser/navigation.py` verifica el menú con Python, Playwright y Microsoft Edge en una instalación local con el menú inicial del tema. Incluye acordeones, menús largos, foco, modo oscuro, búsqueda y navegación entre páginas. El parámetro opcional `--screenshots` guarda capturas fuera del repositorio:
+
+```sh
+python tests/browser/navigation.py --url http://127.0.0.1:8093 --screenshots /ruta/temporal/capturas
 ```
 
 ## Compatibilidad
@@ -68,10 +77,11 @@ Las claves de opciones, metadatos, capacidades, namespaces y tablas de versiones
 - `inc/theme-settings.php`: opciones, validación, personalizador, CSS dinámico, logos y radio.
 - `assets/js/theme-settings.js`: pestañas, biblioteca de medios y selectores de color.
 - `inc/editorial-ui.php`, `assets/css/editorial-ui.css` y `assets/js/editorial-ui.js`: presentación editorial y herramientas de lectura.
+- `inc/navigation.php`, `assets/css/navigation.css` y `assets/js/navigation.js`: menús de WordPress, panel responsive y acordeones.
 - `inc/seo/`: metadatos y herramientas SEO.
 - `inc/reportes/`: reportes y PDF.
 - `inc/ad-manager.php`: publicidad y patrocinadores.
 - `inc/clasificados.php`: sistema de clasificados.
 - `template-parts/`: módulos de portada y publicidad.
 
-Versión **3.1.0**.
+Versión **3.1.1**.

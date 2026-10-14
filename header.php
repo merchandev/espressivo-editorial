@@ -26,10 +26,9 @@
             </div>
         </div>
         <div class="header-navigation-wrapper"><div class="container navigation-inner">
-            <nav id="site-navigation" class="main-navigation" aria-label="Secciones de la publicación">
-                <button class="menu-toggle" type="button" aria-controls="primary-menu-mobile" aria-expanded="false" aria-label="Abrir menú de secciones"><span class="material-symbols-outlined" aria-hidden="true">menu</span><span class="ed-menu-caption">Secciones</span></button>
-                <?php wp_nav_menu( array( 'theme_location' => 'primary', 'menu_id' => 'primary-menu-desktop', 'container_class' => 'desktop-menu-wrapper', 'fallback_cb' => '__return_false' ) );
-                wp_nav_menu( array( 'theme_location' => has_nav_menu( 'mobile' ) ? 'mobile' : 'primary', 'menu_id' => 'primary-menu-mobile', 'container_class' => 'mobile-menu-wrapper', 'fallback_cb' => '__return_false' ) ); ?>
+            <nav id="site-navigation" class="cms-site-navigation" aria-label="Secciones de la publicación">
+                <button class="cms-menu-toggle" type="button" aria-controls="cms-menu-drawer" aria-expanded="false" aria-haspopup="dialog" aria-label="Abrir menú de secciones"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Secciones</span></button>
+                <div class="cms-desktop-menu"><?php cms_editorial_navigation_menu( 'primary', 'primary-menu-desktop' ); ?></div>
             </nav>
             <div class="header-actions"><div class="search-container">
                 <form role="search" method="get" class="search-form ajax-search-form" action="<?php echo esc_url( home_url( '/' ) ); ?>"><label><span class="screen-reader-text">Buscar noticias</span><input type="search" class="search-field ajax-search-input" placeholder="Buscar noticias" value="<?php echo esc_attr( get_search_query() ); ?>" name="s" autocomplete="off" aria-controls="cms-search-results" aria-keyshortcuts="/"></label><button type="submit" class="search-submit" aria-label="Buscar"><span class="material-symbols-outlined" aria-hidden="true">search</span></button></form><div id="cms-search-results" class="ajax-search-results-container" role="region" aria-label="Resultados de búsqueda" aria-live="polite"></div>

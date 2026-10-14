@@ -47,7 +47,6 @@
             const heading = document.querySelector('#primary h1');
             if (heading) { heading.setAttribute('tabindex', '-1'); heading.focus({ preventScroll: true }); }
         });
-        const menu = document.getElementById('site-navigation');
         const modal = document.getElementById('portada-lightbox-modal');
         let modalTrigger;
         if (modal) {
@@ -67,21 +66,7 @@
                 else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
             });
         }
-        const toggle = menu?.querySelector('.menu-toggle');
-        window.addEventListener('resize', function () {
-            if (window.innerWidth > 1024 && menu?.classList.contains('toggled')) toggle.click();
-        });
         document.addEventListener('keydown', function (event) {
-            if (menu?.classList.contains('toggled')) {
-                if (event.key === 'Escape') { event.preventDefault(); toggle.click(); toggle.focus(); }
-                if (event.key === 'Tab') {
-                    const elements = [toggle, ...menu.querySelectorAll('.mobile-menu-wrapper a')].filter(el => el.getClientRects().length);
-                    const first = elements[0], last = elements[elements.length - 1];
-                    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
-                    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
-                }
-                return;
-            }
             if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.target.closest('input,textarea,select,[contenteditable="true"]')) {
                 const form = document.querySelector('.header-actions .search-form');
                 const input = form?.querySelector('input[type="search"]');

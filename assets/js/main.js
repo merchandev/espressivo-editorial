@@ -54,40 +54,10 @@
     }
 
     // ==========================================
-    // 2. MENÚ MÓVIL A PANTALLA COMPLETA
+    // 2. CIERRE DEL PANEL DE NAVEGACIÓN AL CAMBIAR DE PÁGINA
     // ==========================================
-    const MENU_ICON = '<span class="material-symbols-outlined" aria-hidden="true" style="vertical-align: middle;">menu</span><span class="ed-menu-caption">Secciones</span>';
-    const CLOSE_ICON = '<span class="material-symbols-outlined" aria-hidden="true" style="vertical-align: middle;">close</span><span class="ed-menu-caption">Cerrar</span>';
-
-    function initMobileMenu() {
-        const menuToggle = document.querySelector('.menu-toggle');
-        const navMenu = document.querySelector('.main-navigation');
-        if (!menuToggle || !navMenu) return;
-
-        menuToggle.addEventListener('click', function (e) {
-            e.preventDefault();
-            const open = navMenu.classList.toggle('toggled');
-            menuToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-            menuToggle.setAttribute('aria-label', open ? 'Cerrar menú de secciones' : 'Abrir menú de secciones');
-            // Bloquear scroll de fondo si está abierto
-            menuToggle.innerHTML = open ? CLOSE_ICON : MENU_ICON;
-            document.body.style.overflow = open ? 'hidden' : '';
-        });
-    }
-
-    // Al navegar con Swup el menú queda fuera del contenido reemplazado: hay que cerrarlo
     function closeMobileMenu() {
-        const menuToggle = document.querySelector('.menu-toggle');
-        const navMenu = document.querySelector('.main-navigation');
-        if (!navMenu || !navMenu.classList.contains('toggled')) return;
-
-        navMenu.classList.remove('toggled');
-        if (menuToggle) {
-            menuToggle.setAttribute('aria-expanded', 'false');
-            menuToggle.setAttribute('aria-label', 'Abrir menú de secciones');
-            menuToggle.innerHTML = MENU_ICON;
-        }
-        document.body.style.overflow = '';
+        window.cmsEditorialNavigation?.close(false);
     }
 
     // ==========================================
@@ -995,13 +965,13 @@
         initAdSliders(root, true);
         rescueLazyImages(root);
         syncReadingProgress();
+        window.cmsEditorialNavigation?.sync();
         Radio.syncPage();
     }
 
     function boot() {
         // Elementos persistentes (cabecera, pie, reproductor flotante)
         initDarkMode();
-        initMobileMenu();
         initTicker();
         initReadingProgress();
         initNewPostsPolling();

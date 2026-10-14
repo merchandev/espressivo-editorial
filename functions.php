@@ -19,6 +19,7 @@ add_filter( 'deprecated_hook_trigger_error', '__return_false' );
 // Identidad, apariencia y servicios configurables desde WordPress.
 require_once get_template_directory() . '/inc/theme-settings.php';
 require_once get_template_directory() . '/inc/editorial-ui.php';
+require_once get_template_directory() . '/inc/navigation.php';
 
 /**
  * Configuración inicial del tema.
@@ -1381,6 +1382,7 @@ add_action( 'admin_init', 'pro_handle_manual_reinstall' );
  */
 add_filter('nav_menu_item_title', 'pro_add_dropdown_arrow', 10, 4);
 function pro_add_dropdown_arrow($title, $item, $args, $depth) {
+    if ( ! empty( $args->cms_editorial_navigation ) ) { return $title; }
     if (in_array('menu-item-has-children', $item->classes)) {
         $arrow = ($depth > 0) ? '&#9656;' : '&#9662;'; // Flecha a la derecha para submenús, hacia abajo para principales
         $title .= ' <span class="dropdown-arrow" style="font-size: 0.8em; margin-left: 4px; display: inline-block;">' . $arrow . '</span>';
@@ -1390,6 +1392,7 @@ function pro_add_dropdown_arrow($title, $item, $args, $depth) {
 
 add_filter('nav_menu_link_attributes', 'pro_prevent_hash_links', 10, 3);
 function pro_prevent_hash_links($atts, $item, $args) {
+    if ( ! empty( $args->cms_editorial_navigation ) ) { return $atts; }
     if (isset($atts['href']) && $atts['href'] === '#') {
         $atts['href'] = 'javascript:void(0);';
         $atts['style'] = isset($atts['style']) ? $atts['style'] . ' cursor: pointer;' : 'cursor: pointer;';

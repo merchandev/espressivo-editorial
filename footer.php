@@ -43,6 +43,7 @@
         </div></div>
     </footer>
 </div><!-- #page -->
+<?php cms_editorial_menu_drawer(); ?>
 <button type="button" class="ed-back-to-top" data-cms-top hidden aria-label="Volver al inicio de la página"><span class="material-symbols-outlined" aria-hidden="true">arrow_upward</span></button>
 <!-- Visor Lightbox Modal Interactivo de Portadas -->
 <div id="portada-lightbox-modal" class="portada-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="portada-modal-title">

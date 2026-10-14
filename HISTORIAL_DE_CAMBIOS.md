@@ -1,5 +1,15 @@
 # Historial de cambios — CMS-Editorial
 
+## 3.1.1 — 14 de octubre de 2026
+
+- Nuevo panel de navegación para móvil y tablet con cabecera, búsqueda y cierre siempre visibles.
+- Subsecciones en acordeón, con enlaces y botones independientes; se abre un grupo por nivel.
+- Desplegables largos de escritorio distribuidos en columnas y niveles interiores en acordeón.
+- Cambio automático a panel cuando el menú configurado no cabe en la barra.
+- Foco contenido en el panel, fondo inactivo, cierre por Escape y devolución del foco.
+- Indicadores de página actual sincronizados al navegar sin recarga.
+- Prueba en navegador entre 320 y 1440 píxeles, incluyendo menús largos y navegación real.
+
 ## 3.1.0 — 14 de octubre de 2026
 
 - Rediseño de portada, cabecera, artículos, archivos y resultados de búsqueda.
